@@ -1,0 +1,6 @@
+Meeting talks and notes:
+
+
+Incomplete features:
+1. User auth with better ux
+2. Course, quiz and course materials creation. and editing of these resources.
