@@ -4,7 +4,9 @@ export { default as AndroidIconForeground } from "./android-icon-foreground.png"
 export { default as AndroidIconMonochrome } from "./android-icon-monochrome.png";
 export { default as Favicon } from "./favicon.png";
 export { default as Icon } from "./icon.png";
+export { default as IntroIcon } from "./intro.png";
 export { default as SplashIcon } from "./splash-icon.png";
+export { default as WavesIcon } from "./waves.png";
 
 // Export all icons from the icons directory
 export { default as AppleIcon } from "./icons/apple.png";
