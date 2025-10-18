@@ -1,7 +1,7 @@
 import "@/styles/global.css";
 import { Stack } from "expo-router";
 import React from "react";
-import { FontLoader } from "./components/font-loader";
+import { FontLoader } from "../components/font-loader";
 
 export default function RootLayout() {
   return (
