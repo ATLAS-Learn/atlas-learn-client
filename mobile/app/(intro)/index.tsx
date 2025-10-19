@@ -16,7 +16,7 @@ export default function Intro() {
 
     setTimeout(() => {
       setIsLoading(false);
-      router.replace("/(auth)");
+      router.replace("/(auth)/signin");
     }, 500);
   };
 
@@ -25,11 +25,13 @@ export default function Intro() {
   };
 
   return (
-    <View className="flex-1 justify-center items-center h-full w-full p-[25px] flex flex-col gap-28 relative">
+    <View className="flex-1 justify-center items-center h-full w-full flex flex-col relative">
       {/* Top banner */}
-      <TopBanner step={currentStep} />
+      <View className="w-full p-[25px] mb-[10rem]">
+        <TopBanner step={currentStep} />
+      </View>
 
-      <View className="w-full flex flex-col gap-8">
+      <View className="w-full flex flex-col gap-8 bg-white rounded-xl p-[25px] py-[2.5rem] rounded-b-none absolute bottom-0 left-0 right-0 h-[358px]">
         <MiddleSection step={currentStep} />
 
         <View className="w-full flex items-center justify-center gap-2 flex-row">

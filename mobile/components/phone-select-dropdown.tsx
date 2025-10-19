@@ -1,32 +1,101 @@
-// PhoneNumberInput.tsx
-import React, { useState } from "react";
-import { Text, View } from "react-native";
-import PhoneInput from "react-native-international-phone";
-import "react-native-international-phone/style.css";
+import React, { useEffect, useState } from "react";
+import { View } from "react-native";
+import PhoneInput, {
+  getAllCountries,
+  ICountry,
+  isValidPhoneNumber,
+} from "react-native-international-phone-number";
 
-export default function PhoneNumberInput() {
-  const [phoneNumber, setPhoneNumber] = useState("");
+export function PhoneNumberInput() {
+  const [selectedCountry, setSelectedCountry] = useState<ICountry | null>(null);
+  const [inputValue, setInputValue] = useState("");
+
+  function handleInputValue(phoneNumber: string) {
+    setInputValue(phoneNumber);
+  }
+
+  function handleSelectedCountry(country: any) {
+    setSelectedCountry(country);
+  }
+
+  useEffect(() => {
+    const d = getAllCountries();
+    console.log({ countries: d });
+  }, []);
+
+  const isValidUserPhoneNumber = isValidPhoneNumber(
+    inputValue,
+    selectedCountry as ICountry
+  );
 
   return (
-    <View className="flex-1 justify-center items-center bg-gray-100">
-      <View className="w-11/12 max-w-md p-6 bg-white rounded-xl shadow-md">
-        <Text className="text-center text-xl font-semibold mb-4">
-          Phone Number
-        </Text>
+    <View
+      className={`w-full border border-gray-300 rounded-[16px] p-[16px] flex flex-row items-center gap-4 bg-[#ebebeb] ${
+        !isValidUserPhoneNumber && inputValue.trim() !== ""
+          ? "border-[1px] border-red-500 bg-red-100"
+          : ""
+      }`}
+    >
+      <PhoneInput
+        defaultValue="+237685281943"
+        placeholder="Phone Number"
+        value={inputValue}
+        onChangePhoneNumber={handleInputValue}
+        selectedCountry={selectedCountry}
+        onChangeSelectedCountry={handleSelectedCountry}
+        phoneInputStyles={{
+          container: {
+            borderWidth: 0,
+            backgroundColor: "transparent",
+            outline: "none",
+            height: "100%",
+            width: "100%",
+            gap: 0,
+          },
+          input: {
+            fontSize: 16,
+            padding: 0,
+            margin: 0,
+            height: 40,
+            flex: 1,
+            borderWidth: 0,
+            backgroundColor: "transparent",
+            outline: "none",
+            fontWeight: "600",
+          },
+          divider: {
+            backgroundColor: "transparent",
+          },
+          callingCode: {
+            fontSize: 16,
+            fontWeight: "600",
+          },
 
-        <PhoneInput
-          defaultCountry="CM"
-          onChangeText={setPhoneNumber}
-          value={phoneNumber}
-          containerStyle={{ width: "100%" }}
-          textStyle={{ fontSize: 16 }}
-          flagButtonStyle={{ borderRadius: 12 }}
-        />
-
-        <Text className="mt-4 text-center text-gray-500 text-sm">
-          Selected: {phoneNumber || "None"}
-        </Text>
-      </View>
+          flag: {
+            backgroundColor: "transparent",
+          },
+          flagContainer: {
+            backgroundColor: "transparent",
+            width: "auto",
+            padding: 0,
+            paddingRight: 6,
+          },
+        }}
+        modalStyles={{
+          searchInput: {
+            borderColor: "#E5E7EB",
+            borderWidth: 1,
+            borderRadius: 8,
+            padding: 8,
+            marginBottom: 10,
+            fontSize: 16,
+          },
+          countryItem: {
+            borderColor: "#E5E7EB",
+            backgroundColor: "",
+          },
+        }}
+      />
     </View>
   );
 }

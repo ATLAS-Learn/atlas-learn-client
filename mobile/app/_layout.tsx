@@ -39,7 +39,7 @@ export default function RootLayout() {
   }, [fadeAnim, onboardingComplete, isAuthenticated, router]);
 
   return (
-    <SafeAreaProvider className="bg-[#FAFAFA]">
+    <SafeAreaProvider className="bg-[#F3F4F6] p-[25px]">
       <FontLoader>
         <StatusBar hidden={true} />
         {showIntro && (
