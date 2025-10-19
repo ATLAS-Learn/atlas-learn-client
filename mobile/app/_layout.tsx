@@ -1,4 +1,5 @@
-import "@/styles/global.css";
+import "../styles/global.css";
+
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Animated, StatusBar } from "react-native";
@@ -22,15 +23,15 @@ export default function RootLayout() {
         useNativeDriver: true,
       }).start(() => {
         setShowIntro(false);
-        // Navigate based on auth status
-        if (onboardingComplete === null || isAuthenticated === null) return;
-        if (!onboardingComplete) {
-          router.replace("/(intro)");
-        } else if (!isAuthenticated) {
-          router.replace("/(auth)");
-        } else {
-          router.replace("/(after-auth)");
-        }
+        // // Navigate based on auth status
+        // if (onboardingComplete === null || isAuthenticated === null) return;
+        // if (!onboardingComplete) {
+        //   router.replace("/(intro)");
+        // } else if (!isAuthenticated) {
+        //   router.replace("/(auth)");
+        // } else {
+        //   router.replace("/(after-auth)");
+        // }
       });
     }, 3000);
 

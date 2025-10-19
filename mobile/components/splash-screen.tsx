@@ -26,6 +26,7 @@ export function SplashScreen() {
       <Image
         source={require("@/assets/images/waves.png")}
         resizeMode="contain"
+        style={{ width: "100%" }}
       />
     </View>
   );
