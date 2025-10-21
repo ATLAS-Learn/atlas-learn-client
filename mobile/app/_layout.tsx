@@ -1,6 +1,6 @@
 import "../styles/global.css";
 
-import { Stack, useRouter } from "expo-router";
+import { Slot, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Animated, StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -40,8 +40,8 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider className="bg-[#F3F4F6] p-[25px]">
+      <StatusBar hidden={true} />
       <FontLoader>
-        <StatusBar hidden={true} />
         {showIntro && (
           <Animated.View
             style={[
@@ -59,16 +59,8 @@ export default function RootLayout() {
             <SplashScreen />
           </Animated.View>
         )}
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen name="(intro)/index" />
-          <Stack.Screen name="(auth)/index" />
-          <Stack.Screen name="(after-auth)/index" />
-          <Stack.Screen name="(onboarding)/index" />
-        </Stack>
+
+        <Slot />
       </FontLoader>
     </SafeAreaProvider>
   );

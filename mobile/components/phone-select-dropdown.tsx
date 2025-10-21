@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View } from "react-native";
 import PhoneInput, {
-  getAllCountries,
   ICountry,
   isValidPhoneNumber,
 } from "react-native-international-phone-number";
@@ -18,11 +17,6 @@ export function PhoneNumberInput() {
     setSelectedCountry(country);
   }
 
-  useEffect(() => {
-    const d = getAllCountries();
-    console.log({ countries: d });
-  }, []);
-
   const isValidUserPhoneNumber = isValidPhoneNumber(
     inputValue,
     selectedCountry as ICountry
@@ -30,15 +24,15 @@ export function PhoneNumberInput() {
 
   return (
     <View
-      className={`w-full border border-gray-300 rounded-[16px] p-[16px] flex flex-row items-center gap-4 bg-[#ebebeb] ${
+      className={`w-full border border-gray-300 rounded-[16px] p-[11px] flex flex-row items-center gap-4 bg-[#ebebeb] ${
         !isValidUserPhoneNumber && inputValue.trim() !== ""
           ? "border-[1px] border-red-500 bg-red-100"
           : ""
       }`}
     >
       <PhoneInput
-        defaultValue="+237685281943"
         placeholder="Phone Number"
+        defaultCountry={"CM"}
         value={inputValue}
         onChangePhoneNumber={handleInputValue}
         selectedCountry={selectedCountry}
@@ -51,6 +45,9 @@ export function PhoneNumberInput() {
             height: "100%",
             width: "100%",
             gap: 0,
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
           },
           input: {
             fontSize: 16,

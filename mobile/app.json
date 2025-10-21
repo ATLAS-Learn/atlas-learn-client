@@ -9,14 +9,15 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.atlaslearn.mobile",
+      "buildNumber": "1.0.0"
     },
     "android": {
+      "package": "com.atlaslearn.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#FAFAFA",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#FAFAFA"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -25,6 +26,11 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png",
       "bundler": "metro"
+    },
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAFAFA"
     },
     "plugins": [
       "expo-router",
