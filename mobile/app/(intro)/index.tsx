@@ -16,7 +16,7 @@ export default function Intro() {
 
     setTimeout(() => {
       setIsLoading(false);
-      router.replace("/(auth)");
+      router.replace('/')
     }, 500);
   };
 
