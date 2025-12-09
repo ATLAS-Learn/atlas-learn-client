@@ -52,20 +52,27 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
 
-  const handleSignIn = () => {
-  const newErrors = validateFields({
-    email,
-    password,
-  });
+  const handleSignIn = async () => {
+    const newErrors = validateFields({
+      email,
+      password,
+    });
 
-  setErrors(newErrors);
+    setErrors(newErrors);
 
-  if (Object.keys(newErrors).length === 0) {
-    router.replace("/");
-    setEmail("");
-    setPassword("");
-  }
-};
+    if (Object.keys(newErrors).length === 0) {
+      setLoading(true);
+      try {
+        await signIn(email, password);
+        setEmail("");
+        setPassword("");
+      } catch (error: any) {
+        setErrors({ email: error.message || "Sign in failed" });
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
 
   return (
@@ -181,8 +188,8 @@ export default function SignIn() {
         </View>
 
         <Text style={styles.signupText}>
-          Don’t have an account?{" "}
-          <Link href="/signup" style={styles.signupLink}>
+          Don't have an account?{" "}
+          <Link href="/(auth)/signup" style={styles.signupLink}>
             Sign up
           </Link>
         </Text>
@@ -208,7 +215,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
     marginTop:40
-    
+
   },
   logo: {
     fontWeight: "bold",
@@ -238,7 +245,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 10,
     marginBottom: 15,
-    
+
   },
   icon: {
     marginRight: 10,
@@ -277,7 +284,7 @@ const styles = StyleSheet.create({
     fontWeight: "700"
 
   },
-  
+
   loginButton: {
     backgroundColor: "#F2B138",
     paddingVertical: 15,

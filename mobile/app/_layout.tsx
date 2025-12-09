@@ -24,21 +24,21 @@ useEffect(() => {
       duration: 500,
       useNativeDriver: true,
     }).start(() => {
-      // setShowIntro(false); // hide splash
+      setShowIntro(false); // hide splash
 
-      // // Navigate based on user state
-      // if (onboardingComplete === null || isAuthenticated === null) return;
+      // Navigate based on user state
+      if (onboardingComplete === null || isAuthenticated === null) return;
 
-      // if (!onboardingComplete) {
-      //   // First-time user → go to onboarding
-      //   router.replace("/(onboarding)");
-      // } else if (!isAuthenticated) {
-      //   // Returning user but not logged in → go to auth
-      //   router.replace("/(auth)");
-      // } else {
-      //   // Logged-in user → go to main app
-      //   router.replace("/(after-auth)");
-      // }
+      if (!onboardingComplete) {
+        // First-time user → go to onboarding
+        router.replace("/(intro)");
+      } else if (!isAuthenticated) {
+        // Returning user but not logged in → go to auth
+        router.replace("/(auth)");
+      } else {
+        // Logged-in user → go to main app
+        router.replace("/(after-auth)");
+      }
     });
   }, 3000);
 
@@ -80,7 +80,7 @@ useEffect(() => {
           </Stack>
         </FontLoader>
       </AuthProvider>
-     
+
     </SafeAreaProvider>
   );
 }

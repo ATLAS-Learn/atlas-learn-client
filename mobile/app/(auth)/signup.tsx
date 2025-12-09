@@ -18,9 +18,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { FacebookIcon, GoogleIcon, AppleIcon } from "@/assets/images";
 import PhoneNumberInput from "@/components/phone-select-dropdown";
 import { ValidationErrors, validateFields } from "@/utils/validate";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const { signUp } = useAuth();
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
@@ -30,22 +32,30 @@ export default function SignUpScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
 
-  
-  const handleSignUp = () => {
-  const newErrors = validateFields({
-    fullName,
-    email,
-    password,
-  });
+  const handleSignUp = async () => {
+    const newErrors = validateFields({
+      fullName,
+      email,
+      password,
+    });
 
-  setErrors(newErrors);
+    setErrors(newErrors);
 
-  if (Object.keys(newErrors).length === 0) {
-    router.replace("/");
-    setEmail("");
-    setPassword("");
-  }
-};
+    if (Object.keys(newErrors).length === 0) {
+      setLoading(true);
+      try {
+        await signUp(fullName, email, password);
+        setEmail("");
+        setPassword("");
+        setFullName("");
+        setPhone("");
+      } catch (error: any) {
+        setErrors({ email: error.message || "Sign up failed" });
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
 
   return (
@@ -117,7 +127,7 @@ export default function SignUpScreen() {
               <Text style={{ color: "red", marginBottom: 10 }}>{errors.fullName}</Text>
             )
           }
-          
+
           {/* Password Input */}
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={24} color="#B3B3B3" style={styles.icon} />
@@ -167,7 +177,7 @@ export default function SignUpScreen() {
           </TouchableOpacity>
           <Text style={styles.loginText}>
             Already have an account?{" "}
-            <Link href="/" style={styles.loginLink}>
+            <Link href="/(auth)" style={styles.loginLink}>
               Sign in
             </Link>
           </Text>
@@ -195,7 +205,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 90,
     marginBottom: 10,
-    
+
   },
    logo: {
     fontWeight: "bold",
@@ -209,7 +219,7 @@ const styles = StyleSheet.create({
     color: "#282F2E",
     marginBottom:15
   },
-  
+
   socialContainer: {
     flexDirection: "row",
     justifyContent: "center",
