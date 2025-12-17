@@ -11,17 +11,23 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import Checkbox from "expo-checkbox";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { FacebookIcon, GoogleIcon, AppleIcon } from "@/assets/images";
-import PhoneNumberInput from "@/components/phone-select-dropdown";
 import { ValidationErrors, validateFields } from "@/utils/validate";
+import { apiClient } from "@/services/api";
+import { useAuthStore } from "@/store/auth";
+import { useUserStore } from "@/store/user";
+import { setItem } from "@/utils/storage";
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const [phone, setPhone] = useState("");
+  const { setAuth } = useAuthStore();
+  const { setUser } = useUserStore();
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
@@ -30,22 +36,55 @@ export default function SignUpScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
 
-  
-  const handleSignUp = () => {
-  const newErrors = validateFields({
-    fullName,
-    email,
-    password,
-  });
+  // Default avatar URL - can be updated later
+  const DEFAULT_AVATAR = "https://ui-avatars.com/api/?name=User&background=F2B138&color=fff&size=200";
 
-  setErrors(newErrors);
+  const handleSignUp = async () => {
+    const newErrors: ValidationErrors = validateFields({
+      fullName,
+      email,
+      password,
+    });
 
-  if (Object.keys(newErrors).length === 0) {
-    router.replace("/");
-    setEmail("");
-    setPassword("");
-  }
-};
+    if (!isChecked) {
+      Alert.alert("Terms Required", "Please agree to the Terms of Service and Privacy Policy");
+      return;
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length === 0) {
+      setLoading(true);
+      try {
+        const response = await apiClient.signup({
+          name: fullName,
+          email,
+          password,
+          image: DEFAULT_AVATAR,
+        });
+
+        setAuth(response.token);
+        setUser(response.user);
+
+        // Fetch 5 quizzes after signup (handle errors gracefully)
+        try {
+          await apiClient.getQuizzes(5);
+        } catch (error) {
+          console.log("Note: Could not fetch quizzes on signup:", error);
+          // Continue anyway - quizzes can be fetched later
+        }
+
+        // Mark assessment as complete since we're fetching quizzes instead
+        await setItem("assessmentComplete", "true");
+
+        router.replace("/(after-auth)");
+      } catch (error: any) {
+        Alert.alert("Signup Failed", error.message || "An error occurred. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
 
   return (
@@ -53,7 +92,7 @@ export default function SignUpScreen() {
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
+      >
         <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
@@ -83,8 +122,6 @@ export default function SignUpScreen() {
             <View style={styles.divider} />
           </View>
 
-          <PhoneNumberInput/>
-
           {/* Email Input */}
           <View style={styles.inputContainer}>
             <Ionicons name="mail" size={24} color="#B3B3B3" style={styles.icon} />
@@ -99,10 +136,10 @@ export default function SignUpScreen() {
             />
           </View>
           {errors.email && (
-              <Text style={{ color: "red", marginBottom: 10 }}>{errors.email}</Text>
-            )
+            <Text style={{ color: "red", marginBottom: 10 }}>{errors.email}</Text>
+          )
           }
-           {/* Name Input */}
+          {/* Name Input */}
           <View style={styles.inputContainer}>
             <Ionicons name="person" size={24} color="#B3B3B3" style={styles.icon} />
             <TextInput
@@ -114,10 +151,10 @@ export default function SignUpScreen() {
             />
           </View>
           {errors.fullName && (
-              <Text style={{ color: "red", marginBottom: 10 }}>{errors.fullName}</Text>
-            )
+            <Text style={{ color: "red", marginBottom: 10 }}>{errors.fullName}</Text>
+          )
           }
-          
+
           {/* Password Input */}
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={24} color="#B3B3B3" style={styles.icon} />
@@ -138,8 +175,8 @@ export default function SignUpScreen() {
             </TouchableOpacity>
           </View>
           {errors.password && (
-              <Text style={{ color: "red", marginBottom: 10 }}>{errors.password}</Text>
-            )
+            <Text style={{ color: "red", marginBottom: 10 }}>{errors.password}</Text>
+          )
           }
 
           <View style={styles.termsContainer}>
@@ -157,13 +194,15 @@ export default function SignUpScreen() {
           </View>
 
           <TouchableOpacity
-            style={styles.signUpButton}
+            style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
             onPress={handleSignUp}
             disabled={loading}
-            >
-            <Text style={styles.signUpText}>
-              {loading ? "Creating..." : "Sign Up"}
-            </Text>
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.signUpText}>Sign Up</Text>
+            )}
           </TouchableOpacity>
           <Text style={styles.loginText}>
             Already have an account?{" "}
@@ -195,9 +234,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 90,
     marginBottom: 10,
-    
+
   },
-   logo: {
+  logo: {
     fontWeight: "bold",
     height: 200,
     width: 200,
@@ -207,9 +246,9 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textAlign: "center",
     color: "#282F2E",
-    marginBottom:15
+    marginBottom: 15
   },
-  
+
   socialContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -311,5 +350,8 @@ const styles = StyleSheet.create({
   loginLink: {
     color: "#F2B138",
     fontWeight: "600",
+  },
+  signUpButtonDisabled: {
+    opacity: 0.6,
   },
 });

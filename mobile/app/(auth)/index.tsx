@@ -31,19 +31,25 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  Alert,
+  ScrollView,
 } from "react-native";
 import Checkbox from "expo-checkbox";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "../../context/AuthContext";
 import { FacebookIcon, GoogleIcon, AppleIcon } from "@/assets/images";
 import { validateFields, ValidationErrors } from "@/utils/validate";
+import { apiClient } from "@/services/api";
+import { useAuthStore } from "@/store/auth";
+import { useUserStore } from "@/store/user";
+import { getItem, setItem } from "@/utils/storage";
 
 
 export default function SignIn() {
-  const { signIn } = useAuth();
   const router = useRouter();
+  const { setAuth } = useAuthStore();
+  const { setUser } = useUserStore();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,140 +58,174 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
 
-  const handleSignIn = () => {
-  const newErrors = validateFields({
-    email,
-    password,
-  });
+  const handleSignIn = async () => {
+    const newErrors = validateFields({
+      email,
+      password,
+    });
 
-  setErrors(newErrors);
+    setErrors(newErrors);
 
-  if (Object.keys(newErrors).length === 0) {
-    router.replace("/");
-    setEmail("");
-    setPassword("");
-  }
-};
+    if (Object.keys(newErrors).length === 0) {
+      setLoading(true);
+      try {
+        const response = await apiClient.login(email, password);
+
+        setAuth(response.token);
+        setUser(response.user);
+
+        // Check if assessment is complete
+        const assessmentComplete = await getItem("assessmentComplete");
+        if (assessmentComplete === "true") {
+          router.replace("/(after-auth)");
+        } else {
+          // Fetch 5 quizzes if assessment not complete (no assessment API route)
+          try {
+            await apiClient.getQuizzes(5);
+          } catch (error) {
+            console.log("Note: Could not fetch quizzes on signin:", error);
+            // Continue anyway - quizzes can be fetched later
+          }
+          await setItem("assessmentComplete", "true");
+          router.replace("/(after-auth)");
+        }
+      } catch (error: any) {
+        Alert.alert("Login Failed", error.message || "Invalid email or password. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
 
-        <View style={styles.logoContainer}>
-          <Image
-            source={require("@/assets/images/Blue atlas icon.png")}
-            style={styles.logo}
-          />
-        </View>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require("@/assets/images/Blue atlas icon.png")}
+              style={styles.logo}
+            />
+          </View>
 
-        <Text style={styles.title}>Sign In</Text>
-        <Text style={styles.subtitle}>Let’s experience the joy of telecare AI.</Text>
+          <Text style={styles.title}>Sign In</Text>
+          <Text style={styles.subtitle}>Let’s experience the joy of telecare AI.</Text>
 
-         {/* Email Input  */}
-        <View style={styles.inputContainer}>
-          <Ionicons name="mail" size={24} color="#B3B3B3" style={styles.icon} />
-          <TextInput
-            placeholder="Email"
-            placeholderTextColor="#B3B3B3"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            style={styles.input}
-          />
-        </View>
-        {errors.email && (
-          <Text style={{ color: "red", marginBottom: 10 }}>{errors.email}</Text>
-        )}
+          {/* Email Input  */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="mail" size={24} color="#B3B3B3" style={styles.icon} />
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor="#B3B3B3"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              style={styles.input}
+            />
+          </View>
+          {errors.email && (
+            <Text style={{ color: "red", marginBottom: 10 }}>{errors.email}</Text>
+          )}
 
-        {/* Password Input */}
-        <View style={styles.inputContainer}>
-          <Ionicons
-            name="lock-closed"
-            size={24}
-            color="#B3B3B3"
-            style={styles.icon}
-          />
-          <TextInput
-            placeholder="Password"
-            placeholderTextColor="#B3B3B3"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            style={styles.input}
-          />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+          {/* Password Input */}
+          <View style={styles.inputContainer}>
             <Ionicons
-              name={showPassword ? "eye-off" : "eye"}
+              name="lock-closed"
               size={24}
               color="#B3B3B3"
+              style={styles.icon}
             />
-          </TouchableOpacity>
-        </View>
-        {errors.password && (
-          <Text style={{ color: "red", marginBottom: 10 }}>
-            {errors.password}
-          </Text>
-        )}
-
-        <TouchableOpacity style={styles.forgotTextCon}>
-          <Text style={styles.forgotText}>Forgot Password?</Text>
-        </TouchableOpacity>
-
-        <View style={styles.rememberBox}>
-          <Checkbox
-            value={remember}
-            onValueChange={setRemember}
-            color={remember ? "#F2B138" : undefined}
-            style={styles.checkBox}
-          />
-          <Text style={styles.rememberText}>Remember Me</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.loginButton}
-          onPress={handleSignIn}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.loginText}>Login</Text>
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#B3B3B3"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              style={styles.input}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <Ionicons
+                name={showPassword ? "eye-off" : "eye"}
+                size={24}
+                color="#B3B3B3"
+              />
+            </TouchableOpacity>
+          </View>
+          {errors.password && (
+            <Text style={{ color: "red", marginBottom: 10 }}>
+              {errors.password}
+            </Text>
           )}
-        </TouchableOpacity>
 
-        {/* Divider */}
-        <View style={styles.dividerContainer}>
-          <View style={styles.divider} />
-          <Text style={styles.orText}>or continue with</Text>
-          <View style={styles.divider} />
-        </View>
+          <TouchableOpacity
+            style={styles.forgotTextCon}
+            onPress={() => router.push("/(auth)/forgot-password")}
+          >
+            <Text style={styles.forgotText}>Forgot Password?</Text>
+          </TouchableOpacity>
 
-        {/* Social Buttons */}
-        <View style={styles.socialContainer}>
-          <TouchableOpacity style={styles.socialBtn}>
-            <Image source={FacebookIcon} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialBtn}>
-            <Image source={GoogleIcon} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialBtn}>
-            <Image source={AppleIcon} />
-          </TouchableOpacity>
-        </View>
+          <View style={styles.rememberBox}>
+            <Checkbox
+              value={remember}
+              onValueChange={setRemember}
+              color={remember ? "#F2B138" : undefined}
+              style={styles.checkBox}
+            />
+            <Text style={styles.rememberText}>Remember Me</Text>
+          </View>
 
-        <Text style={styles.signupText}>
-          Don’t have an account?{" "}
-          <Link href="/signup" style={styles.signupLink}>
-            Sign up
-          </Link>
-        </Text>
+          <TouchableOpacity
+            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+            onPress={handleSignIn}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.loginText}>Login</Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
+            <Text style={styles.orText}>or continue with</Text>
+            <View style={styles.divider} />
+          </View>
+
+          {/* Social Buttons */}
+          <View style={styles.socialContainer}>
+            <TouchableOpacity style={styles.socialBtn}>
+              <Image source={FacebookIcon} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.socialBtn}>
+              <Image source={GoogleIcon} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.socialBtn}>
+              <Image source={AppleIcon} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.signupText}>
+            Don't have an account?{" "}
+            <Link href="/signup" style={styles.signupLink}>
+              Sign up
+            </Link>
+          </Text>
+        </ScrollView>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   );
@@ -196,8 +236,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 25,
     justifyContent: "center",
+    paddingTop: 100,
+    paddingBottom: 40,
   },
   backArrow: {
     position: "absolute",
@@ -207,8 +252,8 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: "center",
     marginBottom: 10,
-    marginTop:40
-    
+    marginTop: 40
+
   },
   logo: {
     fontWeight: "bold",
@@ -220,7 +265,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textAlign: "center",
     color: "#282F2E",
-    marginBottom:10,
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
@@ -238,7 +283,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 10,
     marginBottom: 15,
-    
+
   },
   icon: {
     marginRight: 10,
@@ -249,35 +294,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
-  forgotTextCon:{
+  forgotTextCon: {
     alignSelf: 'flex-end'
   },
   forgotText: {
     color: "#F2B138",
     fontWeight: "700",
-    fontSize:14,
+    fontSize: 14,
   },
   rememberBox: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent:'center',
-    gap:16,
-    marginVertical:20
+    justifyContent: 'center',
+    gap: 16,
+    marginVertical: 20
   },
-  checkBox:{
-    height:20,
-    width:20,
+  checkBox: {
+    height: 20,
+    width: 20,
     borderColor: "#F2B138",
-    borderWidth:3,
+    borderWidth: 3,
     borderRadius: 5
   },
   rememberText: {
     color: "#0F172A",
-    fontSize:14,
+    fontSize: 14,
     fontWeight: "700"
 
   },
-  
+
   loginButton: {
     backgroundColor: "#F2B138",
     paddingVertical: 15,
@@ -302,8 +347,8 @@ const styles = StyleSheet.create({
   orText: {
     marginHorizontal: 10,
     color: "#757575",
-    fontSize:18,
-    fontWeight:'700'
+    fontSize: 18,
+    fontWeight: '700'
   },
   socialContainer: {
     flexDirection: "row",
@@ -331,5 +376,8 @@ const styles = StyleSheet.create({
     color: "#F2B138",
     fontWeight: "600",
     fontSize: 14,
+  },
+  loginButtonDisabled: {
+    opacity: 0.6,
   },
 });

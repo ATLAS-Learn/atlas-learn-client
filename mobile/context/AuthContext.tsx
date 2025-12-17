@@ -1,66 +1,25 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-
-type User = {
-  id: string;
-  name: string;
-  email: string;
-};
+import React, { createContext, useContext } from "react";
+import { useAuthStore } from "@/store/auth";
+import { useUserStore } from "@/store/user";
 
 type AuthContextType = {
-  user: User | null;
+  user: ReturnType<typeof useUserStore>["user"];
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<void>;
+  isAuthenticated: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+  const { user } = useUserStore();
 
-  //Auto-load user on app start
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem("user");
-        if (storedUser) setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error("Error loading user:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadUser();
-  }, []);
-
-    const signIn = async (email: string, password: string) => {
-    try {
-      //  backend API call
-      router.replace("/"); // redirect after login
-    } catch (err: any) {
-      throw new Error(err.message || "Unable to sign in");
-    }
-  };
-
-    const signUp = async (name: string, email: string, password: string) => {
-    try {  
-      router.replace("/");
-    } catch (err: any) {
-      throw new Error(err.message || "Unable to sign up");
-    }
-  };
-  
   return (
     <AuthContext.Provider
       value={{
         user,
-        loading,
-        signIn,
-        signUp,
+        loading: false,
+        isAuthenticated,
       }}
     >
       {children}

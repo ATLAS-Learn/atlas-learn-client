@@ -13,37 +13,36 @@ export default function RootLayout() {
   const [showIntro, setShowIntro] = useState(true);
   const fadeAnim = useState(new Animated.Value(1))[0];
   const router = useRouter();
-  const { onboardingComplete, isAuthenticated } = useAppFlow();
+  const { assessmentComplete, isAuthenticated } = useAppFlow();
 
 
-useEffect(() => {
-  // Show splash first for 3 seconds
-  const timer = setTimeout(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 500,
-      useNativeDriver: true,
-    }).start(() => {
-      // setShowIntro(false); // hide splash
+  useEffect(() => {
+    // Show splash first for 3 seconds
+    const timer = setTimeout(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowIntro(false); // hide splash
 
-      // // Navigate based on user state
-      // if (onboardingComplete === null || isAuthenticated === null) return;
+        // Navigate based on user state
+        // Flow: 1. Check auth first, 2. Authenticated users go directly to app (no assessment flow)
+        if (isAuthenticated === null) return;
 
-      // if (!onboardingComplete) {
-      //   // First-time user → go to onboarding
-      //   router.replace("/(onboarding)");
-      // } else if (!isAuthenticated) {
-      //   // Returning user but not logged in → go to auth
-      //   router.replace("/(auth)");
-      // } else {
-      //   // Logged-in user → go to main app
-      //   router.replace("/(after-auth)");
-      // }
-    });
-  }, 3000);
+        if (!isAuthenticated) {
+          // Not authenticated → go to auth (signup/login)
+          router.replace("/(auth)");
+        } else {
+          // Authenticated → go directly to main app (assessment/quizzes handled in auth flow)
+          // If assessment not marked complete yet, we'll handle it during signin/signup
+          router.replace("/(after-auth)");
+        }
+      });
+    }, 3000);
 
-  return () => clearTimeout(timer);
-}, [fadeAnim, onboardingComplete, isAuthenticated]);
+    return () => clearTimeout(timer);
+  }, [fadeAnim, assessmentComplete, isAuthenticated]);
 
 
   return (
@@ -75,12 +74,12 @@ useEffect(() => {
           >
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(intro)/index" />
-            <Stack.Screen name="(after-auth)/index" />
-            <Stack.Screen name="(onboarding)/index" />
+            <Stack.Screen name="(onboarding)" />
+            <Stack.Screen name="(after-auth)" />
           </Stack>
         </FontLoader>
       </AuthProvider>
-     
+
     </SafeAreaProvider>
   );
 }
