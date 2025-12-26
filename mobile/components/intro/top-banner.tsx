@@ -1,5 +1,4 @@
 import { INTRO_STEPS } from "@/constants";
-import React from "react";
 import { Image, View } from "react-native";
 
 type Props = {

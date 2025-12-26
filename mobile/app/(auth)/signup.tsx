@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -93,7 +93,10 @@ export default function SignUpScreen() {
             <View style={styles.divider} />
           </View>
 
-          <PhoneNumberInput/>
+          <PhoneNumberInput 
+            value={phone}
+            onChangeText={setPhone}
+          />
 
           {/* Email Input */}
           <View style={styles.inputContainer}>

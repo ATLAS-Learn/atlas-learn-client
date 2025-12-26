@@ -1,10 +1,25 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import PhoneInput from "react-native-phone-number-input";
 
-export default function PhoneNumberInput() {
-  const phoneInput = useRef(null);
-  const [phoneNumber, setPhoneNumber] = useState("");
+type PhoneNumberInputProps = {
+  value?: string;
+  onChangeText?: (text: string) => void;
+  error?: string;
+};
+
+export default function PhoneNumberInput({ 
+  value, 
+  onChangeText,
+  error 
+}: PhoneNumberInputProps) {
+  const phoneInput = useRef<PhoneInput>(null);
+  const [phoneNumber, setPhoneNumber] = useState(value || "");
+
+  const handleChange = (text: string) => {
+    setPhoneNumber(text);
+    onChangeText?.(text);
+  };
 
   return (
     <View>
@@ -15,17 +30,14 @@ export default function PhoneNumberInput() {
         withDarkTheme={false}
         withShadow={false}
         value={phoneNumber}
-        onChangeFormattedText={(text) => setPhoneNumber(text)}
+        onChangeFormattedText={handleChange}
         containerStyle={styles.container}
         textContainerStyle={styles.textContainer}
         countryPickerProps={{
           withFlag: true,
         }}
       />
-
-      <Text style={styles.selectedText}>
-        Selected: {phoneNumber || "None"}
-      </Text>
+      {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 }
@@ -35,14 +47,16 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 16,
     backgroundColor: "#F9FBFB",
+    marginBottom: 15,
   },
   textContainer: {
     borderRadius: 16,
     backgroundColor: "#F9FBFB",
   },
-  selectedText: {
-    marginTop: 8,
-    textAlign: "center",
-    color: "#666",
+  errorText: {
+    color: "red",
+    marginTop: -10,
+    marginBottom: 10,
+    fontSize: 14,
   },
 });

@@ -1,7 +1,7 @@
 import "../styles/global.css";
 
 import { Stack, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Animated, StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { FontLoader } from "../components/font-loader";

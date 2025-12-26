@@ -1,26 +1,34 @@
-import * as Font from "expo-font";
-import React, { useEffect, useState } from "react";
-import { View } from "react-native";
-import { fonts } from "../config/fonts";
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 export function FontLoader({ children }: { children: React.ReactNode }) {
-  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [fontsLoaded, fontError] = useFonts({
+    "Nunito-Regular": require("../assets/fonts/Nunito/static/Nunito-Regular.ttf"),
+    "Nunito-Medium": require("../assets/fonts/Nunito/static/Nunito-Medium.ttf"),
+    "Nunito-SemiBold": require("../assets/fonts/Nunito/static/Nunito-SemiBold.ttf"),
+    "Nunito-Bold": require("../assets/fonts/Nunito/static/Nunito-Bold.ttf"),
+    "Nunito-ExtraBold": require("../assets/fonts/Nunito/static/Nunito-ExtraBold.ttf"),
+    "Nunito-Black": require("../assets/fonts/Nunito/static/Nunito-Black.ttf"),
+    "Nunito-Italic": require("../assets/fonts/Nunito/static/Nunito-Italic.ttf"),
+    "Nunito-MediumItalic": require("../assets/fonts/Nunito/static/Nunito-MediumItalic.ttf"),
+    "Nunito-SemiBoldItalic": require("../assets/fonts/Nunito/static/Nunito-SemiBoldItalic.ttf"),
+    "Nunito-BoldItalic": require("../assets/fonts/Nunito/static/Nunito-BoldItalic.ttf"),
+    "Nunito-ExtraBoldItalic": require("../assets/fonts/Nunito/static/Nunito-ExtraBoldItalic.ttf"),
+    "Nunito-BlackItalic": require("../assets/fonts/Nunito/static/Nunito-BlackItalic.ttf"),
+  });
 
   useEffect(() => {
-    async function loadFonts() {
-      try {
-        await Font.loadAsync(fonts);
-        setFontsLoaded(true);
-      } catch (error) {
-        console.error("Error loading fonts:", error);
-      }
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
     }
+  }, [fontsLoaded, fontError]);
 
-    loadFonts();
-  }, []);
-
-  if (!fontsLoaded) {
-    return <View className="flex-1 bg-background" />;
+  if (!fontsLoaded && !fontError) {
+    return null;
   }
 
   return <>{children}</>;

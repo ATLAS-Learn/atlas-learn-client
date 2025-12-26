@@ -63,5 +63,6 @@
     "tailwindcss": "^3.4.17",
     "typescript": "~5.9.3"
   },
-  "private": true
+  "private": true,
+  "npm.packageManager": "bun"
 }

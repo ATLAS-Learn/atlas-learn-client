@@ -2,12 +2,14 @@ export interface ValidationFields {
   email?: string;
   password?: string;
   fullName?: string;
+  phone?: string;
 }
 
 export interface ValidationErrors {
   email?: string;
   password?: string;
   fullName?: string;
+  phone?: string;
 }
 
 export const validateFields = (fields: ValidationFields): ValidationErrors => {
@@ -35,6 +37,14 @@ export const validateFields = (fields: ValidationFields): ValidationErrors => {
       errors.fullName = "Full name is required.";
     } else if (fields.fullName.trim().split(" ").length < 2) {
       errors.fullName = "Enter your full name.";
+    }
+  }
+
+  if (fields.phone !== undefined) {
+    if (!fields.phone) {
+      errors.phone = "Phone number is required.";
+    } else if (fields.phone.length < 10) {
+      errors.phone = "Enter a valid phone number.";
     }
   }
 
