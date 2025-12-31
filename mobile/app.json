@@ -36,25 +36,6 @@
           "resizeMode": "contain",
           "backgroundColor": "#FAFAFA"
         }
-      ],
-      [
-        "expo-font",
-        {
-          "fonts": [
-            "./assets/fonts/Nunito/static/Nunito-Regular.ttf",
-            "./assets/fonts/Nunito/static/Nunito-Medium.ttf",
-            "./assets/fonts/Nunito/static/Nunito-SemiBold.ttf",
-            "./assets/fonts/Nunito/static/Nunito-Bold.ttf",
-            "./assets/fonts/Nunito/static/Nunito-ExtraBold.ttf",
-            "./assets/fonts/Nunito/static/Nunito-Black.ttf",
-            "./assets/fonts/Nunito/static/Nunito-Italic.ttf",
-            "./assets/fonts/Nunito/static/Nunito-MediumItalic.ttf",
-            "./assets/fonts/Nunito/static/Nunito-SemiBoldItalic.ttf",
-            "./assets/fonts/Nunito/static/Nunito-BoldItalic.ttf",
-            "./assets/fonts/Nunito/static/Nunito-ExtraBoldItalic.ttf",
-            "./assets/fonts/Nunito/static/Nunito-BlackItalic.ttf"
-          ]
-        }
       ]
     ],
     "experiments": {

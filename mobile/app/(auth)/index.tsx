@@ -31,7 +31,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  useColorScheme
 } from "react-native";
 import Checkbox from "expo-checkbox";
 import { useRouter, Link } from "expo-router";
@@ -44,6 +45,8 @@ import { validateFields, ValidationErrors } from "@/utils/validate";
 export default function SignIn() {
   const { signIn } = useAuth();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -75,6 +78,8 @@ export default function SignIn() {
   };
 
 
+  const styles = getStyles(isDark);
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
@@ -82,7 +87,7 @@ export default function SignIn() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={isDark ? "#FFFFFF" : "#000"} />
         </TouchableOpacity>
 
         <View style={styles.logoContainer}>
@@ -97,10 +102,10 @@ export default function SignIn() {
 
          {/* Email Input  */}
         <View style={styles.inputContainer}>
-          <Ionicons name="mail" size={24} color="#B3B3B3" style={styles.icon} />
+          <Ionicons name="mail" size={24} color={isDark ? "#B0B0B0" : "#B3B3B3"} style={styles.icon} />
           <TextInput
             placeholder="Email"
-            placeholderTextColor="#B3B3B3"
+            placeholderTextColor={isDark ? "#666666" : "#B3B3B3"}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -116,12 +121,12 @@ export default function SignIn() {
           <Ionicons
             name="lock-closed"
             size={24}
-            color="#B3B3B3"
+            color={isDark ? "#B0B0B0" : "#B3B3B3"}
             style={styles.icon}
           />
           <TextInput
             placeholder="Password"
-            placeholderTextColor="#B3B3B3"
+            placeholderTextColor={isDark ? "#666666" : "#B3B3B3"}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
@@ -131,7 +136,7 @@ export default function SignIn() {
             <Ionicons
               name={showPassword ? "eye-off" : "eye"}
               size={24}
-              color="#B3B3B3"
+              color={isDark ? "#B0B0B0" : "#B3B3B3"}
             />
           </TouchableOpacity>
         </View>
@@ -141,7 +146,10 @@ export default function SignIn() {
           </Text>
         )}
 
-        <TouchableOpacity style={styles.forgotTextCon}>
+        <TouchableOpacity 
+          style={styles.forgotTextCon}
+          onPress={() => router.push("/(auth)/forgot-password")}
+        >
           <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
 
@@ -199,144 +207,147 @@ export default function SignIn() {
 }
 
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    paddingHorizontal: 25,
-    justifyContent: "center",
-  },
-  backArrow: {
-    position: "absolute",
-    top: 60,
-    left: 25,
-  },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 10,
-    marginTop:40
-
-  },
-  logo: {
-    fontWeight: "bold",
-    height: 200,
-    width: 200,
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: "800",
-    textAlign: "center",
-    color: "#282F2E",
-    marginBottom:10,
-  },
-  subtitle: {
-    fontSize: 16,
-    fontWeight: "400",
-    textAlign: "center",
-    color: "#424E4C",
-    marginBottom: 30,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    backgroundColor: "#F9FBFB",
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    marginBottom: 15,
-
-  },
-  icon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    height: 64,
-    fontSize: 16,
-    color: "#333",
-  },
-  forgotTextCon:{
-    alignSelf: 'flex-end'
-  },
-  forgotText: {
-    color: "#F2B138",
-    fontWeight: "700",
-    fontSize:14,
-  },
-  rememberBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent:'center',
-    gap:16,
-    marginVertical:20
-  },
-  checkBox:{
-    height:20,
-    width:20,
-    borderColor: "#F2B138",
-    borderWidth:3,
-    borderRadius: 5
-  },
-  rememberText: {
-    color: "#0F172A",
-    fontSize:14,
-    fontWeight: "700"
-
-  },
-
-  loginButton: {
-    backgroundColor: "#F2B138",
-    paddingVertical: 15,
-    borderRadius: 25,
-    alignItems: "center",
-  },
-  loginText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 25,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#EEEEEE",
-  },
-  orText: {
-    marginHorizontal: 10,
-    color: "#757575",
-    fontSize:18,
-    fontWeight:'700'
-  },
-  socialContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 25,
-  },
-  socialBtn: {
-    borderWidth: 0.5,
-    borderColor: "#CBD5E1",
-    borderRadius: 50,
-    width: 60,
-    height: 60,
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 8,
-    backgroundColor: "#FFFFFF"
-  },
-  signupText: {
-    textAlign: "center",
-    color: "#9E9E9E",
-    fontSize: 14,
-    fontWeight: "400",
-  },
-  signupLink: {
-    color: "#F2B138",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-});
+const getStyles = (isDark: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: isDark ? "#1A1A1A" : "#fff",
+      paddingHorizontal: 25,
+      justifyContent: "center",
+    },
+    backArrow: {
+      position: "absolute",
+      top: 60,
+      left: 25,
+      zIndex: 10,
+    },
+    logoContainer: {
+      alignItems: "center",
+      marginBottom: 10,
+      marginTop: 40,
+    },
+    logo: {
+      fontWeight: "bold",
+      height: 200,
+      width: 200,
+    },
+    title: {
+      fontSize: 36,
+      fontWeight: "800",
+      textAlign: "center",
+      color: isDark ? "#FFFFFF" : "#282F2E",
+      marginBottom: 10,
+    },
+    subtitle: {
+      fontSize: 16,
+      fontWeight: "400",
+      textAlign: "center",
+      color: isDark ? "#B0B0B0" : "#424E4C",
+      marginBottom: 30,
+    },
+    inputContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+      backgroundColor: isDark ? "#2A2A2A" : "#F9FBFB",
+      borderRadius: 16,
+      paddingHorizontal: 10,
+      marginBottom: 15,
+    },
+    icon: {
+      marginRight: 10,
+    },
+    input: {
+      flex: 1,
+      height: 64,
+      fontSize: 16,
+      color: isDark ? "#FFFFFF" : "#333",
+    },
+    forgotTextCon: {
+      alignSelf: "flex-end",
+    },
+    forgotText: {
+      color: "#F2B138",
+      fontWeight: "700",
+      fontSize: 14,
+    },
+    rememberBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 16,
+      marginVertical: 20,
+    },
+    checkBox: {
+      height: 20,
+      width: 20,
+      borderColor: "#F2B138",
+      borderWidth: 3,
+      borderRadius: 5,
+    },
+    rememberText: {
+      color: isDark ? "#FFFFFF" : "#0F172A",
+      fontSize: 14,
+      fontWeight: "700",
+    },
+    loginButton: {
+      backgroundColor: "#F2B138",
+      paddingVertical: 15,
+      borderRadius: 25,
+      alignItems: "center",
+      shadowColor: "#F2B138",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    loginText: {
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    dividerContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginVertical: 25,
+    },
+    divider: {
+      flex: 1,
+      height: 1,
+      backgroundColor: isDark ? "#333333" : "#EEEEEE",
+    },
+    orText: {
+      marginHorizontal: 10,
+      color: isDark ? "#B0B0B0" : "#757575",
+      fontSize: 18,
+      fontWeight: "700",
+    },
+    socialContainer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      marginBottom: 25,
+    },
+    socialBtn: {
+      borderWidth: 0.5,
+      borderColor: isDark ? "#444444" : "#CBD5E1",
+      borderRadius: 50,
+      width: 60,
+      height: 60,
+      alignItems: "center",
+      justifyContent: "center",
+      marginHorizontal: 8,
+      backgroundColor: isDark ? "#2A2A2A" : "#FFFFFF",
+    },
+    signupText: {
+      textAlign: "center",
+      color: isDark ? "#B0B0B0" : "#9E9E9E",
+      fontSize: 14,
+      fontWeight: "400",
+    },
+    signupLink: {
+      color: "#F2B138",
+      fontWeight: "600",
+      fontSize: 14,
+    },
+  });
