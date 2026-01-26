@@ -66,18 +66,8 @@ export default function SignUpScreen() {
         setAuth(response.token);
         setUser(response.user);
 
-        // Fetch 5 quizzes after signup (handle errors gracefully)
-        try {
-          await apiClient.getQuizzes(5);
-        } catch (error) {
-          console.log("Note: Could not fetch quizzes on signup:", error);
-          // Continue anyway - quizzes can be fetched later
-        }
-
-        // Mark assessment as complete since we're fetching quizzes instead
-        await setItem("assessmentComplete", "true");
-
-        router.replace("/(after-auth)");
+        // Route to onboarding for assessment
+        router.replace("/(onboarding)");
       } catch (error: any) {
         Alert.alert("Signup Failed", error.message || "An error occurred. Please try again.");
       } finally {

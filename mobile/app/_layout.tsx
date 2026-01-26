@@ -13,36 +13,40 @@ export default function RootLayout() {
   const [showIntro, setShowIntro] = useState(true);
   const fadeAnim = useState(new Animated.Value(1))[0];
   const router = useRouter();
-  const { assessmentComplete, isAuthenticated } = useAppFlow();
+  const { assessmentComplete, isAuthenticated, isLoading } = useAppFlow();
 
 
   useEffect(() => {
-    // Show splash first for 3 seconds
+    // Wait for auth state to finish loading
+    if (isLoading) return;
+
+    // Show splash screen for longer so user can see it (5 seconds minimum)
+    const minDisplayTime = 5000; // 5 seconds
     const timer = setTimeout(() => {
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 500,
+        duration: 1000, // Slower fade out (1 second)
         useNativeDriver: true,
       }).start(() => {
         setShowIntro(false); // hide splash
 
         // Navigate based on user state
-        // Flow: 1. Check auth first, 2. Authenticated users go directly to app (no assessment flow)
-        if (isAuthenticated === null) return;
-
+        // Flow: 1. Check auth first, 2. Check assessment completion
         if (!isAuthenticated) {
           // Not authenticated → go to auth (signup/login)
           router.replace("/(auth)");
-        } else {
-          // Authenticated → go directly to main app (assessment/quizzes handled in auth flow)
-          // If assessment not marked complete yet, we'll handle it during signin/signup
+        } else if (assessmentComplete) {
+          // Authenticated and assessment complete → go to main app
           router.replace("/(after-auth)");
+        } else {
+          // Authenticated but assessment not complete → go to onboarding
+          router.replace("/(onboarding)");
         }
       });
-    }, 3000);
+    }, minDisplayTime); // Show splash for at least 5 seconds
 
     return () => clearTimeout(timer);
-  }, [fadeAnim, assessmentComplete, isAuthenticated]);
+  }, [fadeAnim, isAuthenticated, assessmentComplete, isLoading]);
 
 
   return (

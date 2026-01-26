@@ -79,15 +79,8 @@ export default function SignIn() {
         if (assessmentComplete === "true") {
           router.replace("/(after-auth)");
         } else {
-          // Fetch 5 quizzes if assessment not complete (no assessment API route)
-          try {
-            await apiClient.getQuizzes(5);
-          } catch (error) {
-            console.log("Note: Could not fetch quizzes on signin:", error);
-            // Continue anyway - quizzes can be fetched later
-          }
-          await setItem("assessmentComplete", "true");
-          router.replace("/(after-auth)");
+          // Route to onboarding if assessment not complete
+          router.replace("/(onboarding)");
         }
       } catch (error: any) {
         Alert.alert("Login Failed", error.message || "Invalid email or password. Please try again.");

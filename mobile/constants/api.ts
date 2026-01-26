@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://atlas-learn-server.onrender.com/api";
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL
 
 // Assessment quiz ID - this is the special quiz used for initial assessment
 // This should match the quiz ID created on the backend for the assessment

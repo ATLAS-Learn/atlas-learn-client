@@ -131,3 +131,37 @@ export interface DashboardData {
     isNextChapterLocked: boolean;
 }
 
+// Teacher Dashboard Types
+export enum StudentStatus {
+    ON_TRACK = "on_track",    // Green: Actively completing chapters
+    BEHIND = "behind",         // Yellow: Started but progress has stalled
+    AT_RISK = "at_risk",       // Red: Failed quiz multiple times or hasn't logged in
+}
+
+export interface StudentListItem {
+    id: string;
+    name: string;
+    email: string;
+    status: StudentStatus;
+    currentChapterId?: string;
+    currentChapterTitle?: string;
+    overallProgress: number;
+    lastActiveDate: string;
+}
+
+export interface StudentDetail extends StudentListItem {
+    level?: Level;
+    streak: number;
+    completedChapters: string[];
+    chapterProgress: ChapterProgress[];
+    quizAttempts: QuizAttempt[];
+}
+
+export interface TeacherDashboardData {
+    students: StudentListItem[];
+    totalStudents: number;
+    onTrackCount: number;
+    behindCount: number;
+    atRiskCount: number;
+}
+

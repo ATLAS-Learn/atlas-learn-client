@@ -8,27 +8,43 @@ export function useAppFlow() {
   const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(
     null
   );
+  const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, loadAuth } = useAuthStore();
   const { user, loadUser } = useUserStore();
   const { loadProgress } = useProgressStore();
 
   useEffect(() => {
     async function initialize() {
+      setIsLoading(true);
       // Load auth state
       await loadAuth();
-      
-      // Load user and progress if authenticated
-      if (isAuthenticated) {
-        await loadUser();
-        await loadProgress();
+    }
+    initialize();
+  }, []); // Only run once on mount
+
+  useEffect(() => {
+    async function loadUserData() {
+      if (!isAuthenticated) {
+        setIsLoading(false);
+        return;
       }
+
+      // Load user and progress if authenticated
+      await loadUser();
+      await loadProgress();
 
       // Check assessment completion
       const assessment = await getItem("assessmentComplete");
       setAssessmentComplete(assessment === "true");
+      setIsLoading(false);
     }
-    initialize();
-  }, [isAuthenticated, loadAuth, loadUser, loadProgress]);
 
-  return { assessmentComplete, isAuthenticated, user };
+    if (isAuthenticated !== null && isAuthenticated) {
+      loadUserData();
+    } else if (isAuthenticated === false) {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, loadUser, loadProgress]);
+
+  return { assessmentComplete, isAuthenticated, user, isLoading };
 }

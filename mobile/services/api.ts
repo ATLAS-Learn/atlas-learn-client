@@ -11,6 +11,8 @@ import {
     QuizSubmission,
     QuizResult,
     Level,
+    TeacherDashboardData,
+    StudentDetail,
 } from "./types";
 
 // API Client class
@@ -120,56 +122,52 @@ class APIClient {
 
     // Assessment endpoints
     // The assessment is implemented as a special quiz using the quiz endpoints
+    // 
+    // Structure (matches database schema):
+    // - Assessment is a Quiz type with id="assessment-quiz", chapterId="", questions, passingScore
+    // - Questions are QuizQuestion[] with explanation field (maps to topic in AssessmentQuestion)
+    // - Determines User.level (FOUNDATIONAL, CORE, or ADVANCED) based on score
     async getAssessmentQuestions(): Promise<AssessmentQuestion[]> {
-        // Fetch the assessment quiz using the quiz endpoint
+        // Fetch assessment quiz from server
         const quiz = await this.getQuiz(ASSESSMENT_QUIZ_ID);
-
-        // Map QuizQuestion[] to AssessmentQuestion[]
-        // QuizQuestion has: id, question, options, correctAnswer, explanation?
-        // AssessmentQuestion needs: id, question, options, correctAnswer, topic
+        // Convert QuizQuestion[] to AssessmentQuestion[]
         return quiz.questions.map((q) => ({
             id: q.id,
             question: q.question,
             options: q.options,
             correctAnswer: q.correctAnswer,
-            topic: q.explanation || "General", // Use explanation as topic, or default to "General"
+            topic: q.explanation || "General",
         }));
     }
 
     async submitAssessment(submission: AssessmentSubmission): Promise<AssessmentResult> {
-        // Submit assessment using quiz submission endpoint
-        const quizSubmission: QuizSubmission = {
-            answers: submission.answers,
-        };
-
+        // Submit assessment as a quiz submission
+        const quizSubmission: QuizSubmission = { answers: submission.answers };
         const quizResult = await this.submitQuiz(ASSESSMENT_QUIZ_ID, quizSubmission);
-
-        // Map QuizResult to AssessmentResult
-        // Determine level based on percentage score
-        // Based on Sprint 1 Goal: Foundational (low), Core (medium), Advanced (high)
-        let level: Level;
-        if (quizResult.percentage < 40) {
-            level = Level.FOUNDATIONAL;
-        } else if (quizResult.percentage < 70) {
-            level = Level.CORE;
-        } else {
-            level = Level.ADVANCED;
-        }
-
+        
+        // Fetch updated user to get the level assigned by the server
+        const updatedUser = await this.getCurrentUser();
+        
+        // Build assessment result from quiz result
+        const level = updatedUser.level || Level.FOUNDATIONAL;
+        const percentage = quizResult.percentage;
+        
         return {
             score: quizResult.score,
             totalQuestions: quizResult.totalQuestions,
             level,
-            message: quizResult.passed
-                ? `Great! You scored ${quizResult.percentage}%. We'll start you with ${level} concepts.`
-                : `You scored ${quizResult.percentage}%. We'll start you with ${level} concepts to strengthen your foundation.`,
+            message: percentage >= 80
+                ? `Great! You scored ${percentage.toFixed(0)}%. We'll start you with ${level} concepts.`
+                : `You scored ${percentage.toFixed(0)}%. We'll start you with ${level} concepts to strengthen your foundation.`,
         };
     }
 
     // Dashboard endpoints
-    async getDashboard(): Promise<DashboardData> {
-        return this.request<DashboardData>("/dashboard");
-    }
+    // NOTE: Server doesn't have a dashboard endpoint yet, so dashboard screen uses local stores
+    // When server API is ready, implement: GET /api/dashboard
+    // async getDashboard(): Promise<DashboardData> {
+    //     return this.request<DashboardData>("/dashboard");
+    // }
 
     // Quiz endpoints
     async getQuizzes(limit: number = 5): Promise<Quiz[]> {
@@ -201,6 +199,15 @@ class APIClient {
 
     async getChapterQuiz(chapterId: string): Promise<Quiz> {
         return this.request<Quiz>(`/chapters/${chapterId}/quiz`);
+    }
+
+    // Teacher Dashboard endpoints
+    async getTeacherDashboard(): Promise<TeacherDashboardData> {
+        return this.request<TeacherDashboardData>("/teacher/dashboard");
+    }
+
+    async getStudentDetail(studentId: string): Promise<StudentDetail> {
+        return this.request<StudentDetail>(`/teacher/students/${studentId}`);
     }
 }
 
