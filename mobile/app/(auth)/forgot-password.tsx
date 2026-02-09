@@ -15,8 +15,8 @@ import {
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { validateFields, ValidationErrors } from "@/utils/validate";
-import { apiClient } from "@/services/api";
+import { validateFields, ValidationErrors } from "@/lib/utils/validate";
+import { apiClient } from "@/lib/api";
 
 export default function ForgotPasswordScreen() {
     const router = useRouter();

@@ -4,10 +4,10 @@ import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Animated, StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { FontLoader } from "../components/font-loader";
-import { SplashScreen } from "../components/splash-screen";
+import { FontLoader } from "@/components/ui/font-loader";
+import { SplashScreen } from "@/components/ui/splash-screen";
 import { useAppFlow } from "../hooks/useAppFlow";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider } from "@/providers/AuthProvider";
 
 export default function RootLayout() {
   const [showIntro, setShowIntro] = useState(true);
@@ -37,7 +37,7 @@ export default function RootLayout() {
           router.replace("/(auth)");
         } else if (assessmentComplete) {
           // Authenticated and assessment complete → go to main app
-          router.replace("/(after-auth)");
+          router.replace("/(tabs)");
         } else {
           // Authenticated but assessment not complete → go to onboarding
           router.replace("/(onboarding)");
@@ -79,7 +79,7 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(intro)/index" />
             <Stack.Screen name="(onboarding)" />
-            <Stack.Screen name="(after-auth)" />
+            <Stack.Screen name="(tabs)" />
           </Stack>
         </FontLoader>
       </AuthProvider>

@@ -17,12 +17,11 @@ import {
 import Checkbox from "expo-checkbox";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { FacebookIcon, GoogleIcon, AppleIcon } from "@/assets/images";
-import { ValidationErrors, validateFields } from "@/utils/validate";
-import { apiClient } from "@/services/api";
-import { useAuthStore } from "@/store/auth";
-import { useUserStore } from "@/store/user";
-import { setItem } from "@/utils/storage";
+import { ValidationErrors, validateFields } from "@/lib/utils/validate";
+import { apiClient } from "@/lib/api";
+import { useAuthStore } from "@/lib/store/auth";
+import { useUserStore } from "@/lib/store/user";
+import { setItem } from "@/lib/utils/storage";
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -93,24 +92,6 @@ export default function SignUpScreen() {
           </View>
 
           <Text style={styles.title}>Create New Account</Text>
-
-          <View style={styles.socialContainer}>
-            <TouchableOpacity style={styles.socialBtn}>
-              <Image source={FacebookIcon} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialBtn}>
-              <Image source={GoogleIcon} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialBtn}>
-              <Image source={AppleIcon} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.orText}>or continue with</Text>
-            <View style={styles.divider} />
-          </View>
 
           {/* Email Input */}
           <View style={styles.inputContainer}>
@@ -237,39 +218,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#282F2E",
     marginBottom: 15
-  },
-
-  socialContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 5,
-  },
-  socialBtn: {
-    borderWidth: 0.5,
-    borderColor: "#CBD5E1",
-    borderRadius: 50,
-    width: 60,
-    height: 60,
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 8,
-    backgroundColor: "#FFFFFF",
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 25,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#EEEEEE",
-  },
-  orText: {
-    marginHorizontal: 10,
-    color: "#757575",
-    fontSize: 16,
-    fontWeight: "700",
   },
   inputContainer: {
     flexDirection: "row",

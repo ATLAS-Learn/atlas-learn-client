@@ -1,4 +1,4 @@
-import { INTRO_STEPS } from "@/constants";
+import { INTRO_STEPS } from "@/lib/constants";
 import React from "react";
 import { Image, View } from "react-native";
 

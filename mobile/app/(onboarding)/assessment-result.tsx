@@ -8,10 +8,10 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Level } from "@/services/types";
-import { LEVEL_INFO } from "@/constants/levels";
-import { useUserStore } from "@/store/user";
-import { setItem } from "@/utils/storage";
+import { Level } from "@/lib/types";
+import { LEVEL_INFO } from "@/lib/constants/levels";
+import { useUserStore } from "@/lib/store/user";
+import { setItem } from "@/lib/utils/storage";
 
 export default function AssessmentResultScreen() {
     const router = useRouter();
@@ -33,7 +33,7 @@ export default function AssessmentResultScreen() {
 
     const handleContinue = async () => {
         await setItem("assessmentComplete", "true");
-        router.replace("/(after-auth)");
+        router.replace("/(tabs)");
     };
 
     return (

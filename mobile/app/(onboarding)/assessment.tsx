@@ -10,10 +10,10 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import QuestionCard from "@/components/quiz/question-card";
-import QuizProgress from "@/components/quiz/quiz-progress";
-import { apiClient } from "@/services/api";
-import { AssessmentQuestion } from "@/services/types";
+import QuestionCard from "@/components/quizzes/question-card";
+import QuizProgress from "@/components/quizzes/quiz-progress";
+import { apiClient } from "@/lib/api";
+import { AssessmentQuestion } from "@/lib/types";
 
 export default function AssessmentScreen() {
     const router = useRouter();
@@ -29,7 +29,7 @@ export default function AssessmentScreen() {
 
     const loadQuestions = async () => {
         try {
-            const data = await apiClient.getAssessmentQuestions();
+            const data = await apiClient.startAssessment();
             setQuestions(data);
         } catch (error: any) {
             console.error("Assessment load error:", error);

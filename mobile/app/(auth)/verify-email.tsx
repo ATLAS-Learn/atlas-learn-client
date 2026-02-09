@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { apiClient } from "@/services/api";
+import { apiClient } from "@/lib/api";
 
 export default function VerifyEmailScreen() {
     const router = useRouter();

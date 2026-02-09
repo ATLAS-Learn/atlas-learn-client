@@ -8,7 +8,7 @@ import {
     StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { EXAM_YEARS } from "@/constants/examYears";
+import { EXAM_YEARS } from "@/lib/constants/examYears";
 
 interface ExamYearPickerProps {
     selectedYear: number | null;

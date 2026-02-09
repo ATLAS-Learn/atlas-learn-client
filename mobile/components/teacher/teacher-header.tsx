@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { TeacherDashboardData } from "@/services/types";
+import { TeacherDashboardData } from "@/lib/types";
 
 interface TeacherHeaderProps {
     dashboardData: TeacherDashboardData;

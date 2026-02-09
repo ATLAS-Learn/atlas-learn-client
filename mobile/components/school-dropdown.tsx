@@ -8,7 +8,7 @@ import {
     StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { SCHOOLS } from "@/constants/schools";
+import { SCHOOLS } from "@/lib/constants/schools";
 
 interface SchoolDropdownProps {
     selectedSchool: string;

@@ -1,24 +1,3 @@
-// import React from "react";
-// import { Button, Text, View } from "react-native";
-// import { useAuthStore } from "../../store/auth";
-
-// export default function Auth() {
-//   const { setAuth } = useAuthStore();
-
-//   const login = async () => {
-//     // Replace with real API call and JWT/Clerk logic
-//     const fakeToken = "jwt_or_clerk_token";
-//     setAuth(fakeToken);
-//   };
-
-//   return (
-//     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-//       <Text>Login to continue</Text>
-//       <Button title="Login" onPress={login} />
-//     </View>
-//   );
-// }
-
 import React, { useState } from "react";
 import {
   View,
@@ -35,33 +14,21 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import Checkbox from "expo-checkbox";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { FacebookIcon, GoogleIcon, AppleIcon } from "@/assets/images";
-import { validateFields, ValidationErrors } from "@/utils/validate";
-import { apiClient } from "@/services/api";
-import { useAuthStore } from "@/store/auth";
-import { useUserStore } from "@/store/user";
-import { getItem, setItem } from "@/utils/storage";
-
+import { validateFields, ValidationErrors } from "@/lib/utils/validate";
+import { apiClient } from "@/lib/api";
 
 export default function SignIn() {
   const router = useRouter();
-  const { setAuth } = useAuthStore();
-  const { setUser } = useUserStore();
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
 
-  const handleSignIn = async () => {
+  const handleRequestOTP = async () => {
     const newErrors = validateFields({
       email,
-      password,
     });
 
     setErrors(newErrors);
@@ -69,27 +36,19 @@ export default function SignIn() {
     if (Object.keys(newErrors).length === 0) {
       setLoading(true);
       try {
-        const response = await apiClient.login(email, password);
-
-        setAuth(response.token);
-        setUser(response.user);
-
-        // Check if assessment is complete
-        const assessmentComplete = await getItem("assessmentComplete");
-        if (assessmentComplete === "true") {
-          router.replace("/(after-auth)");
-        } else {
-          // Route to onboarding if assessment not complete
-          router.replace("/(onboarding)");
-        }
+        await apiClient.requestOTP(email);
+        // Navigate to OTP verification screen with email param
+        router.push({
+          pathname: "/(auth)/verify-otp",
+          params: { email },
+        });
       } catch (error: any) {
-        Alert.alert("Login Failed", error.message || "Invalid email or password. Please try again.");
+        Alert.alert("Error", error.message || "Failed to send OTP. Please try again.");
       } finally {
         setLoading(false);
       }
     }
   };
-
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -115,7 +74,7 @@ export default function SignIn() {
           </View>
 
           <Text style={styles.title}>Sign In</Text>
-          <Text style={styles.subtitle}>Let’s experience the joy of telecare AI.</Text>
+          <Text style={styles.subtitle}>Enter your email to receive a verification code.</Text>
 
           {/* Email Input  */}
           <View style={styles.inputContainer}>
@@ -126,6 +85,7 @@ export default function SignIn() {
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
+              keyboardType="email-address"
               style={styles.input}
             />
           </View>
@@ -133,84 +93,17 @@ export default function SignIn() {
             <Text style={{ color: "red", marginBottom: 10 }}>{errors.email}</Text>
           )}
 
-          {/* Password Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons
-              name="lock-closed"
-              size={24}
-              color="#B3B3B3"
-              style={styles.icon}
-            />
-            <TextInput
-              placeholder="Password"
-              placeholderTextColor="#B3B3B3"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              style={styles.input}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons
-                name={showPassword ? "eye-off" : "eye"}
-                size={24}
-                color="#B3B3B3"
-              />
-            </TouchableOpacity>
-          </View>
-          {errors.password && (
-            <Text style={{ color: "red", marginBottom: 10 }}>
-              {errors.password}
-            </Text>
-          )}
-
-          <TouchableOpacity
-            style={styles.forgotTextCon}
-            onPress={() => router.push("/(auth)/forgot-password")}
-          >
-            <Text style={styles.forgotText}>Forgot Password?</Text>
-          </TouchableOpacity>
-
-          <View style={styles.rememberBox}>
-            <Checkbox
-              value={remember}
-              onValueChange={setRemember}
-              color={remember ? "#F2B138" : undefined}
-              style={styles.checkBox}
-            />
-            <Text style={styles.rememberText}>Remember Me</Text>
-          </View>
-
           <TouchableOpacity
             style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-            onPress={handleSignIn}
+            onPress={handleRequestOTP}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.loginText}>Login</Text>
+              <Text style={styles.loginText}>Send OTP</Text>
             )}
           </TouchableOpacity>
-
-          {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.orText}>or continue with</Text>
-            <View style={styles.divider} />
-          </View>
-
-          {/* Social Buttons */}
-          <View style={styles.socialContainer}>
-            <TouchableOpacity style={styles.socialBtn}>
-              <Image source={FacebookIcon} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialBtn}>
-              <Image source={GoogleIcon} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialBtn}>
-              <Image source={AppleIcon} />
-            </TouchableOpacity>
-          </View>
 
           <Text style={styles.signupText}>
             Don't have an account?{" "}
@@ -223,7 +116,6 @@ export default function SignIn() {
     </TouchableWithoutFeedback>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -245,8 +137,7 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: "center",
     marginBottom: 10,
-    marginTop: 40
-
+    marginTop: 40,
   },
   logo: {
     fontWeight: "bold",
@@ -276,7 +167,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 10,
     marginBottom: 15,
-
   },
   icon: {
     marginRight: 10,
@@ -287,83 +177,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
-  forgotTextCon: {
-    alignSelf: 'flex-end'
-  },
-  forgotText: {
-    color: "#F2B138",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  rememberBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: 'center',
-    gap: 16,
-    marginVertical: 20
-  },
-  checkBox: {
-    height: 20,
-    width: 20,
-    borderColor: "#F2B138",
-    borderWidth: 3,
-    borderRadius: 5
-  },
-  rememberText: {
-    color: "#0F172A",
-    fontSize: 14,
-    fontWeight: "700"
-
-  },
-
   loginButton: {
     backgroundColor: "#F2B138",
     paddingVertical: 15,
     borderRadius: 25,
     alignItems: "center",
+    marginTop: 20,
   },
   loginText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 25,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#EEEEEE",
-  },
-  orText: {
-    marginHorizontal: 10,
-    color: "#757575",
-    fontSize: 18,
-    fontWeight: '700'
-  },
-  socialContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 25,
-  },
-  socialBtn: {
-    borderWidth: 0.5,
-    borderColor: "#CBD5E1",
-    borderRadius: 50,
-    width: 60,
-    height: 60,
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 8,
-    backgroundColor: "#FFFFFF"
-  },
   signupText: {
     textAlign: "center",
     color: "#9E9E9E",
     fontSize: 14,
     fontWeight: "400",
+    marginTop: 25,
   },
   signupLink: {
     color: "#F2B138",

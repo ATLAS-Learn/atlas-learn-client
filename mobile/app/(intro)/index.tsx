@@ -1,7 +1,7 @@
 import { MiddleSection } from "@/components/intro/middle-section";
 import { TopBanner } from "@/components/intro/top-banner";
-import { INTRO_STEPS } from "@/constants";
-import { setItem } from "@/utils/storage";
+import { INTRO_STEPS } from "@/lib/constants";
+import { setItem } from "@/lib/utils/storage";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Image, Text, TouchableHighlight, View } from "react-native";
