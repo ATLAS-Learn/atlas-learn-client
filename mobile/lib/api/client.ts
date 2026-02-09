@@ -1,4 +1,4 @@
-import { API_BASE_URL, ASSESSMENT_QUIZ_ID } from "@/lib/constants/api";
+import { API_BASE_URL } from "@/lib/constants/api";
 import {
     User,
     AuthResponse,
