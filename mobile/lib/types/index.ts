@@ -59,11 +59,19 @@ export interface Chapter {
     estimatedTime: number; // in minutes
 }
 
+export interface ExternalLink {
+    id: string;
+    title: string;
+    url: string;
+    type: "video" | "document" | "article" | "other";
+}
+
 export interface ChapterSection {
     id: string;
     title: string;
     content: string;
     imageUrl?: string;
+    externalLinks?: ExternalLink[];
     order: number;
 }
 

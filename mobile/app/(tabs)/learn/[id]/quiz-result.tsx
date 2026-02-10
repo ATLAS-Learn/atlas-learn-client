@@ -14,7 +14,7 @@ import { useProgressStore } from "@/lib/store/progress";
 export default function QuizResultScreen() {
     const router = useRouter();
     const params = useLocalSearchParams<{ id: string; score: string; totalQuestions: string; percentage: string; passed: string; pastPaperReference?: string; unlockedNextChapter: string }>();
-    const { updateOverallProgress } = useProgressStore();
+    const { updateOverallProgress, completeChapter } = useProgressStore();
 
     const score = parseInt(params.score as string) || 0;
     const totalQuestions = parseInt(params.totalQuestions as string) || 5;
@@ -24,7 +24,14 @@ export default function QuizResultScreen() {
     const unlockedNextChapter = params.unlockedNextChapter === "true";
 
     const handleContinue = () => {
-        if (unlockedNextChapter) {
+        if (unlockedNextChapter && passed && params.id) {
+            // Mark chapter as completed when quiz is passed and next chapter is unlocked
+            completeChapter(params.id);
+            updateOverallProgress(percentage);
+            router.replace("/(tabs)/learn");
+        } else if (passed && params.id) {
+            // Even if next chapter isn't unlocked, mark as completed if passed
+            completeChapter(params.id);
             updateOverallProgress(percentage);
             router.replace("/(tabs)/learn");
         } else {

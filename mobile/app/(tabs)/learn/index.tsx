@@ -7,8 +7,10 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { DashboardData, Chapter } from "@/lib/types";
 import WelcomeHeader from "@/components/progress/welcome-header";
@@ -162,6 +164,15 @@ export default function LearnDashboardScreen() {
           isLocked={dashboardData.isNextChapterLocked}
         />
       )}
+
+      <TouchableOpacity
+        style={styles.chaptersButton}
+        onPress={() => router.push("/(tabs)/learn/chapters")}
+      >
+        <Ionicons name="list" size={24} color="#F2B138" />
+        <Text style={styles.chaptersButtonText}>View All Chapters</Text>
+        <Ionicons name="chevron-forward" size={20} color="#999" />
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -188,5 +199,22 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: "#F44336",
+  },
+  chaptersButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    gap: 12,
+  },
+  chaptersButtonText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#282F2E",
   },
 });

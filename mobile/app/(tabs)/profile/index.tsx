@@ -80,6 +80,18 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Learning</Text>
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => router.push("/(tabs)/profile/quiz-scores")}
+                >
+                    <Ionicons name="document-text-outline" size={24} color="#666" />
+                    <Text style={styles.menuText}>Quiz Scores</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Settings</Text>
                 <TouchableOpacity style={styles.menuItem}>
                     <Ionicons name="person-outline" size={24} color="#666" />
