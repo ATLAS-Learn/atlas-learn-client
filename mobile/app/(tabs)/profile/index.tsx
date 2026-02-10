@@ -1,18 +1,43 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserStore } from "@/lib/store/user";
 import { useAuthStore } from "@/lib/store/auth";
+import { useProgressStore } from "@/lib/store/progress";
 import { apiClient } from "@/lib/api";
 import { UserRole } from "@/lib/types";
+import ProgressBar from "@/components/progress/progress-bar";
 
 export default function ProfileScreen() {
     const router = useRouter();
     const { user, setUser } = useUserStore();
     const { logout } = useAuthStore();
+    const { progress, calculateOverallProgress } = useProgressStore();
     const [requestingUpgrade, setRequestingUpgrade] = useState(false);
     const [roleUpgradeStatus, setRoleUpgradeStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
+    const [loadingProgress, setLoadingProgress] = useState(false);
+
+    useEffect(() => {
+        loadProgress();
+    }, []);
+
+    const loadProgress = async () => {
+        if (!user || user.role !== UserRole.STUDENT) return;
+        
+        setLoadingProgress(true);
+        try {
+            const [chapters, quizzes] = await Promise.all([
+                apiClient.getChapters(),
+                apiClient.getQuizzes(1000), // Get all quizzes
+            ]);
+            await calculateOverallProgress(chapters, quizzes);
+        } catch (error) {
+            console.error("Error loading progress:", error);
+        } finally {
+            setLoadingProgress(false);
+        }
+    };
 
     const handleLogout = async () => {
         await logout();
@@ -79,11 +104,17 @@ export default function ProfileScreen() {
                 )}
             </View>
 
+            {user?.role === UserRole.STUDENT && progress && (
+                <View style={styles.progressSection}>
+                    <ProgressBar progress={progress.overallProgress} />
+                </View>
+            )}
+
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Learning</Text>
                 <TouchableOpacity
                     style={styles.menuItem}
-                    onPress={() => router.push("/(tabs)/profile/quiz-scores")}
+                    onPress={() => router.push("/(tabs)/profile/quiz-scores" as any)}
                 >
                     <Ionicons name="document-text-outline" size={24} color="#666" />
                     <Text style={styles.menuText}>Quiz Scores</Text>
@@ -185,6 +216,10 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: "600",
         color: "#F2B138",
+    },
+    progressSection: {
+        marginTop: 24,
+        paddingHorizontal: 16,
     },
     section: {
         marginTop: 24,

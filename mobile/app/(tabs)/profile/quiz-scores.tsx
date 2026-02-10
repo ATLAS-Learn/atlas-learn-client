@@ -132,10 +132,9 @@ export default function QuizScoresScreen() {
                     quizAttempts.map((attempt) => {
                         const passed = attempt.passed;
                         const percentage = attempt.percentage;
-                        // Try to find chapter title from quiz
-                        let chapterTitle = `Quiz ${attempt.quizId.slice(0, 8)}`;
-                        // We'll try to get it from quiz if available
-                        // For now, show quiz ID - backend should provide chapterId in QuizAttempt or Quiz
+                        const quiz = quizzes[attempt.quizId];
+                        const totalQuestions = quiz?.questions?.length || 0;
+                        const chapterTitle = getChapterTitle(attempt.quizId);
 
                         return (
                             <View key={attempt.id} style={styles.scoreCard}>

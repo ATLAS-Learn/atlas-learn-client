@@ -93,8 +93,10 @@ export default function QuizScreen() {
             const result = await apiClient.submitQuiz(quiz.id, submission);
 
             router.push({
-                pathname: `/(tabs)/learn/${id}/quiz-result`,
+                pathname: "/(tabs)/learn/[id]/quiz-result",
                 params: {
+                    id: id!,
+                    quizId: quiz.id,
                     score: result.score.toString(),
                     totalQuestions: result.totalQuestions.toString(),
                     percentage: result.percentage.toString(),
@@ -102,7 +104,7 @@ export default function QuizScreen() {
                     pastPaperReference: result.pastPaperReference || "",
                     unlockedNextChapter: result.unlockedNextChapter.toString(),
                 },
-            });
+            } as any);
         } catch {
             Alert.alert("Error", "Failed to submit quiz. Please try again.");
         } finally {

@@ -23,7 +23,7 @@ import { useProgressStore } from "@/lib/store/progress";
 export default function LearnDashboardScreen() {
   const router = useRouter();
   const { user } = useUserStore();
-  const { progress, setProgress } = useProgressStore();
+  const { progress, setProgress, calculateOverallProgress } = useProgressStore();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -44,6 +44,8 @@ export default function LearnDashboardScreen() {
         userId: user.id,
         currentChapterId: "",
         completedChapters: [],
+        completedLessons: [],
+        completedQuizzes: [],
         overallProgress: 0,
         streak: 1,
         lastActiveDate: new Date().toISOString(),
@@ -94,9 +96,23 @@ export default function LearnDashboardScreen() {
         ? !currentProgress.completedChapters.includes(currentChapter.id)
         : true;
 
+      // Calculate overall progress based on lessons + quizzes
+      let finalProgress = currentProgress;
+      try {
+        const quizzes = await apiClient.getQuizzes(1000); // Get all quizzes
+        await calculateOverallProgress(allChapters, quizzes);
+        // Get updated progress from store after calculation
+        const updatedProgress = useProgressStore.getState().progress;
+        if (updatedProgress) {
+          finalProgress = updatedProgress;
+        }
+      } catch (error) {
+        console.error("Error calculating progress:", error);
+      }
+
       const localDashboardData: DashboardData = {
         user,
-        progress: currentProgress,
+        progress: finalProgress,
         currentChapter,
         nextChapter,
         isNextChapterLocked,

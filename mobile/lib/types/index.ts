@@ -109,6 +109,8 @@ export interface Progress {
     userId: string;
     currentChapterId: string;
     completedChapters: string[];
+    completedLessons: string[]; // Array of lesson (section) IDs
+    completedQuizzes: string[]; // Array of quiz IDs
     overallProgress: number; // percentage
     streak: number;
     lastActiveDate: string;

@@ -14,18 +14,29 @@ import { apiClient } from "@/lib/api";
 import { Chapter } from "@/lib/types";
 import ChapterHeader from "@/components/lessons/chapter-header";
 import ContentSection from "@/components/lessons/content-section";
+import { useProgressStore } from "@/lib/store/progress";
 
 export default function ChapterScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
     const [chapter, setChapter] = useState<Chapter | null>(null);
     const [loading, setLoading] = useState(true);
+    const { completeLesson } = useProgressStore();
 
     useEffect(() => {
         if (id) {
             loadChapter();
         }
     }, [id]);
+
+    useEffect(() => {
+        // Mark all lessons in this chapter as completed when chapter is viewed
+        if (chapter?.content) {
+            chapter.content.forEach((section) => {
+                completeLesson(section.id);
+            });
+        }
+    }, [chapter, completeLesson]);
 
     const loadChapter = async () => {
         try {
