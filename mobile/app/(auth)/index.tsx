@@ -43,7 +43,14 @@ export default function SignIn() {
           params: { email },
         });
       } catch (error: any) {
-        Alert.alert("Error", error.message || "Failed to send OTP. Please try again.");
+        const errorMessage = error.message || "Failed to send OTP. Please try again.";
+        
+        // If error is about email, show it inline
+        if (errorMessage.toLowerCase().includes("already exists") || errorMessage.toLowerCase().includes("email")) {
+          setErrors({ email: errorMessage });
+        } else {
+          Alert.alert("Error", errorMessage);
+        }
       } finally {
         setLoading(false);
       }

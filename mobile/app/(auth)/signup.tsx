@@ -69,7 +69,14 @@ export default function SignUpScreen() {
         // Route to onboarding for assessment
         router.replace("/(onboarding)");
       } catch (error: any) {
-        Alert.alert("Signup Failed", error.message || "An error occurred. Please try again.");
+        const errorMessage = error.message || "An error occurred. Please try again.";
+        
+        // If error is about email already existing, show it inline
+        if (errorMessage.toLowerCase().includes("already exists") || errorMessage.toLowerCase().includes("email")) {
+          setErrors({ email: errorMessage });
+        } else {
+          Alert.alert("Signup Failed", errorMessage);
+        }
       } finally {
         setLoading(false);
       }

@@ -22,21 +22,31 @@ export default function AssessmentScreen() {
     const [answers, setAnswers] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         loadQuestions();
     }, []);
 
     const loadQuestions = async () => {
+        setError(null);
+        setLoading(true);
         try {
             const data = await apiClient.startAssessment();
             setQuestions(data);
+            setError(null);
         } catch (error: any) {
             console.error("Assessment load error:", error);
             const errorMessage = error?.message || "Failed to load assessment questions. Please try again.";
-            Alert.alert("Error", errorMessage, [
-                { text: "OK", onPress: () => router.back() }
-            ]);
+            
+            // Provide more user-friendly error messages
+            let userMessage = errorMessage;
+            if (errorMessage.toLowerCase().includes("no active assessment") || 
+                errorMessage.toLowerCase().includes("not available")) {
+                userMessage = "Assessment is not available at this time. Please contact support or try again later.";
+            }
+            
+            setError(userMessage);
         } finally {
             setLoading(false);
         }
@@ -80,14 +90,11 @@ export default function AssessmentScreen() {
 
         setSubmitting(true);
         try {
-            const submission = {
-                answers: questions.map((q) => ({
-                    questionId: q.id,
-                    answerIndex: answers[q.id],
-                })),
-            };
+            // Submit answers as array of indices in question order
+            // API expects: { answers: [0, 1, 2, 0, 1] }
+            const answerIndices = questions.map((q) => answers[q.id]);
 
-            const result = await apiClient.submitAssessment(submission);
+            const result = await apiClient.submitAssessment(answerIndices);
 
             // Navigate to result screen with result data
             router.push({
@@ -111,6 +118,40 @@ export default function AssessmentScreen() {
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#F2B138" />
                 <Text style={styles.loadingText}>Loading assessment...</Text>
+            </View>
+        );
+    }
+
+    if (error) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color="#000" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Assessment</Text>
+                    <View style={styles.backButton} />
+                </View>
+                <View style={styles.errorContainer}>
+                    <Ionicons name="alert-circle-outline" size={64} color="#F44336" />
+                    <Text style={styles.errorTitle}>Assessment Unavailable</Text>
+                    <Text style={styles.errorMessage}>{error}</Text>
+                    <View style={styles.errorActions}>
+                        <TouchableOpacity
+                            style={styles.retryButton}
+                            onPress={loadQuestions}
+                        >
+                            <Ionicons name="refresh" size={20} color="#F2B138" />
+                            <Text style={styles.retryButtonText}>Try Again</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.backButtonError}
+                            onPress={() => router.back()}
+                        >
+                            <Text style={styles.backButtonErrorText}>Go Back</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
             </View>
         );
     }
@@ -207,6 +248,67 @@ const styles = StyleSheet.create({
     errorText: {
         fontSize: 16,
         color: "#F44336",
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 24,
+        backgroundColor: "#FAFAFA",
+    },
+    errorTitle: {
+        fontSize: 24,
+        fontWeight: "700",
+        color: "#282F2E",
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    errorMessage: {
+        fontSize: 16,
+        color: "#666",
+        textAlign: "center",
+        marginBottom: 32,
+        lineHeight: 24,
+    },
+    errorActions: {
+        flexDirection: "row",
+        gap: 12,
+        width: "100%",
+        maxWidth: 300,
+    },
+    retryButton: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        backgroundColor: "#FFF9E6",
+        borderWidth: 2,
+        borderColor: "#F2B138",
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 25,
+    },
+    retryButtonText: {
+        color: "#F2B138",
+        fontSize: 16,
+        fontWeight: "600",
+    },
+    backButtonError: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 25,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+    },
+    backButtonErrorText: {
+        color: "#666",
+        fontSize: 16,
+        fontWeight: "600",
     },
     header: {
         flexDirection: "row",

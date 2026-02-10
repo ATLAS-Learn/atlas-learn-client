@@ -4,7 +4,6 @@ import {
     User,
     AuthResponse,
     AssessmentQuestion,
-    AssessmentSubmission,
     AssessmentResult,
     DashboardData,
     Chapter,
@@ -175,14 +174,44 @@ class APIClient {
     // Using dedicated assessment endpoints: /api/v1/assessment/*
     async startAssessment(): Promise<AssessmentQuestion[]> {
         // Start assessment and get questions
-        return this.request<AssessmentQuestion[]>("/assessment/start");
+        // API returns: { success: true, data: { id, title, description, questionCount, questions: [...] } }
+        const response = await this.request<{
+            success: boolean;
+            data: {
+                id: string;
+                title: string;
+                description: string;
+                questionCount: number;
+                questions: Array<{
+                    id: string;
+                    questionText: string;
+                    options: string[];
+                    orderIndex: number;
+                }>;
+            };
+        }>("/assessment/start");
+        
+        // Validate response structure
+        if (!response?.data?.questions || !Array.isArray(response.data.questions)) {
+            throw new Error("Invalid assessment response: questions array not found");
+        }
+        
+        // Map API response format to AssessmentQuestion format
+        return response.data.questions.map((q) => ({
+            id: q.id,
+            question: q.questionText || "", // Map questionText to question
+            options: q.options || [],
+            correctAnswer: -1, // Assessments don't have correct answers, use -1 as placeholder
+            topic: "", // Not provided by API, use empty string
+        }));
     }
 
-    async submitAssessment(submission: AssessmentSubmission): Promise<AssessmentResult> {
+    async submitAssessment(answers: number[]): Promise<AssessmentResult> {
         // Submit assessment answers
+        // API expects: { answers: [0, 1, 2, 0, 1] } - array of answer indices
         const result = await this.request<AssessmentResult>("/assessment/submit", {
             method: "POST",
-            data: submission,
+            data: { answers },
         });
         return result;
     }
