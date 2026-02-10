@@ -1,3 +1,4 @@
+import axios, { AxiosInstance, AxiosError } from "axios";
 import { API_BASE_URL } from "@/lib/constants/api";
 import {
     User,
@@ -17,13 +18,50 @@ import {
     StudentDetail,
 } from "@/lib/types";
 
-// API Client class
+// API Client class using Axios
 class APIClient {
-    private baseURL: string;
+    private axiosInstance: AxiosInstance;
     private token: string | null = null;
 
     constructor(baseURL: string) {
-        this.baseURL = baseURL;
+        this.axiosInstance = axios.create({
+            baseURL,
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+
+        // Request interceptor to add auth token
+        this.axiosInstance.interceptors.request.use(
+            (config) => {
+                if (this.token) {
+                    config.headers.Authorization = `Bearer ${this.token}`;
+                }
+                console.log(`[API] ${config.method?.toUpperCase() || 'GET'} ${config.url}`);
+                return config;
+            },
+            (error) => {
+                return Promise.reject(error);
+            }
+        );
+
+        // Response interceptor for error handling
+        this.axiosInstance.interceptors.response.use(
+            (response) => response,
+            (error: AxiosError) => {
+                let errorMessage = "Request failed";
+                if (error.response) {
+                    const data = error.response.data as any;
+                    errorMessage = data?.message || data?.error || `HTTP ${error.response.status}: ${error.response.statusText}`;
+                } else if (error.request) {
+                    errorMessage = "Network error - please check your connection";
+                } else {
+                    errorMessage = error.message || "An unexpected error occurred";
+                }
+                console.error(`API Error [${error.response?.status || 'N/A'}]:`, error.config?.url, errorMessage);
+                return Promise.reject(new Error(errorMessage));
+            }
+        );
     }
 
     setToken(token: string | null) {
@@ -32,37 +70,20 @@ class APIClient {
 
     private async request<T>(
         endpoint: string,
-        options: RequestInit = {}
+        options: {
+            method?: "GET" | "POST" | "PUT" | "DELETE";
+            data?: any;
+            params?: any;
+        } = {}
     ): Promise<T> {
-        const url = `${this.baseURL}${endpoint}`;
-        console.log(`[API] ${options.method || 'GET'} ${url}`);
-        const headers: Record<string, string> = {
-            "Content-Type": "application/json",
-            ...(options.headers as Record<string, string>),
-        };
-
-        if (this.token) {
-            headers["Authorization"] = `Bearer ${this.token}`;
-        }
-
-        const response = await fetch(url, {
-            ...options,
-            headers,
+        const { method = "GET", data, params } = options;
+        const response = await this.axiosInstance.request<T>({
+            url: endpoint,
+            method,
+            data,
+            params,
         });
-
-        if (!response.ok) {
-            let errorMessage = "Request failed";
-            try {
-                const error = await response.json();
-                errorMessage = error.message || error.error || `HTTP ${response.status}: ${response.statusText}`;
-            } catch {
-                errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-            }
-            console.error(`API Error [${response.status}]:`, url, errorMessage);
-            throw new Error(errorMessage);
-        }
-
-        return response.json();
+        return response.data;
     }
 
     // Auth endpoints
@@ -80,14 +101,14 @@ class APIClient {
         };
         return this.request<AuthResponse>("/auth/sign-up/email", {
             method: "POST",
-            body: JSON.stringify(signupData),
+            data: signupData,
         });
     }
 
     async login(email: string, password: string): Promise<AuthResponse> {
         return this.request<AuthResponse>("/auth/sign-in/email", {
             method: "POST",
-            body: JSON.stringify({ email, password }),
+            data: { email, password },
         });
     }
 
@@ -104,21 +125,21 @@ class APIClient {
     async forgotPassword(email: string): Promise<{ message: string }> {
         return this.request<{ message: string }>("/auth/forgot-password", {
             method: "POST",
-            body: JSON.stringify({ email }),
+            data: { email },
         });
     }
 
     async resetPassword(token: string, password: string): Promise<{ message: string }> {
         return this.request<{ message: string }>("/auth/reset-password", {
             method: "POST",
-            body: JSON.stringify({ token, password }),
+            data: { token, password },
         });
     }
 
     async verifyEmail(code: string): Promise<{ message: string }> {
         return this.request<{ message: string }>("/auth/verify-email", {
             method: "POST",
-            body: JSON.stringify({ code }),
+            data: { code },
         });
     }
 
@@ -132,14 +153,14 @@ class APIClient {
     async requestOTP(email: string): Promise<{ message: string }> {
         return this.request<{ message: string }>("/auth/request-otp", {
             method: "POST",
-            body: JSON.stringify({ email }),
+            data: { email },
         });
     }
 
     async verifyOTPLogin(email: string, otp: string): Promise<AuthResponse> {
         return this.request<AuthResponse>("/auth/verify-otp-login", {
             method: "POST",
-            body: JSON.stringify({ email, otp }),
+            data: { email, otp },
         });
     }
 
@@ -161,7 +182,7 @@ class APIClient {
         // Submit assessment answers
         const result = await this.request<AssessmentResult>("/assessment/submit", {
             method: "POST",
-            body: JSON.stringify(submission),
+            data: submission,
         });
         return result;
     }
@@ -217,7 +238,7 @@ class APIClient {
         // Create a new quiz for a chapter
         return this.request<Quiz>(`/chapters/${chapterId}/quizzes`, {
             method: "POST",
-            body: JSON.stringify(quizData),
+            data: quizData,
         });
     }
 
@@ -240,7 +261,7 @@ class APIClient {
     async updateQuiz(quizId: string, quizData: Partial<Quiz>): Promise<Quiz> {
         return this.request<Quiz>(`/quizzes/${quizId}`, {
             method: "PUT",
-            body: JSON.stringify(quizData),
+            data: quizData,
         });
     }
 
@@ -253,14 +274,14 @@ class APIClient {
     async addQuizQuestion(quizId: string, questionData: any): Promise<any> {
         return this.request<any>(`/quizzes/${quizId}/questions`, {
             method: "POST",
-            body: JSON.stringify(questionData),
+            data: questionData,
         });
     }
 
     async updateQuizQuestion(quizId: string, questionId: string, questionData: any): Promise<any> {
         return this.request<any>(`/quizzes/${quizId}/questions/${questionId}`, {
             method: "PUT",
-            body: JSON.stringify(questionData),
+            data: questionData,
         });
     }
 
@@ -273,7 +294,7 @@ class APIClient {
     async submitQuiz(quizId: string, submission: QuizSubmission): Promise<QuizResult> {
         return this.request<QuizResult>(`/quizzes/${quizId}/submit`, {
             method: "POST",
-            body: JSON.stringify(submission),
+            data: submission,
         });
     }
 

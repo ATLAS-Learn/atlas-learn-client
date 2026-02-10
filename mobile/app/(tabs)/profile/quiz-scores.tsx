@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import {
     View,
     Text,
@@ -6,75 +6,30 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
-    Alert,
     RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { apiClient } from "@/lib/api";
 import { QuizAttempt, Chapter, Quiz } from "@/lib/types";
 import { useUserStore } from "@/lib/store/user";
+import { useUserQuizAttempts, useChapters, useQuiz } from "@/lib/hooks/api";
 
 export default function QuizScoresScreen() {
     const router = useRouter();
     const { user } = useUserStore();
-    const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>([]);
-    const [chapters, setChapters] = useState<Record<string, Chapter>>({});
-    const [quizzes, setQuizzes] = useState<Record<string, Quiz>>({});
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+    const { data: quizAttempts = [], isLoading, refetch, isRefetching } = useUserQuizAttempts(user?.id);
+    const { data: chaptersList = [] } = useChapters();
 
-    useEffect(() => {
-        loadQuizScores();
-    }, []);
-
-    const loadQuizScores = async () => {
-        if (!user?.id) {
-            Alert.alert("Error", "User data not available.");
-            router.back();
-            return;
-        }
-
-        try {
-            // Load user's quiz attempts
-            const attempts = await apiClient.getUserQuizAttempts(user.id);
-            setQuizAttempts(attempts);
-
-            // Load all chapters first
-            const chaptersList = await apiClient.getChapters();
-            const chaptersMap: Record<string, Chapter> = {};
-            chaptersList.forEach((chapter) => {
-                chaptersMap[chapter.id] = chapter;
-            });
-
-            // Try to get chapter info for each quiz attempt by fetching the quiz
-            for (const attempt of attempts) {
-                try {
-                    const quiz = await apiClient.getQuiz(attempt.quizId);
-                    if (quiz.chapterId && !chaptersMap[quiz.chapterId]) {
-                        try {
-                            const chapter = await apiClient.getChapter(quiz.chapterId);
-                            chaptersMap[quiz.chapterId] = chapter;
-                        } catch (error) {
-                            // Chapter might not exist, continue
-                        }
-                    }
-                } catch (error) {
-                    // Quiz might not exist, continue
-                }
-            }
-            setChapters(chaptersMap);
-        } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to load quiz scores. Please try again.");
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    };
+    const chapters = useMemo(() => {
+        const chaptersMap: Record<string, Chapter> = {};
+        chaptersList.forEach((chapter) => {
+            chaptersMap[chapter.id] = chapter;
+        });
+        return chaptersMap;
+    }, [chaptersList]);
 
     const handleRefresh = () => {
-        setRefreshing(true);
-        loadQuizScores();
+        refetch();
     };
 
     const formatDate = (dateString: string) => {
@@ -89,14 +44,12 @@ export default function QuizScoresScreen() {
     };
 
     const getChapterTitle = (quizId: string): string => {
-        const quiz = quizzes[quizId];
-        if (quiz?.chapterId && chapters[quiz.chapterId]) {
-            return chapters[quiz.chapterId].title;
-        }
+        // Try to find chapter by checking quiz attempts' chapterId if available
+        // For now, return a generic title since we'd need to fetch quiz details
         return `Quiz ${quizId.slice(0, 8)}`;
     };
 
-    if (loading) {
+    if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#F2B138" />
@@ -118,8 +71,10 @@ export default function QuizScoresScreen() {
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.content}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+                refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
             >
+                {quizAttempts.length > 0 && <QuizScoresChart attempts={quizAttempts} />}
+                
                 {quizAttempts.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="document-text-outline" size={64} color="#CCC" />
@@ -132,8 +87,6 @@ export default function QuizScoresScreen() {
                     quizAttempts.map((attempt) => {
                         const passed = attempt.passed;
                         const percentage = attempt.percentage;
-                        const quiz = quizzes[attempt.quizId];
-                        const totalQuestions = quiz?.questions?.length || 0;
                         const chapterTitle = getChapterTitle(attempt.quizId);
 
                         return (
@@ -173,7 +126,7 @@ export default function QuizScoresScreen() {
                                     <View style={styles.scoreItem}>
                                         <Text style={styles.scoreLabel}>Score</Text>
                                         <Text style={styles.scoreValue}>
-                                            {totalQuestions > 0 ? `${attempt.score} / ${totalQuestions}` : attempt.score}
+                                            {attempt.score}
                                         </Text>
                                     </View>
                                     <View style={styles.scoreItem}>

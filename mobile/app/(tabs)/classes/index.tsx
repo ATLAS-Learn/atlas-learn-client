@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
     View,
     Text,
@@ -6,15 +6,15 @@ import {
     StyleSheet,
     RefreshControl,
     ActivityIndicator,
-    Alert,
     TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { apiClient } from "@/lib/api";
-import { TeacherDashboardData, StudentListItem, StudentStatus, Level } from "@/lib/types";
+import { StudentListItem, StudentStatus, Level } from "@/lib/types";
 import TeacherHeader from "@/components/teacher/teacher-header";
 import StudentListItemComponent from "@/components/teacher/student-list-item";
+import { useTeacherDashboard } from "@/lib/hooks/api";
+import StudentProgressChart from "@/components/charts/StudentProgressChart";
 
 type ProgressFilter = "all" | "0-25" | "25-50" | "50-75" | "75-100";
 type LevelFilter = "all" | Level;
@@ -22,33 +22,13 @@ type StatusFilter = "all" | StudentStatus;
 
 export default function TeacherDashboardScreen() {
     const router = useRouter();
-    const [dashboardData, setDashboardData] = useState<TeacherDashboardData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+    const { data: dashboardData, isLoading, refetch, isRefetching } = useTeacherDashboard();
     const [progressFilter, setProgressFilter] = useState<ProgressFilter>("all");
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
     const [showFilters, setShowFilters] = useState(false);
 
-    useEffect(() => {
-        loadDashboard();
-    }, []);
-
-    const loadDashboard = async () => {
-        try {
-            const data = await apiClient.getTeacherDashboard();
-            setDashboardData(data);
-        } catch (error: unknown) {
-            console.error("Teacher dashboard error:", error);
-            Alert.alert("Error", (error as Error).message || "Failed to load teacher dashboard. Please try again.");
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    };
-
     const handleRefresh = () => {
-        setRefreshing(true);
-        loadDashboard();
+        refetch();
     };
 
     const handleStudentPress = (student: StudentListItem) => {
@@ -108,7 +88,7 @@ export default function TeacherDashboardScreen() {
         }
     };
 
-    if (loading) {
+    if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#F2B138" />
@@ -130,10 +110,14 @@ export default function TeacherDashboardScreen() {
             style={styles.container}
             contentContainerStyle={styles.content}
             refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+                <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />
             }
         >
             <TeacherHeader dashboardData={dashboardData} />
+
+            {dashboardData.students.length > 0 && (
+                <StudentProgressChart students={dashboardData.students} />
+            )}
 
             <View style={styles.filtersSection}>
                 <View style={styles.filtersHeader}>

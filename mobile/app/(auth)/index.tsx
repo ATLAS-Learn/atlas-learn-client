@@ -61,6 +61,7 @@ export default function SignIn() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          enableOnAndroid={true}
         >
           <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#000" />

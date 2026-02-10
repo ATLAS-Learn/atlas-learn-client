@@ -8,6 +8,7 @@ import { FontLoader } from "@/components/ui/font-loader";
 import { SplashScreen } from "@/components/ui/splash-screen";
 import { useAppFlow } from "../hooks/useAppFlow";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { QueryProvider } from "@/providers/QueryProvider";
 
 export default function RootLayout() {
   const [showIntro, setShowIntro] = useState(true);
@@ -51,39 +52,40 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider className="bg-[#FAFAFA]">
-      <AuthProvider>
-        <FontLoader>
-          <StatusBar hidden={true} />
-          {showIntro && (
-            <Animated.View
-              style={[
-                {
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  zIndex: 999,
-                  opacity: fadeAnim,
-                },
-              ]}
+      <QueryProvider>
+        <AuthProvider>
+          <FontLoader>
+            <StatusBar hidden={true} />
+            {showIntro && (
+              <Animated.View
+                style={[
+                  {
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 999,
+                    opacity: fadeAnim,
+                  },
+                ]}
+              >
+                <SplashScreen />
+              </Animated.View>
+            )}
+            <Stack
+              screenOptions={{
+                headerShown: false,
+              }}
             >
-              <SplashScreen />
-            </Animated.View>
-          )}
-          <Stack
-            screenOptions={{
-              headerShown: false,
-            }}
-          >
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(intro)/index" />
-            <Stack.Screen name="(onboarding)" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
-        </FontLoader>
-      </AuthProvider>
-
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(intro)/index" />
+              <Stack.Screen name="(onboarding)" />
+              <Stack.Screen name="(tabs)" />
+            </Stack>
+          </FontLoader>
+        </AuthProvider>
+      </QueryProvider>
     </SafeAreaProvider>
   );
 }
