@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -61,7 +61,6 @@ export default function SignIn() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          enableOnAndroid={true}
         >
           <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#000" />
@@ -88,6 +87,8 @@ export default function SignIn() {
               autoCapitalize="none"
               keyboardType="email-address"
               style={styles.input}
+              returnKeyType="done"
+              onSubmitEditing={handleRequestOTP}
             />
           </View>
           {errors.email && (
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
     justifyContent: "center",
     paddingTop: 100,
-    paddingBottom: 40,
+    paddingBottom: 100, // Increased bottom padding for keyboard
   },
   backArrow: {
     position: "absolute",

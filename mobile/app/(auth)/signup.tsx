@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -27,6 +27,7 @@ export default function SignUpScreen() {
   const router = useRouter();
   const { setAuth } = useAuthStore();
   const { setUser } = useUserStore();
+  const passwordInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
@@ -91,7 +92,6 @@ export default function SignUpScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          enableOnAndroid={true}
         >
           <View style={styles.logoContainer}>
             <Image source={require("@/assets/images/Blue atlas icon.png")} style={styles.logo} />
@@ -125,6 +125,8 @@ export default function SignUpScreen() {
               value={fullName}
               onChangeText={setFullName}
               style={styles.input}
+              onSubmitEditing={() => passwordInputRef.current?.focus()}
+              returnKeyType="next"
             />
           </View>
           {errors.fullName && (
@@ -136,12 +138,15 @@ export default function SignUpScreen() {
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={24} color="#B3B3B3" style={styles.icon} />
             <TextInput
+              ref={passwordInputRef}
               placeholder="Password"
               placeholderTextColor="#B3B3B3"
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
               style={styles.input}
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
               <Ionicons
@@ -204,7 +209,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 25,
     paddingTop: 100,
-    paddingBottom: 40,
+    paddingBottom: 100, // Increased bottom padding for keyboard
   },
   backArrow: {
     position: "absolute",
