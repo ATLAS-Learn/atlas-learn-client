@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserStore } from "@/lib/store/user";
@@ -17,6 +17,10 @@ export default function ProfileScreen() {
     const [requestingUpgrade, setRequestingUpgrade] = useState(false);
     const [roleUpgradeStatus, setRoleUpgradeStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
     const [loadingProgress, setLoadingProgress] = useState(false);
+    const [sessionsModalVisible, setSessionsModalVisible] = useState(false);
+    const [sessions, setSessions] = useState<Array<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }>>([]);
+    const [loadingSessions, setLoadingSessions] = useState(false);
+    const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
 
     useEffect(() => {
         loadProgress();
@@ -87,6 +91,57 @@ export default function ProfileScreen() {
         );
     };
 
+    const handleOpenSessions = async () => {
+        setSessionsModalVisible(true);
+        await loadSessions();
+    };
+
+    const loadSessions = async () => {
+        setLoadingSessions(true);
+        try {
+            const sessionsList = await apiClient.getSessions();
+            setSessions(sessionsList);
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to load active sessions.");
+        } finally {
+            setLoadingSessions(false);
+        }
+    };
+
+    const handleRevokeSession = async (sessionId: string) => {
+        Alert.alert(
+            "Revoke Session",
+            "Are you sure you want to revoke this session? You will be signed out from that device.",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel",
+                },
+                {
+                    text: "Revoke",
+                    style: "destructive",
+                    onPress: async () => {
+                        setRevokingSessionId(sessionId);
+                        try {
+                            await apiClient.revokeSession(sessionId);
+                            Alert.alert("Success", "Session revoked successfully.");
+                            await loadSessions(); // Refresh sessions list
+                        } catch (error: any) {
+                            Alert.alert("Error", error.message || "Failed to revoke session.");
+                        } finally {
+                            setRevokingSessionId(null);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -134,6 +189,11 @@ export default function ProfileScreen() {
                     <Text style={styles.menuText}>Notifications</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={handleOpenSessions}>
+                    <Ionicons name="phone-portrait-outline" size={24} color="#666" />
+                    <Text style={styles.menuText}>Active Sessions</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
             </View>
 
             {user?.role === UserRole.STUDENT && (
@@ -170,6 +230,72 @@ export default function ProfileScreen() {
                 <Ionicons name="log-out-outline" size={24} color="#F44336" />
                 <Text style={styles.logoutText}>Sign Out</Text>
             </TouchableOpacity>
+
+            {/* Sessions Modal */}
+            <Modal
+                visible={sessionsModalVisible}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setSessionsModalVisible(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>Active Sessions</Text>
+                        <TouchableOpacity onPress={() => setSessionsModalVisible(false)}>
+                            <Ionicons name="close" size={28} color="#282F2E" />
+                        </TouchableOpacity>
+                    </View>
+                    <ScrollView style={styles.modalContent}>
+                        {loadingSessions ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="large" color="#F2B138" />
+                                <Text style={styles.loadingText}>Loading sessions...</Text>
+                            </View>
+                        ) : sessions.length === 0 ? (
+                            <View style={styles.emptyContainer}>
+                                <Ionicons name="phone-portrait-outline" size={48} color="#999" />
+                                <Text style={styles.emptyText}>No active sessions</Text>
+                            </View>
+                        ) : (
+                            sessions.map((session) => (
+                                <View key={session.id} style={styles.sessionItem}>
+                                    <View style={styles.sessionInfo}>
+                                        <View style={styles.sessionHeader}>
+                                            <Ionicons name="phone-portrait" size={20} color="#666" />
+                                            <Text style={styles.sessionDevice}>
+                                                {session.userAgent || "Unknown Device"}
+                                            </Text>
+                                        </View>
+                                        {session.ipAddress && (
+                                            <Text style={styles.sessionIp}>IP: {session.ipAddress}</Text>
+                                        )}
+                                        <Text style={styles.sessionDate}>
+                                            Last active: {formatDate(session.lastActiveAt)}
+                                        </Text>
+                                        <Text style={styles.sessionDate}>
+                                            Created: {formatDate(session.createdAt)}
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.revokeButton}
+                                        onPress={() => handleRevokeSession(session.id)}
+                                        disabled={revokingSessionId === session.id}
+                                    >
+                                        {revokingSessionId === session.id ? (
+                                            <ActivityIndicator size="small" color="#F44336" />
+                                        ) : (
+                                            <>
+                                                <Ionicons name="trash-outline" size={18} color="#F44336" />
+                                                <Text style={styles.revokeButtonText}>Revoke</Text>
+                                            </>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            ))
+                        )}
+                    </ScrollView>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -278,5 +404,99 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "700",
         color: "#F44336",
+    },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: "#FAFAFA",
+    },
+    modalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 16,
+        backgroundColor: "#fff",
+        borderBottomWidth: 1,
+        borderBottomColor: "#E0E0E0",
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#282F2E",
+    },
+    modalContent: {
+        flex: 1,
+        padding: 16,
+    },
+    sessionItem: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        backgroundColor: "#fff",
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+    },
+    sessionInfo: {
+        flex: 1,
+        marginRight: 12,
+    },
+    sessionHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 8,
+    },
+    sessionDevice: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#282F2E",
+    },
+    sessionIp: {
+        fontSize: 12,
+        color: "#666",
+        marginBottom: 4,
+    },
+    sessionDate: {
+        fontSize: 12,
+        color: "#999",
+        marginTop: 2,
+    },
+    revokeButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#FFEBEE",
+        backgroundColor: "#FFF",
+    },
+    revokeButtonText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#F44336",
+    },
+    emptyContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 64,
+    },
+    emptyText: {
+        fontSize: 16,
+        color: "#999",
+        marginTop: 16,
+    },
+    loadingContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 64,
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
+        color: "#666",
     },
 });
