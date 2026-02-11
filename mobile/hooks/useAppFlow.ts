@@ -3,14 +3,15 @@ import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
 import { useProgressStore } from "@/lib/store/progress";
 import { getItem } from "@/lib/utils/storage";
+import { apiClient } from "@/lib/api";
 
 export function useAppFlow() {
   const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(
     null
   );
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, loadAuth } = useAuthStore();
-  const { user, loadUser } = useUserStore();
+  const { isAuthenticated, loadAuth, token, logout } = useAuthStore();
+  const { user, loadUser, setUser } = useUserStore();
   const { loadProgress } = useProgressStore();
 
   useEffect(() => {
@@ -22,28 +23,42 @@ export function useAppFlow() {
   }, []); // Only run once on mount
 
   useEffect(() => {
-    async function loadUserData() {
-      if (!isAuthenticated) {
+    async function restoreSession() {
+      if (!isAuthenticated || !token) {
         setIsLoading(false);
         return;
       }
 
-      // Load user and progress if authenticated
-      await loadUser();
-      await loadProgress();
+      try {
+        // Fetch fresh user data from API to validate token and restore session
+        const freshUser = await apiClient.getCurrentUser();
+        
+        // Update user store with fresh data from server
+        setUser(freshUser);
+        
+        // Load progress data
+        await loadProgress();
 
-      // Check assessment completion
-      const assessment = await getItem("assessmentComplete");
-      setAssessmentComplete(assessment === "true");
-      setIsLoading(false);
+        // Check assessment completion
+        const assessment = await getItem("assessmentComplete");
+        setAssessmentComplete(assessment === "true");
+        setIsLoading(false);
+      } catch (error: any) {
+        // Token is invalid or expired (401/403)
+        console.error("Session restore failed:", error);
+        
+        // Clear invalid token and logout
+        await logout();
+        setIsLoading(false);
+      }
     }
 
-    if (isAuthenticated !== null && isAuthenticated) {
-      loadUserData();
+    if (isAuthenticated !== null && isAuthenticated && token) {
+      restoreSession();
     } else if (isAuthenticated === false) {
       setIsLoading(false);
     }
-  }, [isAuthenticated, loadUser, loadProgress]);
+  }, [isAuthenticated, token, setUser, loadProgress, logout]);
 
   return { assessmentComplete, isAuthenticated, user, isLoading };
 }

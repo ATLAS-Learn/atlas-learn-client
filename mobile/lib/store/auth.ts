@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { setItem, removeItem, getItem } from "@/lib/utils/storage";
 import { apiClient } from "@/lib/api";
+import { useUserStore } from "./user";
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -34,6 +35,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isAuthenticated: false, token: null });
       apiClient.setToken(null);
       await removeItem("authToken");
+      
+      // Clear user data
+      const { clearUser } = useUserStore.getState();
+      await clearUser();
     }
   },
   loadAuth: async () => {
