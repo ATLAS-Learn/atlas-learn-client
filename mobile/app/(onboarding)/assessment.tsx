@@ -28,6 +28,10 @@ export default function AssessmentScreen() {
         loadQuestions();
     }, []);
 
+    /**
+     * Load assessment questions from the API
+     * Handles errors gracefully and provides user-friendly error messages
+     */
     const loadQuestions = async () => {
         setError(null);
         setLoading(true);
@@ -39,7 +43,7 @@ export default function AssessmentScreen() {
             console.error("Assessment load error:", error);
             const errorMessage = error?.message || "Failed to load assessment questions. Please try again.";
             
-            // Provide more user-friendly error messages
+            // Provide more user-friendly error messages for common scenarios
             let userMessage = errorMessage;
             if (errorMessage.toLowerCase().includes("no active assessment") || 
                 errorMessage.toLowerCase().includes("not available")) {
@@ -74,8 +78,13 @@ export default function AssessmentScreen() {
         }
     };
 
+    /**
+     * Submit assessment answers
+     * Validates all questions are answered before submission
+     * Maps answers to API format and navigates to results screen
+     */
     const handleSubmit = async () => {
-        // Check if all questions are answered
+        // Validate all questions are answered before submission
         const unansweredQuestions = questions.filter(
             (q) => answers[q.id] === undefined
         );
@@ -91,12 +100,12 @@ export default function AssessmentScreen() {
         setSubmitting(true);
         try {
             // Submit answers as array of indices in question order
-            // API expects: { answers: [0, 1, 2, 0, 1] }
+            // API expects: { answers: [0, 1, 2, 0, 1] } - indices match question order
             const answerIndices = questions.map((q) => answers[q.id]);
 
             const result = await apiClient.submitAssessment(answerIndices);
 
-            // Navigate to result screen with result data
+            // Navigate to result screen with assessment results
             router.push({
                 pathname: "/(onboarding)/assessment-result",
                 params: {

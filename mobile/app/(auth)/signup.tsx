@@ -19,14 +19,10 @@ import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ValidationErrors, validateFields } from "@/lib/utils/validate";
 import { apiClient } from "@/lib/api";
-import { useAuthStore } from "@/lib/store/auth";
-import { useUserStore } from "@/lib/store/user";
 import { setItem } from "@/lib/utils/storage";
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const { setAuth } = useAuthStore();
-  const { setUser } = useUserStore();
   const passwordInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
@@ -63,11 +59,20 @@ export default function SignUpScreen() {
           image: DEFAULT_AVATAR,
         });
 
-        setAuth(response.token);
-        setUser(response.user);
+        // Store token and user temporarily until email is verified
+        // We'll use these after email verification
+        if (response.token) {
+          await setItem("pendingAuthToken", response.token);
+        }
+        if (response.user) {
+          await setItem("pendingUser", JSON.stringify(response.user));
+        }
 
-        // Route to onboarding for assessment
-        router.replace("/(onboarding)");
+        // Navigate to email verification screen
+        router.replace({
+          pathname: "/(auth)/verify-email",
+          params: { email },
+        });
       } catch (error: any) {
         const errorMessage = error.message || "An error occurred. Please try again.";
         

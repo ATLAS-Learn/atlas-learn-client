@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     View,
     Text,
@@ -30,12 +30,40 @@ export default function VerifyOTPScreen() {
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
     const [error, setError] = useState("");
+    const [cooldown, setCooldown] = useState(0);
+    const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const email = params.email || "";
 
+    // Cleanup cooldown timer on unmount
+    useEffect(() => {
+        return () => {
+            if (cooldownIntervalRef.current) {
+                clearInterval(cooldownIntervalRef.current);
+            }
+        };
+    }, []);
+
+    // Start cooldown timer when component mounts (after OTP request)
+    useEffect(() => {
+        setCooldown(60);
+        const interval = setInterval(() => {
+            setCooldown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(interval);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        cooldownIntervalRef.current = interval;
+
+        return () => clearInterval(interval);
+    }, []);
+
     const handleVerify = async () => {
-        if (!code || code.length < 4) {
-            setError("Please enter a valid verification code");
+        if (!code || code.length < 6) {
+            setError("Please enter a valid 6-digit verification code");
             return;
         }
 
@@ -52,6 +80,7 @@ export default function VerifyOTPScreen() {
             // Set auth token and user
             setAuth(response.token);
             setUser(response.user);
+            apiClient.setToken(response.token);
 
             // Check if assessment is complete
             const assessmentComplete = await getItem("assessmentComplete");
@@ -74,10 +103,30 @@ export default function VerifyOTPScreen() {
             return;
         }
 
+        if (cooldown > 0) {
+            return;
+        }
+
         setResending(true);
         try {
             await apiClient.requestOTP(email);
             Alert.alert("Success", "Verification code has been resent to your email.");
+            
+            // Start 60s cooldown timer
+            setCooldown(60);
+            if (cooldownIntervalRef.current) {
+                clearInterval(cooldownIntervalRef.current);
+            }
+            const interval = setInterval(() => {
+                setCooldown((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(interval);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            cooldownIntervalRef.current = interval;
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to resend verification code.");
         } finally {
@@ -142,9 +191,16 @@ export default function VerifyOTPScreen() {
 
                     <View style={styles.resendContainer}>
                         <Text style={styles.resendText}>Didn't receive the code? </Text>
-                        <TouchableOpacity onPress={handleResend} disabled={resending}>
+                        <TouchableOpacity 
+                            onPress={handleResend} 
+                            disabled={resending || cooldown > 0}
+                        >
                             {resending ? (
                                 <ActivityIndicator size="small" color="#F2B138" />
+                            ) : cooldown > 0 ? (
+                                <Text style={styles.resendLinkDisabled}>
+                                    Resend ({cooldown}s)
+                                </Text>
                             ) : (
                                 <Text style={styles.resendLink}>Resend</Text>
                             )}
@@ -257,6 +313,11 @@ const styles = StyleSheet.create({
     },
     resendLink: {
         color: "#F2B138",
+        fontSize: 14,
+        fontWeight: "600",
+    },
+    resendLinkDisabled: {
+        color: "#9E9E9E",
         fontSize: 14,
         fontWeight: "600",
     },

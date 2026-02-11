@@ -45,10 +45,12 @@ class APIClient {
         );
 
         // Response interceptor for error handling
+        // Centralizes error handling and provides consistent error messages
         this.axiosInstance.interceptors.response.use(
             (response) => response,
             (error: AxiosError) => {
                 let errorMessage = "Request failed";
+                // Extract error message from response, request, or error object
                 if (error.response) {
                     const data = error.response.data as any;
                     errorMessage = data?.message || data?.error || `HTTP ${error.response.status}: ${error.response.statusText}`;
@@ -101,13 +103,6 @@ class APIClient {
         return this.request<AuthResponse>("/auth/sign-up/email", {
             method: "POST",
             data: signupData,
-        });
-    }
-
-    async login(email: string, password: string): Promise<AuthResponse> {
-        return this.request<AuthResponse>("/auth/sign-in/email", {
-            method: "POST",
-            data: { email, password },
         });
     }
 
@@ -184,8 +179,13 @@ class APIClient {
 
     // Assessment endpoints
     // Using dedicated assessment endpoints: /api/v1/assessment/*
+    
+    /**
+     * Start assessment and retrieve questions
+     * @returns Array of assessment questions mapped to the expected format
+     * @throws Error if response structure is invalid or no active assessment available
+     */
     async startAssessment(): Promise<AssessmentQuestion[]> {
-        // Start assessment and get questions
         // API returns: { success: true, data: { id, title, description, questionCount, questions: [...] } }
         const response = await this.request<{
             success: boolean;
@@ -203,12 +203,13 @@ class APIClient {
             };
         }>("/assessment/start");
         
-        // Validate response structure
+        // Validate response structure to prevent runtime errors
         if (!response?.data?.questions || !Array.isArray(response.data.questions)) {
             throw new Error("Invalid assessment response: questions array not found");
         }
         
         // Map API response format to AssessmentQuestion format
+        // API uses 'questionText' but our types expect 'question'
         return response.data.questions.map((q) => ({
             id: q.id,
             question: q.questionText || "", // Map questionText to question
@@ -218,8 +219,12 @@ class APIClient {
         }));
     }
 
+    /**
+     * Submit assessment answers
+     * @param answers Array of answer indices in question order (e.g., [0, 1, 2, 0, 1])
+     * @returns Assessment result with score, level, and message
+     */
     async submitAssessment(answers: number[]): Promise<AssessmentResult> {
-        // Submit assessment answers
         // API expects: { answers: [0, 1, 2, 0, 1] } - array of answer indices
         const result = await this.request<AssessmentResult>("/assessment/submit", {
             method: "POST",

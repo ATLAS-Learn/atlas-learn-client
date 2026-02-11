@@ -127,11 +127,12 @@ class APIClient {
 **Location**: `mobile/services/api.ts`
 
 1. **Sign Up**: `POST /auth/sign-up/email`
-   - Creates new user account
+   - Creates new user account with email and password
    - Returns: `{ token, user }`
 
-2. **Sign In**: `POST /auth/sign-in/email`
-   - Authenticates user
+2. **Sign In (OTP-based)**: 
+   - Step 1: `POST /auth/otp/request` - Request OTP code
+   - Step 2: `POST /auth/otp/verify` - Verify OTP and authenticate
    - Returns: `{ token, user }`
 
 3. **Sign Out**: `POST /auth/sign-out`
@@ -177,9 +178,23 @@ await loadAuth(); // Loads token from AsyncStorage
 ```
 
 ### 2. **Login/Signup** (`app/(auth)/index.tsx` & `signup.tsx`)
+
+**Login Flow (OTP-based)**:
 ```typescript
-// After successful login
-const response = await apiClient.login(email, password);
+// Step 1: Request OTP
+await apiClient.requestOTP(email);
+// Navigate to OTP verification screen
+
+// Step 2: Verify OTP and login
+const response = await apiClient.verifyOTPLogin(email, otp);
+setAuth(response.token);  // Store token
+setUser(response.user);   // Store user (includes role)
+```
+
+**Signup Flow**:
+```typescript
+// Create account with email and password
+const response = await apiClient.signup({ name, email, password });
 setAuth(response.token);  // Store token
 setUser(response.user);   // Store user (includes role)
 ```

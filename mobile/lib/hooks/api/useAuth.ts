@@ -4,23 +4,6 @@ import { AuthResponse, User } from "@/lib/types";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
 
-export function useLogin() {
-    const queryClient = useQueryClient();
-    const { setAuth } = useAuthStore();
-    const { setUser } = useUserStore();
-
-    return useMutation({
-        mutationFn: ({ email, password }: { email: string; password: string }) =>
-            apiClient.login(email, password),
-        onSuccess: (data: AuthResponse) => {
-            setAuth(data.token);
-            setUser(data.user);
-            apiClient.setToken(data.token);
-            queryClient.setQueryData(["user"], data.user);
-        },
-    });
-}
-
 export function useSignup() {
     const queryClient = useQueryClient();
     const { setAuth } = useAuthStore();

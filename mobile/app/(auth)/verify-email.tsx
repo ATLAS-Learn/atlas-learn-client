@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     View,
     Text,
@@ -13,34 +13,124 @@ import {
     Alert,
     ScrollView,
 } from "react-native";
-import { useRouter, Link } from "expo-router";
+import { useRouter, useLocalSearchParams, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
+import { useAuthStore } from "@/lib/store/auth";
+import { useUserStore } from "@/lib/store/user";
+import { getItem, removeItem } from "@/lib/utils/storage";
 
 export default function VerifyEmailScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams<{ email?: string }>();
+    const { setAuth } = useAuthStore();
+    const { setUser } = useUserStore();
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
     const [error, setError] = useState("");
+    const [cooldown, setCooldown] = useState(0);
+    const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Cleanup cooldown timer on unmount
+    useEffect(() => {
+        return () => {
+            if (cooldownIntervalRef.current) {
+                clearInterval(cooldownIntervalRef.current);
+            }
+        };
+    }, []);
+
+    // Start cooldown timer when component mounts (after signup)
+    useEffect(() => {
+        setCooldown(60);
+        const interval = setInterval(() => {
+            setCooldown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(interval);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        cooldownIntervalRef.current = interval;
+
+        return () => clearInterval(interval);
+    }, []);
 
     const handleVerify = async () => {
-        if (!code || code.length < 4) {
-            setError("Please enter a valid verification code");
+        if (!code || code.length < 6) {
+            setError("Please enter a valid 6-digit verification code");
             return;
         }
 
         setError("");
         setLoading(true);
         try {
+            // Use pending token if available for verifyEmail
+            const pendingToken = await getItem("pendingAuthToken");
+            if (pendingToken) {
+                apiClient.setToken(pendingToken);
+            }
+            
             await apiClient.verifyEmail(code);
+            
+            // After successful verification, retrieve stored token and user from signup
+            const storedToken = await getItem("pendingAuthToken");
+            const pendingUserStr = await getItem("pendingUser");
+            
+            if (storedToken) {
+                // Set auth token and user
+                setAuth(storedToken);
+                apiClient.setToken(storedToken);
+                
+                // Parse and set user if available
+                if (pendingUserStr) {
+                    try {
+                        const user = JSON.parse(pendingUserStr);
+                        setUser(user);
+                    } catch (e) {
+                        // If parsing fails, fetch user from API
+                        const user = await apiClient.getCurrentUser();
+                        setUser(user);
+                    }
+                } else {
+                    // Fetch user from API if not stored
+                    const user = await apiClient.getCurrentUser();
+                    setUser(user);
+                }
+                
+                // Clean up temporary storage
+                await removeItem("pendingAuthToken");
+                await removeItem("pendingUser");
+            } else {
+                // Fallback: try to get user if token was already set
+                try {
+                    const user = await apiClient.getCurrentUser();
+                    setUser(user);
+                } catch (e) {
+                    // If that fails, user needs to sign in again
+                    Alert.alert(
+                        "Verification Complete",
+                        "Your email has been verified. Please sign in to continue.",
+                        [
+                            {
+                                text: "OK",
+                                onPress: () => router.replace("/(auth)"),
+                            },
+                        ]
+                    );
+                    return;
+                }
+            }
+            
             Alert.alert(
                 "Email Verified",
                 "Your email has been verified successfully!",
                 [
                     {
                         text: "OK",
-                        onPress: () => router.replace("/(auth)"),
+                        onPress: () => router.replace("/(onboarding)"),
                     },
                 ]
             );
@@ -52,10 +142,36 @@ export default function VerifyEmailScreen() {
     };
 
     const handleResend = async () => {
+        if (cooldown > 0) {
+            return;
+        }
+
         setResending(true);
         try {
+            // Use pending token if available for resendVerification
+            const pendingToken = await getItem("pendingAuthToken");
+            if (pendingToken) {
+                apiClient.setToken(pendingToken);
+            }
+            
             await apiClient.resendVerification();
             Alert.alert("Success", "Verification code has been resent to your email.");
+            
+            // Start 60s cooldown timer
+            setCooldown(60);
+            if (cooldownIntervalRef.current) {
+                clearInterval(cooldownIntervalRef.current);
+            }
+            const interval = setInterval(() => {
+                setCooldown((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(interval);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            cooldownIntervalRef.current = interval;
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to resend verification code.");
         } finally {
@@ -85,7 +201,7 @@ export default function VerifyEmailScreen() {
 
                     <Text style={styles.title}>Verify Your Email</Text>
                     <Text style={styles.subtitle}>
-                        We've sent a verification code to your email address. Please enter it below.
+                        We've sent a verification code to {params.email || "your email address"}. Please enter it below.
                     </Text>
 
                     <View style={styles.inputContainer}>
@@ -120,9 +236,16 @@ export default function VerifyEmailScreen() {
 
                     <View style={styles.resendContainer}>
                         <Text style={styles.resendText}>Didn't receive the code? </Text>
-                        <TouchableOpacity onPress={handleResend} disabled={resending}>
+                        <TouchableOpacity 
+                            onPress={handleResend} 
+                            disabled={resending || cooldown > 0}
+                        >
                             {resending ? (
                                 <ActivityIndicator size="small" color="#F2B138" />
+                            ) : cooldown > 0 ? (
+                                <Text style={styles.resendLinkDisabled}>
+                                    Resend ({cooldown}s)
+                                </Text>
                             ) : (
                                 <Text style={styles.resendLink}>Resend</Text>
                             )}
@@ -235,6 +358,11 @@ const styles = StyleSheet.create({
     },
     resendLink: {
         color: "#F2B138",
+        fontSize: 14,
+        fontWeight: "600",
+    },
+    resendLinkDisabled: {
+        color: "#9E9E9E",
         fontSize: 14,
         fontWeight: "600",
     },
