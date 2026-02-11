@@ -150,16 +150,28 @@ class APIClient {
 
     // OTP Login endpoints
     async requestOTP(email: string): Promise<{ message: string }> {
-        return this.request<{ message: string }>("/auth/request-otp", {
+        return this.request<{ message: string }>("/auth/otp/request", {
             method: "POST",
             data: { email },
         });
     }
 
     async verifyOTPLogin(email: string, otp: string): Promise<AuthResponse> {
-        return this.request<AuthResponse>("/auth/verify-otp-login", {
+        return this.request<AuthResponse>("/auth/otp/verify", {
             method: "POST",
             data: { email, otp },
+        });
+    }
+
+    // Session management endpoints
+    async getSessions(): Promise<Array<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }>> {
+        return this.request<Array<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }>>("/auth/sessions");
+    }
+
+    async revokeSession(sessionId: string): Promise<{ message: string }> {
+        return this.request<{ message: string }>("/auth/sessions/revoke", {
+            method: "POST",
+            data: { sessionId },
         });
     }
 
@@ -353,4 +365,4 @@ class APIClient {
 }
 
 // Export singleton instance
-export const apiClient = new APIClient(API_BASE_URL);
+export const apiClient = new APIClient(API_BASE_URL || "http://localhost:3000/api/v1");
