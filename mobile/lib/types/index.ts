@@ -5,6 +5,8 @@ export enum UserRole {
     ADMIN = "admin",
 }
 
+export type RoleUpgradeStatus = "pending" | "approved" | "rejected";
+
 export enum Level {
     FOUNDATIONAL = "beginner",
     CORE = "intermediate",
@@ -16,6 +18,7 @@ export interface User {
     name: string;
     email: string;
     role: UserRole;
+    roleUpgradeStatus?: RoleUpgradeStatus;
     school?: string;
     examYear?: number;
     level?: Level;

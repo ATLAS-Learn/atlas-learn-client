@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserStore } from "@/lib/store/user";
 import { useAuthStore } from "@/lib/store/auth";
-import { useProgressStore } from "@/lib/store/progress";
 import { apiClient } from "@/lib/api";
 import { UserRole } from "@/lib/types";
 import ProgressBar from "@/components/progress/progress-bar";
@@ -13,31 +12,50 @@ export default function ProfileScreen() {
     const router = useRouter();
     const { user, setUser } = useUserStore();
     const { logout } = useAuthStore();
-    const { progress, calculateOverallProgress } = useProgressStore();
     const [requestingUpgrade, setRequestingUpgrade] = useState(false);
-    const [roleUpgradeStatus, setRoleUpgradeStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
+    const [progressPercentage, setProgressPercentage] = useState(0);
     const [loadingProgress, setLoadingProgress] = useState(false);
     const [sessionsModalVisible, setSessionsModalVisible] = useState(false);
-    const [sessions, setSessions] = useState<Array<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }>>([]);
+    const [sessions, setSessions] = useState<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }[]>([]);
     const [loadingSessions, setLoadingSessions] = useState(false);
     const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
 
     useEffect(() => {
-        loadProgress();
+        refreshUser();
     }, []);
+
+    useEffect(() => {
+        loadProgress();
+    }, [user?.id, user?.role]);
+
+    const refreshUser = async () => {
+        try {
+            const freshUser = await apiClient.getCurrentUser();
+            setUser(freshUser);
+        } catch {
+            // Keep local user data if refresh fails.
+        }
+    };
 
     const loadProgress = async () => {
         if (!user || user.role !== UserRole.STUDENT) return;
         
         setLoadingProgress(true);
         try {
-            const [chapters, quizzes] = await Promise.all([
-                apiClient.getChapters(),
+            const [attempts, quizzes] = await Promise.all([
+                apiClient.getUserQuizAttempts(user.id),
                 apiClient.getQuizzes(1000), // Get all quizzes
             ]);
-            await calculateOverallProgress(chapters, quizzes);
+            const passedQuizIds = new Set(
+                attempts.filter((attempt) => attempt.passed).map((attempt) => attempt.quizId)
+            );
+            const totalQuizzes = quizzes.length;
+            const percentage =
+                totalQuizzes > 0 ? Math.round((passedQuizIds.size / totalQuizzes) * 100) : 0;
+            setProgressPercentage(percentage);
         } catch (error) {
             console.error("Error loading progress:", error);
+            setProgressPercentage(0);
         } finally {
             setLoadingProgress(false);
         }
@@ -67,18 +85,17 @@ export default function ProfileScreen() {
                         setRequestingUpgrade(true);
                         try {
                             const response = await apiClient.requestRoleUpgrade();
-                            setRoleUpgradeStatus(response.status);
-                            Alert.alert(
-                                "Request Submitted",
-                                "Your request for Teacher role has been submitted. You will be notified once it's reviewed by an admin.",
-                                [{ text: "OK" }]
-                            );
-                            // Optionally refresh user data to get updated status
                             try {
                                 const updatedUser = await apiClient.getCurrentUser();
                                 setUser(updatedUser);
-                            } catch (error) {
-                                // Silently fail - user data refresh is optional
+                            } catch {
+                                // Role request succeeded; user refresh can fail independently.
+                            }
+
+                            if (response.status === "pending") {
+                                router.push("/(tabs)/profile/pending-approval");
+                            } else {
+                                Alert.alert("Status Updated", response.message);
                             }
                         } catch (error: any) {
                             Alert.alert("Error", error.message || "Failed to submit role upgrade request. Please try again.");
@@ -159,9 +176,15 @@ export default function ProfileScreen() {
                 )}
             </View>
 
-            {user?.role === UserRole.STUDENT && progress && (
+            {user?.role === UserRole.STUDENT && (
                 <View style={styles.progressSection}>
-                    <ProgressBar progress={progress.overallProgress} />
+                    {loadingProgress ? (
+                        <View style={styles.progressLoadingContainer}>
+                            <ActivityIndicator size="small" color="#F2B138" />
+                        </View>
+                    ) : (
+                        <ProgressBar progress={progressPercentage} />
+                    )}
                 </View>
             )}
 
@@ -202,18 +225,18 @@ export default function ProfileScreen() {
                     <TouchableOpacity
                         style={styles.menuItem}
                         onPress={handleRequestRoleUpgrade}
-                        disabled={requestingUpgrade || roleUpgradeStatus === 'pending'}
+                        disabled={requestingUpgrade || user?.roleUpgradeStatus === "pending"}
                     >
                         <Ionicons name="school-outline" size={24} color="#666" />
                         <View style={styles.menuTextContainer}>
                             <Text style={styles.menuText}>Request Teacher Role</Text>
-                            {roleUpgradeStatus === 'pending' && (
+                            {user?.roleUpgradeStatus === "pending" && (
                                 <Text style={styles.statusText}>Pending approval</Text>
                             )}
-                            {roleUpgradeStatus === 'approved' && (
+                            {user?.roleUpgradeStatus === "approved" && (
                                 <Text style={[styles.statusText, styles.statusApproved]}>Approved</Text>
                             )}
-                            {roleUpgradeStatus === 'rejected' && (
+                            {user?.roleUpgradeStatus === "rejected" && (
                                 <Text style={[styles.statusText, styles.statusRejected]}>Rejected</Text>
                             )}
                         </View>
@@ -346,6 +369,11 @@ const styles = StyleSheet.create({
     progressSection: {
         marginTop: 24,
         paddingHorizontal: 16,
+    },
+    progressLoadingContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: 42,
     },
     section: {
         marginTop: 24,

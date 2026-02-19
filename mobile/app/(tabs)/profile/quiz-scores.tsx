@@ -10,9 +10,9 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Chapter } from "@/lib/types";
+import { Chapter, Quiz } from "@/lib/types";
 import { useUserStore } from "@/lib/store/user";
-import { useUserQuizAttempts, useChapters } from "@/lib/hooks/api";
+import { useUserQuizAttempts, useChapters, useQuizzes } from "@/lib/hooks/api";
 import QuizScoresChart from "@/components/charts/QuizScoresChart";
 
 export default function QuizScoresScreen() {
@@ -20,6 +20,7 @@ export default function QuizScoresScreen() {
     const { user } = useUserStore();
     const { data: quizAttempts = [], isLoading, refetch, isRefetching } = useUserQuizAttempts(user?.id);
     const { data: chaptersList = [] } = useChapters();
+    const { data: quizzes = [] } = useQuizzes(1000);
 
     const chapters = useMemo(() => {
         const chaptersMap: Record<string, Chapter> = {};
@@ -28,6 +29,14 @@ export default function QuizScoresScreen() {
         });
         return chaptersMap;
     }, [chaptersList]);
+
+    const quizzesById = useMemo(() => {
+        const quizMap: Record<string, Quiz> = {};
+        quizzes.forEach((quiz) => {
+            quizMap[quiz.id] = quiz;
+        });
+        return quizMap;
+    }, [quizzes]);
 
     const handleRefresh = () => {
         refetch();
@@ -45,9 +54,10 @@ export default function QuizScoresScreen() {
     };
 
     const getChapterTitle = (quizId: string): string => {
-        // Try to find chapter by checking quiz attempts' chapterId if available
-        // For now, return a generic title since we'd need to fetch quiz details
-        return `Quiz ${quizId.slice(0, 8)}`;
+        const quiz = quizzesById[quizId];
+        if (!quiz) return "Chapter unavailable";
+        const chapter = chapters[quiz.chapterId];
+        return chapter?.title || "Chapter unavailable";
     };
 
     if (isLoading) {

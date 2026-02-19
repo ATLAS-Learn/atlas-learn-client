@@ -5,6 +5,7 @@ export default function ProfileLayout() {
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="quiz-scores" />
+            <Stack.Screen name="pending-approval" />
         </Stack>
     );
 }

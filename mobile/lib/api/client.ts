@@ -5,7 +5,6 @@ import {
     AuthResponse,
     AssessmentQuestion,
     AssessmentResult,
-    DashboardData,
     Chapter,
     Quiz,
     QuizSubmission,
@@ -13,6 +12,7 @@ import {
     QuizAttempt,
     QuizStats,
     Level,
+    RoleUpgradeStatus,
     TeacherDashboardData,
     StudentDetail,
 } from "@/lib/types";
@@ -159,8 +159,8 @@ class APIClient {
     }
 
     // Session management endpoints
-    async getSessions(): Promise<Array<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }>> {
-        return this.request<Array<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }>>("/auth/sessions");
+    async getSessions(): Promise<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }[]> {
+        return this.request<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }[]>("/auth/sessions");
     }
 
     async revokeSession(sessionId: string): Promise<{ message: string }> {
@@ -171,8 +171,8 @@ class APIClient {
     }
 
     // Role upgrade endpoint
-    async requestRoleUpgrade(): Promise<{ message: string; status: 'pending' | 'approved' | 'rejected' }> {
-        return this.request<{ message: string; status: 'pending' | 'approved' | 'rejected' }>("/auth/request-role-upgrade", {
+    async requestRoleUpgrade(): Promise<{ message: string; status: RoleUpgradeStatus }> {
+        return this.request<{ message: string; status: RoleUpgradeStatus }>("/auth/request-role-upgrade", {
             method: "POST",
         });
     }
@@ -293,7 +293,7 @@ class APIClient {
         // Try with limit parameter first, fallback to no parameter
         try {
             return await this.request<Quiz[]>(`/quizzes?limit=${limit}`);
-        } catch (error) {
+        } catch {
             // If query parameter fails, try without it
             const allQuizzes = await this.request<Quiz[]>(`/quizzes`);
             return allQuizzes.slice(0, limit);

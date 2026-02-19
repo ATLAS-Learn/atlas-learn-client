@@ -32,9 +32,6 @@ export default function SignUpScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
 
-  // Default avatar URL - can be updated later
-  const DEFAULT_AVATAR = "https://ui-avatars.com/api/?name=User&background=F2B138&color=fff&size=200";
-
   const handleSignUp = async () => {
     const newErrors: ValidationErrors = validateFields({
       fullName,
@@ -56,7 +53,6 @@ export default function SignUpScreen() {
           name: fullName,
           email,
           password,
-          image: DEFAULT_AVATAR,
         });
 
         // Store token and user temporarily until email is verified

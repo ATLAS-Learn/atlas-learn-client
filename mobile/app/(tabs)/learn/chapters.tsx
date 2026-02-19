@@ -12,15 +12,14 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { Chapter } from "@/lib/types";
-import { useProgressStore } from "@/lib/store/progress";
+import { Chapter, Quiz } from "@/lib/types";
 import { useUserStore } from "@/lib/store/user";
 
 export default function ChaptersListScreen() {
     const router = useRouter();
-    const { progress } = useProgressStore();
     const { user } = useUserStore();
     const [chapters, setChapters] = useState<Chapter[]>([]);
+    const [completedChapters, setCompletedChapters] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -30,7 +29,11 @@ export default function ChaptersListScreen() {
 
     const loadChapters = async () => {
         try {
-            const data = await apiClient.getChapters();
+            const [data, quizzes, attempts] = await Promise.all([
+                apiClient.getChapters(),
+                apiClient.getQuizzes(1000),
+                user ? apiClient.getUserQuizAttempts(user.id) : Promise.resolve([]),
+            ]);
             // Filter chapters by user level if set
             let filteredChapters = data;
             if (user?.level) {
@@ -39,6 +42,18 @@ export default function ChaptersListScreen() {
             // Sort by order
             filteredChapters.sort((a, b) => a.order - b.order);
             setChapters(filteredChapters);
+
+            const quizzesById = new Map<string, Quiz>(quizzes.map((quiz) => [quiz.id, quiz]));
+            const completedChapterIds = new Set<string>();
+            attempts
+                .filter((attempt) => attempt.passed)
+                .forEach((attempt) => {
+                    const quiz = quizzesById.get(attempt.quizId);
+                    if (quiz?.chapterId) {
+                        completedChapterIds.add(quiz.chapterId);
+                    }
+                });
+            setCompletedChapters(completedChapterIds);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to load chapters. Please try again.");
         } finally {
@@ -57,7 +72,7 @@ export default function ChaptersListScreen() {
     };
 
     const isChapterCompleted = (chapterId: string): boolean => {
-        return progress?.completedChapters.includes(chapterId) || false;
+        return completedChapters.has(chapterId);
     };
 
     const isChapterLocked = (chapter: Chapter, index: number): boolean => {

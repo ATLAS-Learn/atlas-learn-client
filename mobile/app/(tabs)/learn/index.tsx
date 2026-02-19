@@ -12,18 +12,16 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { DashboardData, Chapter } from "@/lib/types";
+import { DashboardData, Chapter, Progress, QuizAttempt } from "@/lib/types";
 import WelcomeHeader from "@/components/progress/welcome-header";
 import ProgressBar from "@/components/progress/progress-bar";
 import CurrentChapterCard from "@/components/progress/current-chapter-card";
 import NextChapterCard from "@/components/progress/next-chapter-card";
 import { useUserStore } from "@/lib/store/user";
-import { useProgressStore } from "@/lib/store/progress";
 
 export default function LearnDashboardScreen() {
   const router = useRouter();
   const { user } = useUserStore();
-  const { progress, setProgress, calculateOverallProgress } = useProgressStore();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -40,25 +38,11 @@ export default function LearnDashboardScreen() {
         return;
       }
 
-      const currentProgress = progress || {
-        userId: user.id,
-        currentChapterId: "",
-        completedChapters: [],
-        completedLessons: [],
-        completedQuizzes: [],
-        overallProgress: 0,
-        streak: 1,
-        lastActiveDate: new Date().toISOString(),
-      };
-
-      let allChapters: Chapter[] = [];
-      try {
-        allChapters = await apiClient.getChapters();
-      } catch (error) {
-        console.error("Error loading chapters:", error);
-        Alert.alert("Error", "Failed to load chapters. Please try again.");
-        return;
-      }
+      const [allChapters, quizzes, attempts] = await Promise.all([
+        apiClient.getChapters(),
+        apiClient.getQuizzes(1000),
+        apiClient.getUserQuizAttempts(user.id),
+      ]);
 
       if (allChapters.length === 0) {
         Alert.alert("Info", "No chapters available yet.");
@@ -66,49 +50,45 @@ export default function LearnDashboardScreen() {
       }
 
       allChapters.sort((a, b) => a.order - b.order);
-
-      let currentChapter: Chapter | undefined;
-      let nextChapter: Chapter | undefined;
-
-      if (currentProgress.currentChapterId) {
-        try {
-          currentChapter = await apiClient.getChapter(currentProgress.currentChapterId);
-        } catch (error) {
-          console.warn(`Chapter ${currentProgress.currentChapterId} not found, resetting to first chapter`);
-          currentProgress.currentChapterId = allChapters[0].id;
-          setProgress(currentProgress);
-          currentChapter = allChapters[0];
+      const quizzesById = new Map(quizzes.map((quiz) => [quiz.id, quiz]));
+      const passedAttemptQuizIds = new Set(
+        attempts.filter((attempt) => attempt.passed).map((attempt) => attempt.quizId)
+      );
+      const completedChapterIds = new Set<string>();
+      passedAttemptQuizIds.forEach((quizId) => {
+        const quiz = quizzesById.get(quizId);
+        if (quiz?.chapterId) {
+          completedChapterIds.add(quiz.chapterId);
         }
-      }
+      });
 
-      if (!currentChapter) {
-        currentChapter = allChapters[0];
-        currentProgress.currentChapterId = currentChapter.id;
-        setProgress(currentProgress);
-      }
+      const currentChapter =
+        allChapters.find((chapter) => !completedChapterIds.has(chapter.id)) || allChapters[0];
+
+      let nextChapter: Chapter | undefined;
 
       const currentIndex = allChapters.findIndex((c) => c.id === currentChapter.id);
       if (currentIndex >= 0 && currentIndex < allChapters.length - 1) {
         nextChapter = allChapters[currentIndex + 1];
       }
 
-      const isNextChapterLocked = currentChapter
-        ? !currentProgress.completedChapters.includes(currentChapter.id)
-        : true;
+      const overallProgress =
+        quizzes.length > 0 ? Math.round((passedAttemptQuizIds.size / quizzes.length) * 100) : 0;
+      const streak = calculateStreakFromAttempts(attempts);
+      const latestActivity = getLatestActivity(attempts) || user.createdAt;
 
-      // Calculate overall progress based on lessons + quizzes
-      let finalProgress = currentProgress;
-      try {
-        const quizzes = await apiClient.getQuizzes(1000); // Get all quizzes
-        await calculateOverallProgress(allChapters, quizzes);
-        // Get updated progress from store after calculation
-        const updatedProgress = useProgressStore.getState().progress;
-        if (updatedProgress) {
-          finalProgress = updatedProgress;
-        }
-      } catch (error) {
-        console.error("Error calculating progress:", error);
-      }
+      const finalProgress: Progress = {
+        userId: user.id,
+        currentChapterId: currentChapter.id,
+        completedChapters: Array.from(completedChapterIds),
+        completedLessons: [],
+        completedQuizzes: Array.from(passedAttemptQuizIds),
+        overallProgress,
+        streak,
+        lastActiveDate: latestActivity,
+      };
+
+      const isNextChapterLocked = !completedChapterIds.has(currentChapter.id);
 
       const localDashboardData: DashboardData = {
         user,
@@ -191,6 +171,32 @@ export default function LearnDashboardScreen() {
       </TouchableOpacity>
     </ScrollView>
   );
+}
+
+function getLatestActivity(attempts: QuizAttempt[]): string | null {
+  if (attempts.length === 0) return null;
+  return attempts
+    .map((attempt) => attempt.completedAt)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+}
+
+function calculateStreakFromAttempts(attempts: QuizAttempt[]): number {
+  if (attempts.length === 0) return 0;
+
+  const activeDays = new Set(
+    attempts.map((attempt) => new Date(attempt.completedAt).toISOString().slice(0, 10))
+  );
+
+  let streak = 0;
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+
+  while (activeDays.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
 }
 
 const styles = StyleSheet.create({
