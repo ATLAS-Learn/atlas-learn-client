@@ -7,6 +7,44 @@ export enum UserRole {
 
 export type RoleUpgradeStatus = "pending" | "approved" | "rejected";
 
+export interface RoleUpgradeRequestPayload {
+    reason: string;
+    school: string;
+}
+
+export interface RoleUpgradeRequestResponse {
+    success: boolean;
+    message: string;
+    requestId: string;
+}
+
+export interface RoleUpgradeDecisionResponse {
+    success: boolean;
+    message: string;
+    data: {
+        id: string;
+        email: string;
+        name: string;
+        role: string;
+    };
+}
+
+export interface PendingRoleUpgradeRequest {
+    id: string;
+    userId: string;
+    reason: string;
+    school: string;
+    status: RoleUpgradeStatus;
+    createdAt: string;
+    updatedAt: string;
+    user?: {
+        id: string;
+        email: string;
+        name: string;
+        role: string;
+    };
+}
+
 export enum Level {
     FOUNDATIONAL = "beginner",
     CORE = "intermediate",

@@ -12,7 +12,10 @@ import {
     QuizAttempt,
     QuizStats,
     Level,
-    RoleUpgradeStatus,
+    RoleUpgradeRequestPayload,
+    RoleUpgradeRequestResponse,
+    RoleUpgradeDecisionResponse,
+    PendingRoleUpgradeRequest,
     TeacherDashboardData,
     StudentDetail,
 } from "@/lib/types";
@@ -88,21 +91,13 @@ class APIClient {
     }
 
     // Auth endpoints
-    async signup(data: {
+    async signUpWithOTP(data: {
         name: string;
         email: string;
-        password: string;
-        image?: string;
-        role?: string;
-    }): Promise<AuthResponse> {
-        // Always default to student role if not specified
-        const signupData = {
-            ...data,
-            role: data.role || "student",
-        };
-        return this.request<AuthResponse>("/auth/sign-up/email", {
+    }): Promise<{ success: boolean; message: string }> {
+        return this.request<{ success: boolean; message: string }>("/auth/sign-up/otp", {
             method: "POST",
-            data: signupData,
+            data,
         });
     }
 
@@ -151,11 +146,15 @@ class APIClient {
         });
     }
 
-    async verifyOTPLogin(email: string, otp: string): Promise<AuthResponse> {
+    async verifyOTP(email: string, otp: string): Promise<AuthResponse> {
         return this.request<AuthResponse>("/auth/otp/verify", {
             method: "POST",
             data: { email, otp },
         });
+    }
+
+    async verifyOTPLogin(email: string, otp: string): Promise<AuthResponse> {
+        return this.verifyOTP(email, otp);
     }
 
     // Session management endpoints
@@ -170,11 +169,34 @@ class APIClient {
         });
     }
 
-    // Role upgrade endpoint
-    async requestRoleUpgrade(): Promise<{ message: string; status: RoleUpgradeStatus }> {
-        return this.request<{ message: string; status: RoleUpgradeStatus }>("/auth/request-role-upgrade", {
+    // Role upgrade endpoints
+    async requestRoleUpgrade(data: RoleUpgradeRequestPayload): Promise<RoleUpgradeRequestResponse> {
+        return this.request<RoleUpgradeRequestResponse>("/auth/request-role-upgrade", {
+            method: "POST",
+            data,
+        });
+    }
+
+    async approveRoleUpgrade(userId: string): Promise<RoleUpgradeDecisionResponse> {
+        return this.request<RoleUpgradeDecisionResponse>(`/auth/approve-role-upgrade/${userId}`, {
             method: "POST",
         });
+    }
+
+    async rejectRoleUpgrade(userId: string): Promise<RoleUpgradeDecisionResponse> {
+        return this.request<RoleUpgradeDecisionResponse>(`/auth/reject-role-upgrade/${userId}`, {
+            method: "POST",
+        });
+    }
+
+    async getPendingRoleUpgrades(): Promise<PendingRoleUpgradeRequest[]> {
+        const response = await this.request<
+            PendingRoleUpgradeRequest[] | { data?: PendingRoleUpgradeRequest[] }
+        >("/auth/pending-role-upgrades");
+        if (Array.isArray(response)) {
+            return response;
+        }
+        return response?.data ?? [];
     }
 
     // Assessment endpoints
@@ -194,12 +216,12 @@ class APIClient {
                 title: string;
                 description: string;
                 questionCount: number;
-                questions: Array<{
+                questions: {
                     id: string;
                     questionText: string;
                     options: string[];
                     orderIndex: number;
-                }>;
+                }[];
             };
         }>("/assessment/start");
         

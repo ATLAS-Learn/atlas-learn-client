@@ -22,7 +22,7 @@ import { getItem } from "@/lib/utils/storage";
 
 export default function VerifyOTPScreen() {
     const router = useRouter();
-    const params = useLocalSearchParams<{ email?: string }>();
+    const params = useLocalSearchParams<{ email?: string; mode?: string; fullName?: string }>();
     const { setAuth } = useAuthStore();
     const { setUser } = useUserStore();
     
@@ -34,6 +34,8 @@ export default function VerifyOTPScreen() {
     const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const email = params.email || "";
+    const mode = params.mode === "signup" ? "signup" : "login";
+    const fullName = params.fullName || "";
 
     // Cleanup cooldown timer on unmount
     useEffect(() => {
@@ -75,7 +77,7 @@ export default function VerifyOTPScreen() {
         setError("");
         setLoading(true);
         try {
-            const response = await apiClient.verifyOTPLogin(email, code);
+            const response = await apiClient.verifyOTP(email, code);
             
             // Set auth token and user
             setAuth(response.token);
@@ -109,7 +111,15 @@ export default function VerifyOTPScreen() {
 
         setResending(true);
         try {
-            await apiClient.requestOTP(email);
+            if (mode === "signup") {
+                if (!fullName.trim()) {
+                    Alert.alert("Error", "Name is missing. Please go back and sign up again.");
+                    return;
+                }
+                await apiClient.signUpWithOTP({ name: fullName, email });
+            } else {
+                await apiClient.requestOTP(email);
+            }
             Alert.alert("Success", "Verification code has been resent to your email.");
             
             // Start 60s cooldown timer
@@ -156,7 +166,7 @@ export default function VerifyOTPScreen() {
 
                     <Text style={styles.title}>Enter Verification Code</Text>
                     <Text style={styles.subtitle}>
-                        We've sent a verification code to {email ? email : "your email"}. Please enter it below.
+                        We&apos;ve sent a verification code to {email ? email : "your email"}. Please enter it below.
                     </Text>
 
                     <View style={styles.inputContainer}>
@@ -185,12 +195,14 @@ export default function VerifyOTPScreen() {
                         {loading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.submitButtonText}>Verify & Sign In</Text>
+                            <Text style={styles.submitButtonText}>
+                                {mode === "signup" ? "Verify & Create Account" : "Verify & Sign In"}
+                            </Text>
                         )}
                     </TouchableOpacity>
 
                     <View style={styles.resendContainer}>
-                        <Text style={styles.resendText}>Didn't receive the code? </Text>
+                        <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
                         <TouchableOpacity 
                             onPress={handleResend} 
                             disabled={resending || cooldown > 0}

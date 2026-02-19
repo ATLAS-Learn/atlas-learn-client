@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -14,60 +14,38 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import Checkbox from "expo-checkbox";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ValidationErrors, validateFields } from "@/lib/utils/validate";
 import { apiClient } from "@/lib/api";
-import { setItem } from "@/lib/utils/storage";
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const passwordInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
-  const [password, setPassword] = useState("");
-  const [isChecked, setIsChecked] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
 
   const handleSignUp = async () => {
     const newErrors: ValidationErrors = validateFields({
       fullName,
       email,
-      password,
     });
-
-    if (!isChecked) {
-      Alert.alert("Terms Required", "Please agree to the Terms of Service and Privacy Policy");
-      return;
-    }
 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
       setLoading(true);
       try {
-        const response = await apiClient.signup({
+        await apiClient.signUpWithOTP({
           name: fullName,
           email,
-          password,
         });
 
-        // Store token and user temporarily until email is verified
-        // We'll use these after email verification
-        if (response.token) {
-          await setItem("pendingAuthToken", response.token);
-        }
-        if (response.user) {
-          await setItem("pendingUser", JSON.stringify(response.user));
-        }
-
-        // Navigate to email verification screen
+        // Navigate to OTP verification screen
         router.replace({
-          pathname: "/(auth)/verify-email",
-          params: { email },
+          pathname: "/(auth)/verify-otp",
+          params: { email, mode: "signup", fullName },
         });
       } catch (error: any) {
         const errorMessage = error.message || "An error occurred. Please try again.";
@@ -142,47 +120,6 @@ export default function SignUpScreen() {
           )
           }
 
-          {/* Password Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed" size={24} color="#B3B3B3" style={styles.icon} />
-            <TextInput
-              ref={passwordInputRef}
-              placeholder="Password"
-              placeholderTextColor="#B3B3B3"
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
-              style={styles.input}
-              returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons
-                name={showPassword ? "eye-off" : "eye"}
-                size={24}
-                color="#B3B3B3"
-              />
-            </TouchableOpacity>
-          </View>
-          {errors.password && (
-            <Text style={{ color: "red", marginBottom: 10 }}>{errors.password}</Text>
-          )
-          }
-
-          <View style={styles.termsContainer}>
-            <Checkbox
-              value={isChecked}
-              onValueChange={setIsChecked}
-              color={isChecked ? "#F2B138" : undefined}
-              style={styles.checkbox}
-            />
-            <Text style={styles.termsText}>
-              I Agree with{" "}
-              <Text style={styles.link}>Terms of Service</Text> and{" "}
-              <Text style={styles.link}>Privacy Policy</Text>
-            </Text>
-          </View>
-
           <TouchableOpacity
             style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
             onPress={handleSignUp}
@@ -191,7 +128,7 @@ export default function SignUpScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.signUpText}>Sign Up</Text>
+              <Text style={styles.signUpText}>Send OTP</Text>
             )}
           </TouchableOpacity>
           <Text style={styles.loginText}>

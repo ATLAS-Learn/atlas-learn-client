@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserStore } from "@/lib/store/user";
@@ -19,6 +19,9 @@ export default function ProfileScreen() {
     const [sessions, setSessions] = useState<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }[]>([]);
     const [loadingSessions, setLoadingSessions] = useState(false);
     const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
+    const [roleRequestModalVisible, setRoleRequestModalVisible] = useState(false);
+    const [roleRequestReason, setRoleRequestReason] = useState("");
+    const [roleRequestSchool, setRoleRequestSchool] = useState("");
 
     useEffect(() => {
         refreshUser();
@@ -70,42 +73,48 @@ export default function ProfileScreen() {
         if (user?.role !== UserRole.STUDENT) {
             return;
         }
+        setRoleRequestModalVisible(true);
+    };
 
-        Alert.alert(
-            "Request Teacher Role",
-            "Are you sure you want to request a Teacher role upgrade? This will require admin approval.",
-            [
-                {
-                    text: "Cancel",
-                    style: "cancel",
-                },
-                {
-                    text: "Request",
-                    onPress: async () => {
-                        setRequestingUpgrade(true);
-                        try {
-                            const response = await apiClient.requestRoleUpgrade();
-                            try {
-                                const updatedUser = await apiClient.getCurrentUser();
-                                setUser(updatedUser);
-                            } catch {
-                                // Role request succeeded; user refresh can fail independently.
-                            }
+    const closeRoleRequestModal = () => {
+        if (requestingUpgrade) return;
+        setRoleRequestModalVisible(false);
+    };
 
-                            if (response.status === "pending") {
-                                router.push("/(tabs)/profile/pending-approval");
-                            } else {
-                                Alert.alert("Status Updated", response.message);
-                            }
-                        } catch (error: any) {
-                            Alert.alert("Error", error.message || "Failed to submit role upgrade request. Please try again.");
-                        } finally {
-                            setRequestingUpgrade(false);
-                        }
-                    },
-                },
-            ]
-        );
+    const submitRoleUpgradeRequest = async () => {
+        if (!roleRequestReason.trim()) {
+            Alert.alert("Missing Reason", "Please provide a reason for requesting teacher role.");
+            return;
+        }
+        if (!roleRequestSchool.trim()) {
+            Alert.alert("Missing School", "Please provide your school name.");
+            return;
+        }
+
+        setRequestingUpgrade(true);
+        try {
+            const response = await apiClient.requestRoleUpgrade({
+                reason: roleRequestReason.trim(),
+                school: roleRequestSchool.trim(),
+            });
+
+            try {
+                const updatedUser = await apiClient.getCurrentUser();
+                setUser(updatedUser);
+            } catch {
+                // Role request succeeded; user refresh can fail independently.
+            }
+
+            setRoleRequestModalVisible(false);
+            setRoleRequestReason("");
+            setRoleRequestSchool("");
+            Alert.alert("Request Submitted", response.message);
+            router.push("/(tabs)/profile/pending-approval");
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to submit role upgrade request. Please try again.");
+        } finally {
+            setRequestingUpgrade(false);
+        }
     };
 
     const handleOpenSessions = async () => {
@@ -219,6 +228,20 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
             </View>
 
+            {user?.role === UserRole.ADMIN && (
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Admin</Text>
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => router.push("/(tabs)/profile/admin-role-upgrades")}
+                    >
+                        <Ionicons name="shield-checkmark-outline" size={24} color="#666" />
+                        <Text style={styles.menuText}>Role Upgrade Requests</Text>
+                        <Ionicons name="chevron-forward" size={20} color="#999" />
+                    </TouchableOpacity>
+                </View>
+            )}
+
             {user?.role === UserRole.STUDENT && (
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Account</Text>
@@ -253,6 +276,63 @@ export default function ProfileScreen() {
                 <Ionicons name="log-out-outline" size={24} color="#F44336" />
                 <Text style={styles.logoutText}>Sign Out</Text>
             </TouchableOpacity>
+
+            <Modal
+                visible={roleRequestModalVisible}
+                animationType="slide"
+                transparent
+                onRequestClose={closeRoleRequestModal}
+            >
+                <View style={styles.requestModalOverlay}>
+                    <View style={styles.requestModalCard}>
+                        <Text style={styles.requestModalTitle}>Request Teacher Role</Text>
+                        <Text style={styles.requestModalSubtitle}>
+                            Provide details for admin review.
+                        </Text>
+
+                        <Text style={styles.requestFieldLabel}>Reason</Text>
+                        <TextInput
+                            style={[styles.requestInput, styles.requestInputMultiline]}
+                            placeholder="I teach mathematics and need access to class analytics."
+                            value={roleRequestReason}
+                            onChangeText={setRoleRequestReason}
+                            multiline
+                            numberOfLines={4}
+                            editable={!requestingUpgrade}
+                        />
+
+                        <Text style={styles.requestFieldLabel}>School</Text>
+                        <TextInput
+                            style={styles.requestInput}
+                            placeholder="XYZ Secondary School"
+                            value={roleRequestSchool}
+                            onChangeText={setRoleRequestSchool}
+                            editable={!requestingUpgrade}
+                        />
+
+                        <View style={styles.requestActions}>
+                            <TouchableOpacity
+                                style={styles.requestCancelButton}
+                                onPress={closeRoleRequestModal}
+                                disabled={requestingUpgrade}
+                            >
+                                <Text style={styles.requestCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.requestSubmitButton}
+                                onPress={submitRoleUpgradeRequest}
+                                disabled={requestingUpgrade}
+                            >
+                                {requestingUpgrade ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.requestSubmitText}>Submit</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             {/* Sessions Modal */}
             <Modal
@@ -432,6 +512,77 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "700",
         color: "#F44336",
+    },
+    requestModalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        justifyContent: "center",
+        padding: 20,
+    },
+    requestModalCard: {
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 20,
+    },
+    requestModalTitle: {
+        fontSize: 22,
+        fontWeight: "700",
+        color: "#282F2E",
+        marginBottom: 4,
+    },
+    requestModalSubtitle: {
+        fontSize: 14,
+        color: "#666",
+        marginBottom: 16,
+    },
+    requestFieldLabel: {
+        fontSize: 14,
+        color: "#282F2E",
+        fontWeight: "600",
+        marginBottom: 8,
+        marginTop: 8,
+    },
+    requestInput: {
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        fontSize: 15,
+        color: "#282F2E",
+        backgroundColor: "#FAFAFA",
+    },
+    requestInputMultiline: {
+        minHeight: 96,
+        textAlignVertical: "top",
+    },
+    requestActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        gap: 10,
+        marginTop: 18,
+    },
+    requestCancelButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+    },
+    requestCancelText: {
+        fontSize: 15,
+        color: "#666",
+        fontWeight: "600",
+    },
+    requestSubmitButton: {
+        backgroundColor: "#F2B138",
+        borderRadius: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        minWidth: 90,
+        alignItems: "center",
+    },
+    requestSubmitText: {
+        fontSize: 15,
+        color: "#fff",
+        fontWeight: "700",
     },
     modalContainer: {
         flex: 1,
