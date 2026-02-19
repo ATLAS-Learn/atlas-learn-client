@@ -10,9 +10,10 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { QuizAttempt, Chapter, Quiz } from "@/lib/types";
+import { Chapter } from "@/lib/types";
 import { useUserStore } from "@/lib/store/user";
-import { useUserQuizAttempts, useChapters, useQuiz } from "@/lib/hooks/api";
+import { useUserQuizAttempts, useChapters } from "@/lib/hooks/api";
+import QuizScoresChart from "@/components/charts/QuizScoresChart";
 
 export default function QuizScoresScreen() {
     const router = useRouter();
