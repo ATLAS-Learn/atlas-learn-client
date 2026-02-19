@@ -305,3 +305,99 @@ export interface TeacherDashboardData {
     behindCount: number;
     atRiskCount: number;
 }
+
+export interface TeacherStudentsQueryParams {
+    search?: string;
+    school?: string;
+    level?: Level;
+    limit?: number;
+    offset?: number;
+}
+
+export interface TeacherStudentApiItem {
+    id: string;
+    email: string;
+    name: string;
+    level: Level;
+    school?: string;
+    examYear?: number;
+    createdAt: string;
+    lastLoginAt?: string;
+    _count?: {
+        progress?: number;
+        quizAttempts?: number;
+        LessonProgress?: number;
+    };
+}
+
+export interface TeacherStudentsListResponse {
+    success: boolean;
+    count: number;
+    total: number;
+    pagination: {
+        limit: number;
+        offset: number;
+        hasMore: boolean;
+    };
+    data: TeacherStudentApiItem[];
+}
+
+export interface TeacherStudentProgressData {
+    student: {
+        id: string;
+        email: string;
+        name: string;
+        level: Level | string;
+        school?: string;
+        examYear?: number;
+    };
+    level: Level | string;
+    assessmentScore?: number;
+    assessmentCompletedAt?: string;
+    overall: OverallProgressSummary;
+    subjects: Record<string, unknown>[];
+}
+
+export interface TeacherStudentProgressResponse {
+    success: boolean;
+    data: TeacherStudentProgressData;
+}
+
+export interface TeacherStudentQuizAttemptApiItem {
+    attemptId: string;
+    score: number;
+    passed: boolean;
+    timeSpent?: number;
+    completedAt: string;
+    quiz: {
+        id: string;
+        title: string;
+        totalQuestions: number;
+    };
+    chapter?: {
+        id: string;
+        title: string;
+    };
+    subject?: {
+        id: string;
+        name: string;
+        code: string;
+    };
+}
+
+export interface TeacherStudentQuizAttemptsResponse {
+    success: boolean;
+    student: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    count: number;
+    total: number;
+    pagination: {
+        limit: number;
+        offset: number;
+        hasMore: boolean;
+    };
+    data: TeacherStudentQuizAttemptApiItem[];
+}

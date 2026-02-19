@@ -23,8 +23,15 @@ import {
     RoleUpgradeRequestResponse,
     RoleUpgradeDecisionResponse,
     PendingRoleUpgradeRequest,
+    TeacherStudentsQueryParams,
+    TeacherStudentsListResponse,
+    TeacherStudentProgressResponse,
+    TeacherStudentProgressData,
+    TeacherStudentQuizAttemptsResponse,
+    TeacherStudentQuizAttemptApiItem,
     TeacherDashboardData,
     StudentDetail,
+    StudentStatus,
 } from "@/lib/types";
 
 // API Client class using Axios
@@ -498,14 +505,147 @@ class APIClient {
         return this.request<QuizStats>(`/quizzes/${quizId}/stats`);
     }
 
-    // Teacher Dashboard endpoints
+    // Teacher endpoints
+    async getTeacherStudents(
+        params: TeacherStudentsQueryParams = {}
+    ): Promise<TeacherStudentsListResponse> {
+        return this.request<TeacherStudentsListResponse>("/teacher/students", { params });
+    }
+
+    async getStudentProgress(studentId: string): Promise<TeacherStudentProgressData> {
+        const response = await this.request<TeacherStudentProgressResponse>(
+            `/teacher/students/${studentId}/progress`
+        );
+        return response.data;
+    }
+
+    async getStudentQuizAttemptsForTeacher(
+        studentId: string,
+        params: { subjectId?: string; chapterId?: string; limit?: number; offset?: number } = {}
+    ): Promise<TeacherStudentQuizAttemptsResponse> {
+        return this.request<TeacherStudentQuizAttemptsResponse>(`/teacher/students/${studentId}/quiz-attempts`, {
+            params,
+        });
+    }
+
     async getTeacherDashboard(): Promise<TeacherDashboardData> {
-        return this.request<TeacherDashboardData>("/teacher/dashboard");
+        const studentsResponse = await this.getTeacherStudents({ limit: 50, offset: 0 });
+        const students = studentsResponse.data || [];
+
+        const progressPairs = await Promise.all(
+            students.map(async (student) => {
+                try {
+                    const progress = await this.getStudentProgress(student.id);
+                    return [student.id, progress] as const;
+                } catch {
+                    return [student.id, null] as const;
+                }
+            })
+        );
+
+        const progressMap = new Map<string, TeacherStudentProgressData | null>(progressPairs);
+
+        const mappedStudents = students.map((student) => {
+            const progress = progressMap.get(student.id);
+            const overallProgress = progress?.overall?.completionPercentage ?? 0;
+            const status = mapStatusFromProgress(overallProgress);
+
+            return {
+                id: student.id,
+                name: student.name,
+                email: student.email,
+                status,
+                currentChapterId: undefined,
+                currentChapterTitle: undefined,
+                overallProgress,
+                lastActiveDate: student.lastLoginAt || student.createdAt,
+            };
+        });
+
+        const onTrackCount = mappedStudents.filter(
+            (student) => student.status === StudentStatus.ON_TRACK
+        ).length;
+        const behindCount = mappedStudents.filter(
+            (student) => student.status === StudentStatus.BEHIND
+        ).length;
+        const atRiskCount = mappedStudents.filter(
+            (student) => student.status === StudentStatus.AT_RISK
+        ).length;
+
+        return {
+            students: mappedStudents,
+            totalStudents: studentsResponse.total ?? mappedStudents.length,
+            onTrackCount,
+            behindCount,
+            atRiskCount,
+        };
     }
 
     async getStudentDetail(studentId: string): Promise<StudentDetail> {
-        return this.request<StudentDetail>(`/teacher/students/${studentId}`);
+        const [progress, attemptsResponse] = await Promise.all([
+            this.getStudentProgress(studentId),
+            this.getStudentQuizAttemptsForTeacher(studentId, { limit: 50, offset: 0 }),
+        ]);
+
+        const overallProgress = progress.overall?.completionPercentage ?? 0;
+        const status = mapStatusFromProgress(overallProgress);
+        const quizAttempts = (attemptsResponse.data || []).map((attempt) =>
+            mapTeacherAttemptToQuizAttempt(attempt, studentId)
+        );
+
+        const completedChapterCount = progress.overall?.chapters?.completed ?? 0;
+        const completedChapters = Array.from(
+            { length: completedChapterCount },
+            (_, index) => `completed-chapter-${index + 1}`
+        );
+
+        return {
+            id: progress.student.id,
+            name: progress.student.name,
+            email: progress.student.email,
+            status,
+            level: normalizeLevel(progress.level),
+            currentChapterId: undefined,
+            currentChapterTitle: undefined,
+            overallProgress,
+            lastActiveDate: progress.assessmentCompletedAt || new Date().toISOString(),
+            streak: 0,
+            completedChapters,
+            chapterProgress: [],
+            quizAttempts,
+        };
     }
+}
+
+function mapStatusFromProgress(overallProgress: number): StudentStatus {
+    if (overallProgress >= 75) return StudentStatus.ON_TRACK;
+    if (overallProgress >= 40) return StudentStatus.BEHIND;
+    return StudentStatus.AT_RISK;
+}
+
+function normalizeLevel(level: string): Level {
+    if (level === Level.FOUNDATIONAL || level === Level.CORE || level === Level.ADVANCED) {
+        return level;
+    }
+    return Level.FOUNDATIONAL;
+}
+
+function mapTeacherAttemptToQuizAttempt(
+    attempt: TeacherStudentQuizAttemptApiItem,
+    studentId: string
+): QuizAttempt {
+    const totalQuestions = attempt.quiz?.totalQuestions || 0;
+    const percentage = totalQuestions > 0 ? Math.round((attempt.score / totalQuestions) * 100) : 0;
+
+    return {
+        id: attempt.attemptId,
+        quizId: attempt.quiz?.id || "",
+        userId: studentId,
+        score: attempt.score,
+        percentage,
+        passed: attempt.passed,
+        completedAt: attempt.completedAt,
+    };
 }
 
 // Export singleton instance
