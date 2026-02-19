@@ -4,7 +4,13 @@ import {
     User,
     AuthResponse,
     AssessmentQuestion,
+    AssessmentAdminItem,
+    AssessmentAdminQuestion,
     AssessmentResult,
+    CreateAssessmentPayload,
+    UpdateAssessmentPayload,
+    CreateAssessmentQuestionPayload,
+    UpdateAssessmentQuestionPayload,
     Chapter,
     Quiz,
     QuizSubmission,
@@ -12,6 +18,7 @@ import {
     QuizAttempt,
     QuizStats,
     Level,
+    OverallProgressResponse,
     RoleUpgradeRequestPayload,
     RoleUpgradeRequestResponse,
     RoleUpgradeDecisionResponse,
@@ -89,6 +96,13 @@ class APIClient {
             params,
         });
         return response.data;
+    }
+
+    private unwrapData<T>(response: T | { data?: T }): T {
+        if (typeof response === "object" && response !== null && "data" in response) {
+            return (response as { data?: T }).data as T;
+        }
+        return response as T;
     }
 
     // Auth endpoints
@@ -288,6 +302,82 @@ class APIClient {
     async getAssessmentStatus(): Promise<{ completed: boolean; level?: Level }> {
         // Check if assessment is completed
         return this.request<{ completed: boolean; level?: Level }>("/assessment/status");
+    }
+
+    async getOverallProgress(): Promise<OverallProgressResponse> {
+        const response = await this.request<OverallProgressResponse | { data?: OverallProgressResponse }>("/progress/overall");
+        return this.unwrapData<OverallProgressResponse>(response);
+    }
+
+    // Assessment management endpoints (Admin/Teacher)
+    async getAssessments(): Promise<AssessmentAdminItem[]> {
+        const response = await this.request<AssessmentAdminItem[] | { data?: AssessmentAdminItem[] }>("/assessments");
+        return this.unwrapData<AssessmentAdminItem[]>(response) || [];
+    }
+
+    async createAssessment(data: CreateAssessmentPayload): Promise<AssessmentAdminItem> {
+        const response = await this.request<AssessmentAdminItem | { data?: AssessmentAdminItem }>("/assessments", {
+            method: "POST",
+            data,
+        });
+        return this.unwrapData<AssessmentAdminItem>(response);
+    }
+
+    async getAssessmentById(assessmentId: string): Promise<AssessmentAdminItem> {
+        const response = await this.request<AssessmentAdminItem | { data?: AssessmentAdminItem }>(`/assessments/${assessmentId}`);
+        return this.unwrapData<AssessmentAdminItem>(response);
+    }
+
+    async updateAssessment(
+        assessmentId: string,
+        data: UpdateAssessmentPayload
+    ): Promise<AssessmentAdminItem> {
+        const response = await this.request<AssessmentAdminItem | { data?: AssessmentAdminItem }>(`/assessments/${assessmentId}`, {
+            method: "PUT",
+            data,
+        });
+        return this.unwrapData<AssessmentAdminItem>(response);
+    }
+
+    async deleteAssessment(assessmentId: string): Promise<void> {
+        await this.request<void>(`/assessments/${assessmentId}`, {
+            method: "DELETE",
+        });
+    }
+
+    async createAssessmentQuestion(
+        assessmentId: string,
+        data: CreateAssessmentQuestionPayload
+    ): Promise<AssessmentAdminQuestion> {
+        const response = await this.request<AssessmentAdminQuestion | { data?: AssessmentAdminQuestion }>(
+            `/assessments/${assessmentId}/questions`,
+            {
+                method: "POST",
+                data,
+            }
+        );
+        return this.unwrapData<AssessmentAdminQuestion>(response);
+    }
+
+    async updateAssessmentQuestion(
+        assessmentId: string,
+        questionId: string,
+        data: UpdateAssessmentQuestionPayload
+    ): Promise<AssessmentAdminQuestion> {
+        const response = await this.request<AssessmentAdminQuestion | { data?: AssessmentAdminQuestion }>(
+            `/assessments/${assessmentId}/questions/${questionId}`,
+            {
+                method: "PUT",
+                data,
+            }
+        );
+        return this.unwrapData<AssessmentAdminQuestion>(response);
+    }
+
+    async deleteAssessmentQuestion(assessmentId: string, questionId: string): Promise<void> {
+        await this.request<void>(`/assessments/${assessmentId}/questions/${questionId}`, {
+            method: "DELETE",
+        });
     }
 
     // Legacy method for backward compatibility (if needed)

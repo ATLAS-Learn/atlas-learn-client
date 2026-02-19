@@ -77,6 +77,46 @@ export interface AssessmentQuestion {
     topic: string;
 }
 
+export interface AssessmentAdminQuestion {
+    id: string;
+    questionText: string;
+    options: string[];
+    orderIndex: number;
+}
+
+export interface AssessmentAdminItem {
+    id: string;
+    title: string;
+    description: string;
+    questionCount: number;
+    isActive?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+    questions?: AssessmentAdminQuestion[];
+}
+
+export interface CreateAssessmentPayload {
+    title: string;
+    description: string;
+}
+
+export interface UpdateAssessmentPayload {
+    title?: string;
+    description?: string;
+}
+
+export interface CreateAssessmentQuestionPayload {
+    questionText: string;
+    options: string[];
+    orderIndex: number;
+}
+
+export interface UpdateAssessmentQuestionPayload {
+    questionText?: string;
+    options?: string[];
+    orderIndex?: number;
+}
+
 export interface AssessmentSubmission {
     answers: { questionId: string; answerIndex: number }[];
 }
@@ -155,6 +195,16 @@ export interface Progress {
     overallProgress: number; // percentage
     streak: number;
     lastActiveDate: string;
+}
+
+export interface OverallProgressResponse {
+    overallProgress: number;
+    completedChapters?: number;
+    totalChapters?: number;
+    completedQuizzes?: number;
+    totalQuizzes?: number;
+    streak?: number;
+    [key: string]: unknown;
 }
 
 export interface ChapterProgress {
