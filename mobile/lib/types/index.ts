@@ -64,7 +64,7 @@ export interface User {
 }
 
 export interface AuthResponse {
-    token: string;
+    token?: string | null;
     user: User;
 }
 

@@ -28,6 +28,7 @@ class APIClient {
     constructor(baseURL: string) {
         this.axiosInstance = axios.create({
             baseURL,
+            withCredentials: true,
             headers: {
                 "Content-Type": "application/json",
             },

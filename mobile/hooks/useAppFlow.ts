@@ -11,7 +11,7 @@ export function useAppFlow() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, loadAuth, token, logout } = useAuthStore();
-  const { user, loadUser, setUser } = useUserStore();
+  const { user, setUser } = useUserStore();
   const { loadProgress } = useProgressStore();
 
   useEffect(() => {
@@ -24,12 +24,15 @@ export function useAppFlow() {
 
   useEffect(() => {
     async function restoreSession() {
-      if (!isAuthenticated || !token) {
+      if (!isAuthenticated) {
         setIsLoading(false);
         return;
       }
 
       try {
+        // Token sessions use Authorization header, cookie sessions rely on HTTP-only cookie.
+        apiClient.setToken(token || null);
+
         // Fetch fresh user data from API to validate token and restore session
         const freshUser = await apiClient.getCurrentUser();
         
@@ -53,7 +56,7 @@ export function useAppFlow() {
       }
     }
 
-    if (isAuthenticated !== null && isAuthenticated && token) {
+    if (isAuthenticated !== null && isAuthenticated) {
       restoreSession();
     } else if (isAuthenticated === false) {
       setIsLoading(false);

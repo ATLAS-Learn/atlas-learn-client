@@ -23,7 +23,7 @@ import { getItem } from "@/lib/utils/storage";
 export default function VerifyOTPScreen() {
     const router = useRouter();
     const params = useLocalSearchParams<{ email?: string; mode?: string; fullName?: string }>();
-    const { setAuth } = useAuthStore();
+    const { setAuth, setCookieAuth } = useAuthStore();
     const { setUser } = useUserStore();
     
     const [code, setCode] = useState("");
@@ -31,6 +31,7 @@ export default function VerifyOTPScreen() {
     const [resending, setResending] = useState(false);
     const [error, setError] = useState("");
     const [cooldown, setCooldown] = useState(0);
+    const otpInputRef = useRef<TextInput>(null);
     const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const email = params.email || "";
@@ -80,9 +81,14 @@ export default function VerifyOTPScreen() {
             const response = await apiClient.verifyOTP(email, code);
             
             // Set auth token and user
-            setAuth(response.token);
+            if (response.token) {
+                await setAuth(response.token);
+                apiClient.setToken(response.token);
+            } else {
+                await setCookieAuth();
+                apiClient.setToken(null);
+            }
             setUser(response.user);
-            apiClient.setToken(response.token);
 
             // Check if assessment is complete
             const assessmentComplete = await getItem("assessmentComplete");
@@ -169,22 +175,35 @@ export default function VerifyOTPScreen() {
                         We&apos;ve sent a verification code to {email ? email : "your email"}. Please enter it below.
                     </Text>
 
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="keypad-outline" size={24} color="#B3B3B3" style={styles.icon} />
+                    <TouchableOpacity style={styles.otpContainer} onPress={() => otpInputRef.current?.focus()}>
+                        {Array.from({ length: 6 }).map((_, index) => {
+                            const digit = code[index] || "";
+                            const isActive = code.length === index;
+                            return (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.otpBox,
+                                        isActive && styles.otpBoxActive,
+                                    ]}
+                                >
+                                    <Text style={styles.otpDigit}>{digit}</Text>
+                                </View>
+                            );
+                        })}
                         <TextInput
-                            placeholder="Enter verification code"
-                            placeholderTextColor="#B3B3B3"
+                            ref={otpInputRef}
                             value={code}
                             onChangeText={(text) => {
-                                setCode(text);
+                                setCode(text.replace(/\D/g, "").slice(0, 6));
                                 setError("");
                             }}
                             keyboardType="number-pad"
                             maxLength={6}
-                            style={styles.input}
+                            style={styles.hiddenInput}
                             autoFocus
                         />
-                    </View>
+                    </TouchableOpacity>
                     {error && <Text style={styles.errorText}>{error}</Text>}
 
                     <TouchableOpacity
@@ -269,19 +288,36 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         paddingHorizontal: 20,
     },
-    inputContainer: {
+    otpContainer: {
         flexDirection: "row",
         alignItems: "center",
-        borderWidth: 1,
-        borderColor: "#E0E0E0",
-        backgroundColor: "#F9FBFB",
-        borderRadius: 16,
-        paddingHorizontal: 10,
+        justifyContent: "space-between",
         marginBottom: 15,
-        height: 64,
     },
-    icon: {
-        marginRight: 10,
+    otpBox: {
+        width: 48,
+        height: 56,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#D9D9D9",
+        backgroundColor: "#F9FBFB",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    otpBoxActive: {
+        borderColor: "#F2B138",
+        borderWidth: 2,
+    },
+    otpDigit: {
+        fontSize: 22,
+        fontWeight: "700",
+        color: "#282F2E",
+    },
+    hiddenInput: {
+        position: "absolute",
+        opacity: 0,
+        width: 1,
+        height: 1,
     },
     input: {
         flex: 1,
