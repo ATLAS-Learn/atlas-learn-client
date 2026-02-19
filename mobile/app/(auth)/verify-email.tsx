@@ -30,6 +30,7 @@ export default function VerifyEmailScreen() {
     const [resending, setResending] = useState(false);
     const [error, setError] = useState("");
     const [cooldown, setCooldown] = useState(0);
+    const otpInputRef = useRef<TextInput>(null);
     const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     // Cleanup cooldown timer on unmount
@@ -201,25 +202,38 @@ export default function VerifyEmailScreen() {
 
                     <Text style={styles.title}>Verify Your Email</Text>
                     <Text style={styles.subtitle}>
-                        We've sent a verification code to {params.email || "your email address"}. Please enter it below.
+                        We&apos;ve sent a verification code to {params.email || "your email address"}. Please enter it below.
                     </Text>
 
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="keypad-outline" size={24} color="#B3B3B3" style={styles.icon} />
+                    <TouchableOpacity style={styles.otpContainer} onPress={() => otpInputRef.current?.focus()}>
+                        {Array.from({ length: 6 }).map((_, index) => {
+                            const digit = code[index] || "";
+                            const isActive = code.length === index;
+                            return (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.otpBox,
+                                        isActive && styles.otpBoxActive,
+                                    ]}
+                                >
+                                    <Text style={styles.otpDigit}>{digit}</Text>
+                                </View>
+                            );
+                        })}
                         <TextInput
-                            placeholder="Enter verification code"
-                            placeholderTextColor="#B3B3B3"
+                            ref={otpInputRef}
                             value={code}
                             onChangeText={(text) => {
-                                setCode(text);
+                                setCode(text.replace(/\D/g, "").slice(0, 6));
                                 setError("");
                             }}
                             keyboardType="number-pad"
                             maxLength={6}
-                            style={styles.input}
+                            style={styles.hiddenInput}
                             autoFocus
                         />
-                    </View>
+                    </TouchableOpacity>
                     {error && <Text style={styles.errorText}>{error}</Text>}
 
                     <TouchableOpacity
@@ -235,7 +249,7 @@ export default function VerifyEmailScreen() {
                     </TouchableOpacity>
 
                     <View style={styles.resendContainer}>
-                        <Text style={styles.resendText}>Didn't receive the code? </Text>
+                        <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
                         <TouchableOpacity 
                             onPress={handleResend} 
                             disabled={resending || cooldown > 0}
@@ -302,19 +316,36 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         paddingHorizontal: 20,
     },
-    inputContainer: {
+    otpContainer: {
         flexDirection: "row",
         alignItems: "center",
-        borderWidth: 1,
-        borderColor: "#E0E0E0",
-        backgroundColor: "#F9FBFB",
-        borderRadius: 16,
-        paddingHorizontal: 10,
+        justifyContent: "space-between",
         marginBottom: 15,
-        height: 64,
     },
-    icon: {
-        marginRight: 10,
+    otpBox: {
+        width: 48,
+        height: 56,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#D9D9D9",
+        backgroundColor: "#F9FBFB",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    otpBoxActive: {
+        borderColor: "#F2B138",
+        borderWidth: 2,
+    },
+    otpDigit: {
+        fontSize: 22,
+        fontWeight: "700",
+        color: "#282F2E",
+    },
+    hiddenInput: {
+        position: "absolute",
+        opacity: 0,
+        width: 1,
+        height: 1,
     },
     input: {
         flex: 1,
@@ -377,4 +408,3 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
 });
-

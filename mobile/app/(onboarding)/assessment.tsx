@@ -48,6 +48,9 @@ export default function AssessmentScreen() {
             if (errorMessage.toLowerCase().includes("no active assessment") || 
                 errorMessage.toLowerCase().includes("not available")) {
                 userMessage = "Assessment is not available at this time. Please contact support or try again later.";
+            } else if (errorMessage.toLowerCase().includes("exactly 5 questions")) {
+                userMessage =
+                    "Assessment is temporarily misconfigured on the server (must contain exactly 5 questions). Please try again later or contact support.";
             }
             
             setError(userMessage);
@@ -390,4 +393,3 @@ const styles = StyleSheet.create({
         fontWeight: "700",
     },
 });
-

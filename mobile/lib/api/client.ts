@@ -248,11 +248,35 @@ class APIClient {
      */
     async submitAssessment(answers: number[]): Promise<AssessmentResult> {
         // API expects: { answers: [0, 1, 2, 0, 1] } - array of answer indices
-        const result = await this.request<AssessmentResult>("/assessment/submit", {
+        const result = await this.request<{
+            success: boolean;
+            message: string;
+            data: {
+                attemptId: string;
+                score: number;
+                level: Level;
+                levelLabel: string;
+                levelDescription: string;
+                correctAnswers: number;
+                totalQuestions: number;
+                recommendedChapter?: unknown;
+                completedAt: string;
+            };
+        }>("/assessment/submit", {
             method: "POST",
             data: { answers },
         });
-        return result;
+
+        if (!result?.data) {
+            throw new Error("Invalid assessment submission response");
+        }
+
+        return {
+            score: result.data.correctAnswers ?? result.data.score,
+            totalQuestions: result.data.totalQuestions,
+            level: result.data.level,
+            message: result.data.levelDescription || result.message || "Assessment completed successfully",
+        };
     }
 
     async getAssessmentResult(): Promise<AssessmentResult> {
