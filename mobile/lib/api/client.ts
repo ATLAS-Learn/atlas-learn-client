@@ -18,7 +18,7 @@ import {
     QuizAttempt,
     QuizStats,
     Level,
-    OverallProgressResponse,
+    OverallProgressData,
     RoleUpgradeRequestPayload,
     RoleUpgradeRequestResponse,
     RoleUpgradeDecisionResponse,
@@ -304,9 +304,11 @@ class APIClient {
         return this.request<{ completed: boolean; level?: Level }>("/assessment/status");
     }
 
-    async getOverallProgress(): Promise<OverallProgressResponse> {
-        const response = await this.request<OverallProgressResponse | { data?: OverallProgressResponse }>("/progress/overall");
-        return this.unwrapData<OverallProgressResponse>(response);
+    async getOverallProgress(): Promise<OverallProgressData> {
+        const response = await this.request<
+            OverallProgressData | { success?: boolean; data?: OverallProgressData }
+        >("/progress/overall");
+        return this.unwrapData<OverallProgressData>(response);
     }
 
     // Assessment management endpoints (Admin/Teacher)

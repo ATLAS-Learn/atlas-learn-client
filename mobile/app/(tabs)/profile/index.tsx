@@ -6,6 +6,7 @@ import { useUserStore } from "@/lib/store/user";
 import { useAuthStore } from "@/lib/store/auth";
 import { apiClient } from "@/lib/api";
 import { UserRole } from "@/lib/types";
+import { useOverallProgress } from "@/lib/hooks/api";
 import ProgressBar from "@/components/progress/progress-bar";
 
 export default function ProfileScreen() {
@@ -13,8 +14,7 @@ export default function ProfileScreen() {
     const { user, setUser } = useUserStore();
     const { logout } = useAuthStore();
     const [requestingUpgrade, setRequestingUpgrade] = useState(false);
-    const [progressPercentage, setProgressPercentage] = useState(0);
-    const [loadingProgress, setLoadingProgress] = useState(false);
+    const { data: overallProgressData, isLoading: loadingProgress } = useOverallProgress();
     const [sessionsModalVisible, setSessionsModalVisible] = useState(false);
     const [sessions, setSessions] = useState<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }[]>([]);
     const [loadingSessions, setLoadingSessions] = useState(false);
@@ -27,40 +27,12 @@ export default function ProfileScreen() {
         refreshUser();
     }, []);
 
-    useEffect(() => {
-        loadProgress();
-    }, [user?.id, user?.role]);
-
     const refreshUser = async () => {
         try {
             const freshUser = await apiClient.getCurrentUser();
             setUser(freshUser);
         } catch {
             // Keep local user data if refresh fails.
-        }
-    };
-
-    const loadProgress = async () => {
-        if (!user || user.role !== UserRole.STUDENT) return;
-        
-        setLoadingProgress(true);
-        try {
-            const [attempts, quizzes] = await Promise.all([
-                apiClient.getUserQuizAttempts(user.id),
-                apiClient.getQuizzes(1000), // Get all quizzes
-            ]);
-            const passedQuizIds = new Set(
-                attempts.filter((attempt) => attempt.passed).map((attempt) => attempt.quizId)
-            );
-            const totalQuizzes = quizzes.length;
-            const percentage =
-                totalQuizzes > 0 ? Math.round((passedQuizIds.size / totalQuizzes) * 100) : 0;
-            setProgressPercentage(percentage);
-        } catch (error) {
-            console.error("Error loading progress:", error);
-            setProgressPercentage(0);
-        } finally {
-            setLoadingProgress(false);
         }
     };
 
@@ -192,7 +164,7 @@ export default function ProfileScreen() {
                             <ActivityIndicator size="small" color="#F2B138" />
                         </View>
                     ) : (
-                        <ProgressBar progress={progressPercentage} />
+                        <ProgressBar progress={Number(overallProgressData?.overall?.completionPercentage || 0)} />
                     )}
                 </View>
             )}

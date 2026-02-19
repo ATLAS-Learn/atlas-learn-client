@@ -18,10 +18,12 @@ import ProgressBar from "@/components/progress/progress-bar";
 import CurrentChapterCard from "@/components/progress/current-chapter-card";
 import NextChapterCard from "@/components/progress/next-chapter-card";
 import { useUserStore } from "@/lib/store/user";
+import { useOverallProgress } from "@/lib/hooks/api";
 
 export default function LearnDashboardScreen() {
   const router = useRouter();
   const { user } = useUserStore();
+  const { data: overallProgressData, refetch: refetchOverallProgress } = useOverallProgress();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -29,6 +31,30 @@ export default function LearnDashboardScreen() {
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  useEffect(() => {
+    if (!overallProgressData) return;
+    setDashboardData((prev) => {
+      if (!prev) return prev;
+      const nextOverall = Number(
+        overallProgressData.overall?.completionPercentage ?? prev.progress.overallProgress
+      );
+      const nextStreak = prev.progress.streak;
+
+      if (nextOverall === prev.progress.overallProgress && nextStreak === prev.progress.streak) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        progress: {
+          ...prev.progress,
+          overallProgress: nextOverall,
+          streak: nextStreak,
+        },
+      };
+    });
+  }, [overallProgressData]);
 
   const loadDashboard = async () => {
     try {
@@ -73,7 +99,8 @@ export default function LearnDashboardScreen() {
       }
 
       const overallProgress =
-        quizzes.length > 0 ? Math.round((passedAttemptQuizIds.size / quizzes.length) * 100) : 0;
+        Number(overallProgressData?.overall?.completionPercentage) ||
+        (quizzes.length > 0 ? Math.round((passedAttemptQuizIds.size / quizzes.length) * 100) : 0);
       const streak = calculateStreakFromAttempts(attempts);
       const latestActivity = getLatestActivity(attempts) || user.createdAt;
 
@@ -110,6 +137,7 @@ export default function LearnDashboardScreen() {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    refetchOverallProgress();
     loadDashboard();
   };
 

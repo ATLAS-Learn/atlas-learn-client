@@ -197,14 +197,42 @@ export interface Progress {
     lastActiveDate: string;
 }
 
-export interface OverallProgressResponse {
-    overallProgress: number;
-    completedChapters?: number;
-    totalChapters?: number;
-    completedQuizzes?: number;
-    totalQuizzes?: number;
-    streak?: number;
-    [key: string]: unknown;
+export interface OverallProgressSummary {
+    completionPercentage: number;
+    chapters: {
+        total: number;
+        completed: number;
+    };
+    lessons: {
+        total: number;
+        completed: number;
+        percentage: number;
+    };
+    quizzes: {
+        total: number;
+        passed: number;
+        percentage: number;
+    };
+    totalTimeSpent: number;
+}
+
+export interface SubjectProgress {
+    subjectId: string;
+    name: string;
+    code: string;
+    completionPercentage: number;
+    chapters: Record<string, unknown>;
+    lessons: Record<string, unknown>;
+    quizzes: Record<string, unknown>;
+    chapterDetails: Record<string, unknown>[];
+}
+
+export interface OverallProgressData {
+    userId: string;
+    level: Level;
+    assessmentScore: number;
+    overall: OverallProgressSummary;
+    subjects: SubjectProgress[];
 }
 
 export interface ChapterProgress {
