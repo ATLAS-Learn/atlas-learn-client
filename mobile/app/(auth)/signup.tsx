@@ -13,6 +13,7 @@ import {
   Keyboard,
   ActivityIndicator,
   Alert,
+  useWindowDimensions,
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,8 +22,14 @@ import { apiClient } from "@/lib/api";
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
+  const [school, setSchool] = useState("");
+  const [examYear, setExamYear] = useState("");
+  const [bio, setBio] = useState("");
+  const [image, setImage] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
 
@@ -40,6 +47,12 @@ export default function SignUpScreen() {
         await apiClient.signUpWithOTP({
           name: fullName,
           email,
+          username: username.trim() || undefined,
+          role: "student",
+          image: image.trim() || undefined,
+          bio: bio.trim() || undefined,
+          school: school.trim() || undefined,
+          examYear: examYear.trim() ? Number(examYear) : undefined,
         });
 
         // Navigate to OTP verification screen
@@ -75,12 +88,21 @@ export default function SignUpScreen() {
         </TouchableOpacity>
 
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: Math.max(88, Math.floor(height * 0.11)),
+              paddingHorizontal: width < 390 ? 16 : 24,
+            },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.logoContainer}>
-            <Image source={require("@/assets/images/Blue atlas icon.png")} style={styles.logo} />
+          <View style={[styles.logoContainer, { marginTop: width < 390 ? 32 : 52 }]}>
+            <Image
+              source={require("@/assets/images/Blue atlas icon.png")}
+              style={[styles.logo, { height: width < 390 ? 130 : 170, width: width < 390 ? 130 : 170 }]}
+            />
           </View>
 
           <Text style={styles.title}>Create New Account</Text>
@@ -111,7 +133,6 @@ export default function SignUpScreen() {
               value={fullName}
               onChangeText={setFullName}
               style={styles.input}
-              onSubmitEditing={() => passwordInputRef.current?.focus()}
               returnKeyType="next"
             />
           </View>
@@ -119,6 +140,61 @@ export default function SignUpScreen() {
             <Text style={{ color: "red", marginBottom: 10 }}>{errors.fullName}</Text>
           )
           }
+          <View style={styles.inputContainer}>
+            <Ionicons name="at" size={24} color="#B3B3B3" style={styles.icon} />
+            <TextInput
+              placeholder="Username (optional)"
+              placeholderTextColor="#B3B3B3"
+              value={username}
+              onChangeText={setUsername}
+              style={styles.input}
+              autoCapitalize="none"
+            />
+          </View>
+          <View style={styles.inputContainer}>
+            <Ionicons name="school-outline" size={24} color="#B3B3B3" style={styles.icon} />
+            <TextInput
+              placeholder="School (optional)"
+              placeholderTextColor="#B3B3B3"
+              value={school}
+              onChangeText={setSchool}
+              style={styles.input}
+            />
+          </View>
+          <View style={styles.inputContainer}>
+            <Ionicons name="calendar-outline" size={24} color="#B3B3B3" style={styles.icon} />
+            <TextInput
+              placeholder="Exam Year (optional)"
+              placeholderTextColor="#B3B3B3"
+              value={examYear}
+              onChangeText={setExamYear}
+              style={styles.input}
+              keyboardType="number-pad"
+            />
+          </View>
+          <View style={styles.inputContainer}>
+            <Ionicons name="link-outline" size={24} color="#B3B3B3" style={styles.icon} />
+            <TextInput
+              placeholder="Image URL (optional)"
+              placeholderTextColor="#B3B3B3"
+              value={image}
+              onChangeText={setImage}
+              style={styles.input}
+              autoCapitalize="none"
+            />
+          </View>
+          <View style={[styles.inputContainer, styles.bioContainer]}>
+            <Ionicons name="document-text-outline" size={24} color="#B3B3B3" style={styles.icon} />
+            <TextInput
+              placeholder="Bio (optional)"
+              placeholderTextColor="#B3B3B3"
+              value={bio}
+              onChangeText={setBio}
+              style={[styles.input, styles.bioInput]}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
 
           <TouchableOpacity
             style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
@@ -152,7 +228,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 25,
+    paddingHorizontal: 24,
     paddingTop: 100,
     paddingBottom: 100, // Increased bottom padding for keyboard
   },
@@ -164,14 +240,14 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: "center",
-    marginTop: 90,
+    marginTop: 52,
     marginBottom: 10,
 
   },
   logo: {
     fontWeight: "bold",
-    height: 200,
-    width: 200,
+    height: 170,
+    width: 170,
   },
   title: {
     fontSize: 30,
@@ -198,6 +274,15 @@ const styles = StyleSheet.create({
     height: 64,
     fontSize: 16,
     color: "#333",
+  },
+  bioContainer: {
+    alignItems: "flex-start",
+  },
+  bioInput: {
+    minHeight: 88,
+    height: undefined,
+    textAlignVertical: "top",
+    paddingTop: 18,
   },
   countryCode: {
     fontSize: 16,

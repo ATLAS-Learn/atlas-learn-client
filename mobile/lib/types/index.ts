@@ -55,12 +55,24 @@ export interface User {
     id: string;
     name: string;
     email: string;
+    username?: string;
     role: UserRole;
     roleUpgradeStatus?: RoleUpgradeStatus;
+    image?: string;
+    bio?: string;
     school?: string;
     examYear?: number;
     level?: Level;
     createdAt: string;
+}
+
+export interface UpdateProfilePayload {
+    name?: string;
+    username?: string;
+    image?: string;
+    bio?: string;
+    school?: string;
+    examYear?: number;
 }
 
 export interface AuthResponse {
@@ -155,6 +167,71 @@ export interface CreateSubjectPayload {
 export interface UpdateSubjectPayload {
     name?: string;
     code?: string;
+    description?: string;
+    [key: string]: unknown;
+}
+
+export interface SubjectChapter {
+    id: string;
+    title: string;
+    description?: string;
+    orderIndex?: number;
+    unlockThreshold?: number;
+    estimatedMinutes?: number;
+    pdfUrl?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    [key: string]: unknown;
+}
+
+export interface CreateSubjectChapterPayload {
+    title: string;
+    description?: string;
+    orderIndex?: number;
+    unlockThreshold?: number;
+    estimatedMinutes?: number;
+    pdfUrl?: string;
+    [key: string]: unknown;
+}
+
+export interface UpdateSubjectChapterPayload {
+    title?: string;
+    description?: string;
+    orderIndex?: number;
+    unlockThreshold?: number;
+    estimatedMinutes?: number;
+    pdfUrl?: string;
+    [key: string]: unknown;
+}
+
+export interface SubjectStats {
+    subjectId?: string;
+    chaptersCount?: number;
+    lessonsCount?: number;
+    quizzesCount?: number;
+    [key: string]: unknown;
+}
+
+export interface SubjectChapterProgress {
+    subjectId?: string;
+    chapterId?: string;
+    completed?: boolean;
+    unlocked?: boolean;
+    completionPercentage?: number;
+    [key: string]: unknown;
+}
+
+export interface SubjectChapterUnlockResponse {
+    success?: boolean;
+    message?: string;
+    data?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+export interface SubjectExamHint {
+    id: string;
+    title?: string;
+    hint?: string;
     description?: string;
     [key: string]: unknown;
 }

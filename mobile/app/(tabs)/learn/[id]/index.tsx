@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -18,18 +18,16 @@ import ContentSection from "@/components/lessons/content-section";
 export default function ChapterScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
+    const chapterId = Array.isArray(id) ? id[0] : id;
     const [chapter, setChapter] = useState<Chapter | null>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (id) {
-            loadChapter();
-        }
-    }, [id]);
-
-    const loadChapter = async () => {
+    const loadChapter = useCallback(async () => {
         try {
-            const data = await apiClient.getChapter(id!);
+            if (!chapterId) {
+                throw new Error("Missing chapter ID");
+            }
+            const data = await apiClient.getChapter(chapterId);
             setChapter(data);
         } catch {
             Alert.alert("Error", "Failed to load chapter. Please try again.");
@@ -37,10 +35,19 @@ export default function ChapterScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [chapterId, router]);
+
+    useEffect(() => {
+        if (chapterId) {
+            loadChapter();
+        } else {
+            setLoading(false);
+        }
+    }, [chapterId, loadChapter]);
 
     const handleStartQuiz = () => {
-        router.push(`/(tabs)/learn/${id}/quiz`);
+        if (!chapterId) return;
+        router.push(`/(tabs)/learn/${chapterId}/quiz`);
     };
 
     if (loading) {

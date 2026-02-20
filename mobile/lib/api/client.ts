@@ -32,10 +32,18 @@ import {
     TeacherDashboardData,
     StudentDetail,
     StudentStatus,
+    UpdateProfilePayload,
     Subject,
     CreateSubjectPayload,
     UpdateSubjectPayload,
     SubjectQueryOptions,
+    SubjectChapter,
+    CreateSubjectChapterPayload,
+    UpdateSubjectChapterPayload,
+    SubjectStats,
+    SubjectChapterProgress,
+    SubjectChapterUnlockResponse,
+    SubjectExamHint,
 } from "@/lib/types";
 
 // API Client class using Axios
@@ -120,6 +128,13 @@ class APIClient {
     async signUpWithOTP(data: {
         name: string;
         email: string;
+        username?: string;
+        role?: "student" | "teacher" | "admin";
+        image?: string;
+        bio?: string;
+        school?: string;
+        examYear?: number;
+        level?: Level;
     }): Promise<{ success: boolean; message: string }> {
         return this.request<{ success: boolean; message: string }>("/auth/sign-up/otp", {
             method: "POST",
@@ -135,6 +150,14 @@ class APIClient {
 
     async getCurrentUser(): Promise<User> {
         return this.request<User>("/auth/me");
+    }
+
+    async updateCurrentUserProfile(data: UpdateProfilePayload): Promise<User> {
+        const response = await this.request<User | { success?: boolean; data?: User }>("/auth/me", {
+            method: "PUT",
+            data,
+        });
+        return this.unwrapData<User>(response);
     }
 
     async forgotPassword(email: string): Promise<{ message: string }> {
@@ -458,6 +481,92 @@ class APIClient {
             }
         );
         return this.unwrapData<Subject>(response);
+    }
+
+    async getSubjectChapters(subjectId: string): Promise<SubjectChapter[]> {
+        const response = await this.request<
+            SubjectChapter[] | { success?: boolean; count?: number; data?: SubjectChapter[] }
+        >(`/subjects/${subjectId}/chapters`);
+        const chapters = this.unwrapData<SubjectChapter[]>(response);
+        return Array.isArray(chapters) ? chapters : [];
+    }
+
+    async createSubjectChapter(subjectId: string, data: CreateSubjectChapterPayload): Promise<SubjectChapter> {
+        const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
+            `/subjects/${subjectId}/chapters`,
+            {
+                method: "POST",
+                data,
+            }
+        );
+        return this.unwrapData<SubjectChapter>(response);
+    }
+
+    async getSubjectChapter(subjectId: string, chapterId: string): Promise<SubjectChapter> {
+        const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
+            `/subjects/${subjectId}/chapters/${chapterId}`
+        );
+        return this.unwrapData<SubjectChapter>(response);
+    }
+
+    async updateSubjectChapter(
+        subjectId: string,
+        chapterId: string,
+        data: UpdateSubjectChapterPayload
+    ): Promise<SubjectChapter> {
+        const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
+            `/subjects/${subjectId}/chapters/${chapterId}`,
+            {
+                method: "PUT",
+                data,
+            }
+        );
+        return this.unwrapData<SubjectChapter>(response);
+    }
+
+    async deleteSubjectChapter(subjectId: string, chapterId: string): Promise<void> {
+        await this.request<void>(`/subjects/${subjectId}/chapters/${chapterId}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getSubjectStats(subjectId: string): Promise<SubjectStats> {
+        const response = await this.request<SubjectStats | { success?: boolean; data?: SubjectStats }>(
+            `/subjects/${subjectId}/stats`
+        );
+        return this.unwrapData<SubjectStats>(response);
+    }
+
+    async getSubjectChapterQuizzes(subjectId: string, chapterId: string): Promise<Quiz[]> {
+        const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/quizzes`
+        );
+        const quizzes = this.unwrapData<Quiz[]>(response);
+        return Array.isArray(quizzes) ? quizzes : [];
+    }
+
+    async getSubjectChapterProgress(subjectId: string, chapterId: string): Promise<SubjectChapterProgress> {
+        const response = await this.request<
+            SubjectChapterProgress | { success?: boolean; data?: SubjectChapterProgress }
+        >(`/subjects/${subjectId}/chapters/${chapterId}/progress`);
+        return this.unwrapData<SubjectChapterProgress>(response);
+    }
+
+    async unlockSubjectChapter(subjectId: string, chapterId: string): Promise<SubjectChapterUnlockResponse> {
+        return this.request<SubjectChapterUnlockResponse>(
+            `/subjects/${subjectId}/chapters/${chapterId}/progress/unlock`,
+            {
+                method: "POST",
+            }
+        );
+    }
+
+    async getSubjectChapterExamHints(subjectId: string, chapterId: string): Promise<SubjectExamHint[]> {
+        const response = await this.request<SubjectExamHint[] | { success?: boolean; data?: SubjectExamHint[] }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/exam-hints`
+        );
+        const hints = this.unwrapData<SubjectExamHint[]>(response);
+        return Array.isArray(hints) ? hints : [];
     }
 
     // Dashboard endpoints

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -22,15 +22,16 @@ import { useOverallProgress } from "@/lib/hooks/api";
 
 export default function LearnDashboardScreen() {
   const router = useRouter();
-  const { user } = useUserStore();
+  const { user, setUser } = useUserStore();
   const { data: overallProgressData, refetch: refetchOverallProgress } = useOverallProgress();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    if (!user) return;
+    setDashboardData((prev) => (prev ? { ...prev, user } : prev));
+  }, [user]);
 
   useEffect(() => {
     if (!overallProgressData) return;
@@ -56,12 +57,15 @@ export default function LearnDashboardScreen() {
     });
   }, [overallProgressData]);
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     try {
-      if (!user) {
-        Alert.alert("Error", "User data not available. Please sign in again.");
-        router.replace("/(auth)");
-        return;
+      let activeUser = user;
+      if (!activeUser) {
+        activeUser = await apiClient.getCurrentUser();
+        setUser(activeUser);
+      }
+      if (!activeUser) {
+        throw new Error("User data not available");
       }
 
       const [allChaptersRaw, serverProgress] = await Promise.all([
@@ -104,10 +108,10 @@ export default function LearnDashboardScreen() {
           0
       );
       const streak = 0;
-      const latestActivity = user.createdAt;
+      const latestActivity = activeUser.createdAt;
 
       const finalProgress: Progress = {
-        userId: user.id,
+        userId: activeUser.id,
         currentChapterId: currentChapter.id,
         completedChapters: Array.from(completedChapterIds),
         completedLessons: [],
@@ -120,7 +124,7 @@ export default function LearnDashboardScreen() {
       const isNextChapterLocked = completedChapterCount <= currentIndex;
 
       const localDashboardData: DashboardData = {
-        user,
+        user: activeUser,
         progress: finalProgress,
         currentChapter,
         nextChapter,
@@ -135,7 +139,11 @@ export default function LearnDashboardScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [overallProgressData, setUser, user]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -165,6 +173,8 @@ export default function LearnDashboardScreen() {
   }
 
   const headerName =
+    user?.name ||
+    user?.email?.split("@")[0] ||
     dashboardData.user?.name ||
     dashboardData.user?.email?.split("@")[0] ||
     "Student";

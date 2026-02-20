@@ -15,8 +15,21 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { Subject, SubjectQueryOptions } from "@/lib/types";
+import {
+  Subject,
+  SubjectChapter,
+  SubjectQueryOptions,
+  SubjectStats,
+} from "@/lib/types";
 import { useCreateSubject, useDeleteSubject, useSubjects, useUpdateSubject } from "@/lib/hooks/api";
+
+function parseOptionalInteger(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) return undefined;
+  return parsed;
+}
 
 export default function AdminSubjectsScreen() {
   const router = useRouter();
@@ -37,6 +50,29 @@ export default function AdminSubjectsScreen() {
   const [searchCode, setSearchCode] = useState("");
   const [searchingByCode, setSearchingByCode] = useState(false);
   const [subjectByCode, setSubjectByCode] = useState<Subject | null>(null);
+
+  const [chaptersModalOpen, setChaptersModalOpen] = useState(false);
+  const [chaptersSubject, setChaptersSubject] = useState<Subject | null>(null);
+  const [subjectChapters, setSubjectChapters] = useState<SubjectChapter[]>([]);
+  const [loadingChapters, setLoadingChapters] = useState(false);
+  const [savingChapter, setSavingChapter] = useState(false);
+  const [deletingChapterId, setDeletingChapterId] = useState<string | null>(null);
+
+  const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
+  const [chapterTitle, setChapterTitle] = useState("");
+  const [chapterDescription, setChapterDescription] = useState("");
+  const [chapterOrderIndex, setChapterOrderIndex] = useState("");
+  const [chapterUnlockThreshold, setChapterUnlockThreshold] = useState("");
+  const [chapterEstimatedMinutes, setChapterEstimatedMinutes] = useState("");
+  const [chapterPdfUrl, setChapterPdfUrl] = useState("");
+
+  const [statsModalOpen, setStatsModalOpen] = useState(false);
+  const [statsSubject, setStatsSubject] = useState<Subject | null>(null);
+  const [subjectStats, setSubjectStats] = useState<SubjectStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [chapterDataModalOpen, setChapterDataModalOpen] = useState(false);
+  const [chapterDataModalTitle, setChapterDataModalTitle] = useState("");
+  const [chapterDataModalBody, setChapterDataModalBody] = useState("");
 
   const queryOptions = useMemo<SubjectQueryOptions>(
     () => ({
@@ -68,6 +104,16 @@ export default function AdminSubjectsScreen() {
     setSubjectName("");
     setSubjectCode("");
     setSubjectDescription("");
+  };
+
+  const resetChapterForm = () => {
+    setEditingChapterId(null);
+    setChapterTitle("");
+    setChapterDescription("");
+    setChapterOrderIndex("");
+    setChapterUnlockThreshold("");
+    setChapterEstimatedMinutes("");
+    setChapterPdfUrl("");
   };
 
   const openCreateSubject = () => {
@@ -171,6 +217,189 @@ export default function AdminSubjectsScreen() {
     }
   };
 
+  const loadSubjectChapters = async (subjectId: string) => {
+    setLoadingChapters(true);
+    try {
+      const chapters = await apiClient.getSubjectChapters(subjectId);
+      setSubjectChapters(chapters || []);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load subject chapters.");
+    } finally {
+      setLoadingChapters(false);
+    }
+  };
+
+  const handleOpenChaptersManager = async (subject: Subject) => {
+    setChaptersSubject(subject);
+    resetChapterForm();
+    setChaptersModalOpen(true);
+    await loadSubjectChapters(subject.id);
+  };
+
+  const openEditChapter = (chapter: SubjectChapter) => {
+    setEditingChapterId(chapter.id);
+    setChapterTitle((chapter.title as string) || "");
+    setChapterDescription((chapter.description as string) || "");
+    setChapterOrderIndex(
+      typeof chapter.orderIndex === "number" ? String(chapter.orderIndex) : ""
+    );
+    setChapterUnlockThreshold(
+      typeof chapter.unlockThreshold === "number" ? String(chapter.unlockThreshold) : ""
+    );
+    setChapterEstimatedMinutes(
+      typeof chapter.estimatedMinutes === "number" ? String(chapter.estimatedMinutes) : ""
+    );
+    setChapterPdfUrl((chapter.pdfUrl as string) || "");
+  };
+
+  const handleSaveChapter = async () => {
+    if (!chaptersSubject?.id) return;
+    if (!chapterTitle.trim()) {
+      Alert.alert("Missing Title", "Chapter title is required.");
+      return;
+    }
+
+    const orderIndex = parseOptionalInteger(chapterOrderIndex);
+    const unlockThreshold = parseOptionalInteger(chapterUnlockThreshold);
+    const estimatedMinutes = parseOptionalInteger(chapterEstimatedMinutes);
+
+    if (chapterOrderIndex.trim() && orderIndex === undefined) {
+      Alert.alert("Invalid Order", "Order Index must be an integer.");
+      return;
+    }
+    if (chapterUnlockThreshold.trim() && unlockThreshold === undefined) {
+      Alert.alert("Invalid Threshold", "Unlock Threshold must be an integer.");
+      return;
+    }
+    if (chapterEstimatedMinutes.trim() && estimatedMinutes === undefined) {
+      Alert.alert("Invalid Minutes", "Estimated Minutes must be an integer.");
+      return;
+    }
+
+    const payload = {
+      title: chapterTitle.trim(),
+      description: chapterDescription.trim() || undefined,
+      orderIndex,
+      unlockThreshold,
+      estimatedMinutes,
+      pdfUrl: chapterPdfUrl.trim() || undefined,
+    };
+
+    setSavingChapter(true);
+    try {
+      if (editingChapterId) {
+        await apiClient.updateSubjectChapter(chaptersSubject.id, editingChapterId, payload);
+      } else {
+        await apiClient.createSubjectChapter(chaptersSubject.id, payload);
+      }
+      resetChapterForm();
+      await loadSubjectChapters(chaptersSubject.id);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to save chapter.");
+    } finally {
+      setSavingChapter(false);
+    }
+  };
+
+  const handleDeleteChapter = (chapter: SubjectChapter) => {
+    if (!chaptersSubject?.id) return;
+
+    Alert.alert("Delete Chapter", `Delete "${chapter.title}"?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          setDeletingChapterId(chapter.id);
+          try {
+            await apiClient.deleteSubjectChapter(chaptersSubject.id, chapter.id);
+            await loadSubjectChapters(chaptersSubject.id);
+          } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to delete chapter.");
+          } finally {
+            setDeletingChapterId(null);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleViewChapterDetails = async (chapterId: string) => {
+    if (!chaptersSubject?.id) return;
+
+    try {
+      const chapter = await apiClient.getSubjectChapter(chaptersSubject.id, chapterId);
+      Alert.alert(
+        "Chapter Details",
+        `Title: ${chapter.title || "-"}\nID: ${chapter.id || "-"}\nOrder: ${chapter.orderIndex ?? "-"}\nMinutes: ${chapter.estimatedMinutes ?? "-"}`
+      );
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load chapter details.");
+    }
+  };
+
+  const handleOpenSubjectStats = async (subject: Subject) => {
+    setStatsSubject(subject);
+    setStatsModalOpen(true);
+    setLoadingStats(true);
+    try {
+      const stats = await apiClient.getSubjectStats(subject.id);
+      setSubjectStats(stats);
+    } catch (error: any) {
+      setSubjectStats(null);
+      Alert.alert("Error", error.message || "Failed to load subject statistics.");
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const openChapterDataModal = (title: string, data: unknown) => {
+    setChapterDataModalTitle(title);
+    setChapterDataModalBody(JSON.stringify(data, null, 2));
+    setChapterDataModalOpen(true);
+  };
+
+  const handleViewChapterQuizzes = async (chapter: SubjectChapter) => {
+    if (!chaptersSubject?.id) return;
+    try {
+      const quizzes = await apiClient.getSubjectChapterQuizzes(chaptersSubject.id, chapter.id);
+      openChapterDataModal(`Quizzes: ${chapter.title}`, quizzes);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load chapter quizzes.");
+    }
+  };
+
+  const handleViewChapterProgress = async (chapter: SubjectChapter) => {
+    if (!chaptersSubject?.id) return;
+    try {
+      const progress = await apiClient.getSubjectChapterProgress(chaptersSubject.id, chapter.id);
+      openChapterDataModal(`Progress: ${chapter.title}`, progress);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load chapter progress.");
+    }
+  };
+
+  const handleUnlockChapter = async (chapter: SubjectChapter) => {
+    if (!chaptersSubject?.id) return;
+    try {
+      const response = await apiClient.unlockSubjectChapter(chaptersSubject.id, chapter.id);
+      openChapterDataModal(`Unlock: ${chapter.title}`, response);
+      await loadSubjectChapters(chaptersSubject.id);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to unlock chapter.");
+    }
+  };
+
+  const handleViewExamHints = async (chapter: SubjectChapter) => {
+    if (!chaptersSubject?.id) return;
+    try {
+      const hints = await apiClient.getSubjectChapterExamHints(chaptersSubject.id, chapter.id);
+      openChapterDataModal(`Exam Hints: ${chapter.title}`, hints);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load exam hints.");
+    }
+  };
+
   const isSaving = createSubjectMutation.isPending || updateSubjectMutation.isPending;
 
   if (isLoading) {
@@ -258,6 +487,12 @@ export default function AdminSubjectsScreen() {
                 <TouchableOpacity style={styles.smallButton} onPress={() => handleOpenSubjectDetails(subject.id)} disabled={loadingDetails}>
                   <Text style={styles.smallButtonText}>Details</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.smallButton} onPress={() => handleOpenChaptersManager(subject)}>
+                  <Text style={styles.smallButtonText}>Chapters</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.smallButton} onPress={() => handleOpenSubjectStats(subject)}>
+                  <Text style={styles.smallButtonText}>Stats</Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.smallButton} onPress={() => openEditSubject(subject)} disabled={isSaving}>
                   <Text style={styles.smallButtonText}>Edit</Text>
                 </TouchableOpacity>
@@ -333,6 +568,176 @@ export default function AdminSubjectsScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={chaptersModalOpen} transparent animationType="slide" onRequestClose={() => setChaptersModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, styles.largeModalCard]}>
+            <Text style={styles.modalTitle}>Subject Chapters{chaptersSubject ? `: ${chaptersSubject.name}` : ""}</Text>
+
+            <View style={styles.inlineActions}>
+              <TouchableOpacity
+                style={styles.smallButton}
+                onPress={() => {
+                  if (!chaptersSubject?.id) return;
+                  loadSubjectChapters(chaptersSubject.id);
+                }}
+                disabled={loadingChapters}
+              >
+                <Text style={styles.smallButtonText}>Refresh</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.smallButton} onPress={resetChapterForm}>
+                <Text style={styles.smallButtonText}>{editingChapterId ? "Cancel Edit" : "Clear Form"}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Chapter Title"
+              value={chapterTitle}
+              onChangeText={setChapterTitle}
+            />
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Chapter Description (optional)"
+              value={chapterDescription}
+              onChangeText={setChapterDescription}
+              multiline
+            />
+
+            <View style={styles.twoColumnRow}>
+              <TextInput
+                style={[styles.input, styles.halfInput]}
+                placeholder="Order Index"
+                value={chapterOrderIndex}
+                onChangeText={setChapterOrderIndex}
+                keyboardType="number-pad"
+              />
+              <TextInput
+                style={[styles.input, styles.halfInput]}
+                placeholder="Unlock Threshold"
+                value={chapterUnlockThreshold}
+                onChangeText={setChapterUnlockThreshold}
+                keyboardType="number-pad"
+              />
+            </View>
+
+            <View style={styles.twoColumnRow}>
+              <TextInput
+                style={[styles.input, styles.halfInput]}
+                placeholder="Estimated Minutes"
+                value={chapterEstimatedMinutes}
+                onChangeText={setChapterEstimatedMinutes}
+                keyboardType="number-pad"
+              />
+              <TextInput
+                style={[styles.input, styles.halfInput]}
+                placeholder="PDF URL"
+                value={chapterPdfUrl}
+                onChangeText={setChapterPdfUrl}
+                autoCapitalize="none"
+              />
+            </View>
+
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSaveChapter} disabled={savingChapter}>
+              {savingChapter ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.submitText}>{editingChapterId ? "Update Chapter" : "Create Chapter"}</Text>
+              )}
+            </TouchableOpacity>
+
+            <ScrollView style={styles.modalList} contentContainerStyle={styles.modalListContent}>
+              {loadingChapters ? (
+                <ActivityIndicator size="small" color="#F2B138" />
+              ) : subjectChapters.length === 0 ? (
+                <Text style={styles.metaText}>No chapters found for this subject.</Text>
+              ) : (
+                subjectChapters.map((chapter) => (
+                  <View key={chapter.id} style={styles.chapterCard}>
+                    <Text style={styles.cardTitle}>{chapter.title}</Text>
+                    <Text style={styles.metaText}>ID: {chapter.id}</Text>
+                    <Text style={styles.metaText}>Order: {chapter.orderIndex ?? "-"}</Text>
+                    <Text style={styles.metaText}>Minutes: {chapter.estimatedMinutes ?? "-"}</Text>
+
+                    <View style={styles.cardActions}>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleViewChapterDetails(chapter.id)}>
+                        <Text style={styles.smallButtonText}>Details</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleViewChapterQuizzes(chapter)}>
+                        <Text style={styles.smallButtonText}>Quizzes</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleViewChapterProgress(chapter)}>
+                        <Text style={styles.smallButtonText}>Progress</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleUnlockChapter(chapter)}>
+                        <Text style={styles.smallButtonText}>Unlock</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleViewExamHints(chapter)}>
+                        <Text style={styles.smallButtonText}>Exam Hints</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => openEditChapter(chapter)}>
+                        <Text style={styles.smallButtonText}>Edit</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.smallButton, styles.deleteButton]}
+                        onPress={() => handleDeleteChapter(chapter)}
+                        disabled={deletingChapterId === chapter.id}
+                      >
+                        {deletingChapterId === chapter.id ? (
+                          <ActivityIndicator size="small" color="#F44336" />
+                        ) : (
+                          <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setChaptersModalOpen(false)}>
+              <Text style={styles.cancelText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={statsModalOpen} transparent animationType="slide" onRequestClose={() => setStatsModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Subject Stats{statsSubject ? `: ${statsSubject.name}` : ""}</Text>
+            {loadingStats ? (
+              <ActivityIndicator size="small" color="#F2B138" />
+            ) : subjectStats ? (
+              <View>
+                <Text style={styles.detailLine}>Subject ID: {String(subjectStats.subjectId || statsSubject?.id || "-")}</Text>
+                <Text style={styles.detailLine}>Chapters: {String(subjectStats.chaptersCount ?? "-")}</Text>
+                <Text style={styles.detailLine}>Lessons: {String(subjectStats.lessonsCount ?? "-")}</Text>
+                <Text style={styles.detailLine}>Quizzes: {String(subjectStats.quizzesCount ?? "-")}</Text>
+              </View>
+            ) : (
+              <Text style={styles.metaText}>No statistics available.</Text>
+            )}
+            <TouchableOpacity style={styles.submitBtn} onPress={() => setStatsModalOpen(false)}>
+              <Text style={styles.submitText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={chapterDataModalOpen} transparent animationType="slide" onRequestClose={() => setChapterDataModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, styles.largeModalCard]}>
+            <Text style={styles.modalTitle}>{chapterDataModalTitle || "Chapter Data"}</Text>
+            <ScrollView style={styles.modalList} contentContainerStyle={styles.modalListContent}>
+              <Text style={styles.jsonText}>{chapterDataModalBody || "No data."}</Text>
+            </ScrollView>
+            <TouchableOpacity style={styles.submitBtn} onPress={() => setChapterDataModalOpen(false)}>
+              <Text style={styles.submitText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -398,10 +803,18 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
+  chapterCard: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#efefef",
+    padding: 10,
+    marginBottom: 8,
+  },
   cardTitle: { fontSize: 17, fontWeight: "700", color: "#1A1A1A", marginBottom: 2 },
   cardDescription: { fontSize: 13, color: "#555", marginTop: 6 },
   metaText: { fontSize: 12, color: "#888", marginTop: 3 },
-  cardActions: { flexDirection: "row", gap: 8, marginTop: 10 },
+  cardActions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
   smallButton: {
     borderWidth: 1,
     borderColor: "#E6E6E6",
@@ -416,6 +829,7 @@ const styles = StyleSheet.create({
   fetchingIndicator: { marginTop: 8 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", padding: 16 },
   modalCard: { backgroundColor: "#fff", borderRadius: 16, padding: 16 },
+  largeModalCard: { maxHeight: "90%" },
   modalTitle: { fontSize: 18, fontWeight: "700", color: "#1A1A1A", marginBottom: 12 },
   input: {
     borderWidth: 1,
@@ -427,13 +841,21 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     backgroundColor: "#fff",
   },
+  halfInput: { flex: 1 },
+  twoColumnRow: { flexDirection: "row", gap: 10 },
   textArea: { minHeight: 84, textAlignVertical: "top" },
+  inlineActions: { flexDirection: "row", gap: 8, marginBottom: 10 },
   modalActions: { flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 2 },
+  modalList: { marginTop: 10, maxHeight: 220 },
+  modalListContent: { paddingBottom: 8 },
+  jsonText: { fontSize: 12, color: "#333", lineHeight: 18 },
   cancelBtn: {
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 8,
     backgroundColor: "#F2F2F2",
+    alignSelf: "flex-end",
+    marginTop: 10,
   },
   cancelText: { color: "#555", fontWeight: "600" },
   submitBtn: {

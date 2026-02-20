@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -18,21 +18,19 @@ import { Quiz } from "@/lib/types";
 export default function QuizScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
+    const chapterId = Array.isArray(id) ? id[0] : id;
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
-    useEffect(() => {
-        if (id) {
-            loadQuiz();
-        }
-    }, [id]);
-
-    const loadQuiz = async () => {
+    const loadQuiz = useCallback(async () => {
         try {
-            const data = await apiClient.getChapterQuiz(id!);
+            if (!chapterId) {
+                throw new Error("Missing chapter ID");
+            }
+            const data = await apiClient.getChapterQuiz(chapterId);
             setQuiz(data);
         } catch {
             Alert.alert("Error", "Failed to load quiz. Please try again.");
@@ -40,7 +38,15 @@ export default function QuizScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [chapterId, router]);
+
+    useEffect(() => {
+        if (chapterId) {
+            loadQuiz();
+        } else {
+            setLoading(false);
+        }
+    }, [chapterId, loadQuiz]);
 
     const handleSelectAnswer = (answerIndex: number) => {
         if (!quiz) return;
@@ -95,7 +101,7 @@ export default function QuizScreen() {
             router.push({
                 pathname: "/(tabs)/learn/[id]/quiz-result",
                 params: {
-                    id: id!,
+                    id: chapterId!,
                     quizId: quiz.id,
                     score: result.score.toString(),
                     totalQuestions: result.totalQuestions.toString(),

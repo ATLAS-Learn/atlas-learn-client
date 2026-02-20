@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserStore } from "@/lib/store/user";
@@ -11,6 +11,7 @@ import ProgressBar from "@/components/progress/progress-bar";
 
 export default function ProfileScreen() {
     const router = useRouter();
+    const { width } = useWindowDimensions();
     const { user, setUser } = useUserStore();
     const { logout } = useAuthStore();
     const [requestingUpgrade, setRequestingUpgrade] = useState(false);
@@ -22,19 +23,27 @@ export default function ProfileScreen() {
     const [roleRequestModalVisible, setRoleRequestModalVisible] = useState(false);
     const [roleRequestReason, setRoleRequestReason] = useState("");
     const [roleRequestSchool, setRoleRequestSchool] = useState("");
+    const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
+    const [savingProfile, setSavingProfile] = useState(false);
+    const [editName, setEditName] = useState("");
+    const [editUsername, setEditUsername] = useState("");
+    const [editImage, setEditImage] = useState("");
+    const [editBio, setEditBio] = useState("");
+    const [editSchool, setEditSchool] = useState("");
+    const [editExamYear, setEditExamYear] = useState("");
 
-    useEffect(() => {
-        refreshUser();
-    }, []);
-
-    const refreshUser = async () => {
+    const refreshUser = useCallback(async () => {
         try {
             const freshUser = await apiClient.getCurrentUser();
             setUser(freshUser);
         } catch {
             // Keep local user data if refresh fails.
         }
-    };
+    }, [setUser]);
+
+    useEffect(() => {
+        refreshUser();
+    }, [refreshUser]);
 
     const handleLogout = async () => {
         await logout();
@@ -94,6 +103,47 @@ export default function ProfileScreen() {
         await loadSessions();
     };
 
+    const openEditProfileModal = () => {
+        setEditName(user?.name || "");
+        setEditUsername(user?.username || "");
+        setEditImage(user?.image || "");
+        setEditBio(user?.bio || "");
+        setEditSchool(user?.school || "");
+        setEditExamYear(user?.examYear ? String(user.examYear) : "");
+        setEditProfileModalVisible(true);
+    };
+
+    const handleSaveProfile = async () => {
+        if (!editName.trim()) {
+            Alert.alert("Missing Name", "Name is required.");
+            return;
+        }
+
+        const parsedExamYear = editExamYear.trim() ? Number(editExamYear) : undefined;
+        if (editExamYear.trim() && (!Number.isFinite(parsedExamYear) || !Number.isInteger(parsedExamYear))) {
+            Alert.alert("Invalid Exam Year", "Exam year must be a valid number.");
+            return;
+        }
+
+        setSavingProfile(true);
+        try {
+            const updatedUser = await apiClient.updateCurrentUserProfile({
+                name: editName.trim(),
+                username: editUsername.trim() || undefined,
+                image: editImage.trim() || undefined,
+                bio: editBio.trim() || undefined,
+                school: editSchool.trim() || undefined,
+                examYear: parsedExamYear,
+            });
+            setUser(updatedUser);
+            setEditProfileModalVisible(false);
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to update profile.");
+        } finally {
+            setSavingProfile(false);
+        }
+    };
+
     const loadSessions = async () => {
         setLoadingSessions(true);
         try {
@@ -142,7 +192,8 @@ export default function ProfileScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <View style={[styles.header, { paddingHorizontal: width < 390 ? 16 : 24 }]}>
                 <View style={styles.avatarContainer}>
                     <Ionicons name="person" size={48} color="#666" />
                 </View>
@@ -155,6 +206,10 @@ export default function ProfileScreen() {
                         </Text>
                     </View>
                 )}
+                {!!user?.school && <Text style={styles.metaText}>School: {user.school}</Text>}
+                {!!user?.examYear && <Text style={styles.metaText}>Exam Year: {user.examYear}</Text>}
+                {!!user?.username && <Text style={styles.metaText}>Username: @{user.username}</Text>}
+                {!!user?.bio && <Text style={styles.metaText} numberOfLines={2}>{user.bio}</Text>}
             </View>
 
             {user?.role === UserRole.STUDENT && (
@@ -183,12 +238,12 @@ export default function ProfileScreen() {
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Settings</Text>
-                <TouchableOpacity style={styles.menuItem}>
+                <TouchableOpacity style={styles.menuItem} onPress={openEditProfileModal}>
                     <Ionicons name="person-outline" size={24} color="#666" />
                     <Text style={styles.menuText}>Edit Profile</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem}>
+                <TouchableOpacity style={styles.menuItem} disabled>
                     <Ionicons name="notifications-outline" size={24} color="#666" />
                     <Text style={styles.menuText}>Notifications</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
@@ -264,6 +319,101 @@ export default function ProfileScreen() {
                 <Ionicons name="log-out-outline" size={24} color="#F44336" />
                 <Text style={styles.logoutText}>Sign Out</Text>
             </TouchableOpacity>
+            </ScrollView>
+
+            <Modal
+                visible={editProfileModalVisible}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setEditProfileModalVisible(false)}
+            >
+                <View style={styles.requestModalOverlay}>
+                    <View style={styles.requestModalCard}>
+                        <Text style={styles.requestModalTitle}>Edit Profile</Text>
+                        <Text style={styles.requestModalSubtitle}>Update the fields you want to change.</Text>
+
+                        <Text style={styles.requestFieldLabel}>Name</Text>
+                        <TextInput
+                            style={styles.requestInput}
+                            placeholder="Full Name"
+                            value={editName}
+                            onChangeText={setEditName}
+                            editable={!savingProfile}
+                        />
+
+                        <Text style={styles.requestFieldLabel}>Username</Text>
+                        <TextInput
+                            style={styles.requestInput}
+                            placeholder="Username"
+                            value={editUsername}
+                            onChangeText={setEditUsername}
+                            autoCapitalize="none"
+                            editable={!savingProfile}
+                        />
+
+                        <Text style={styles.requestFieldLabel}>Image URL</Text>
+                        <TextInput
+                            style={styles.requestInput}
+                            placeholder="https://example.com/avatar.jpg"
+                            value={editImage}
+                            onChangeText={setEditImage}
+                            autoCapitalize="none"
+                            editable={!savingProfile}
+                        />
+
+                        <Text style={styles.requestFieldLabel}>Bio</Text>
+                        <TextInput
+                            style={[styles.requestInput, styles.requestInputMultiline]}
+                            placeholder="Short bio"
+                            value={editBio}
+                            onChangeText={setEditBio}
+                            multiline
+                            numberOfLines={3}
+                            editable={!savingProfile}
+                        />
+
+                        <Text style={styles.requestFieldLabel}>School</Text>
+                        <TextInput
+                            style={styles.requestInput}
+                            placeholder="School"
+                            value={editSchool}
+                            onChangeText={setEditSchool}
+                            editable={!savingProfile}
+                        />
+
+                        <Text style={styles.requestFieldLabel}>Exam Year</Text>
+                        <TextInput
+                            style={styles.requestInput}
+                            placeholder="2026"
+                            value={editExamYear}
+                            onChangeText={setEditExamYear}
+                            keyboardType="number-pad"
+                            editable={!savingProfile}
+                        />
+
+                        <View style={styles.requestActions}>
+                            <TouchableOpacity
+                                style={styles.requestCancelButton}
+                                onPress={() => setEditProfileModalVisible(false)}
+                                disabled={savingProfile}
+                            >
+                                <Text style={styles.requestCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.requestSubmitButton}
+                                onPress={handleSaveProfile}
+                                disabled={savingProfile}
+                            >
+                                {savingProfile ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.requestSubmitText}>Save</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             <Modal
                 visible={roleRequestModalVisible}
@@ -396,9 +546,12 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#FAFAFA",
     },
+    scrollContent: {
+        paddingBottom: 24,
+    },
     header: {
         alignItems: "center",
-        padding: 32,
+        paddingVertical: 28,
         backgroundColor: "#fff",
         borderBottomWidth: 1,
         borderBottomColor: "#E0E0E0",
@@ -422,6 +575,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#666",
         marginBottom: 12,
+    },
+    metaText: {
+        fontSize: 12,
+        color: "#777",
+        marginTop: 3,
     },
     roleBadge: {
         backgroundColor: "#FFF9E6",
