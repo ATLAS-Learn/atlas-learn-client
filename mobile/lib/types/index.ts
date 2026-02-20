@@ -250,6 +250,59 @@ export interface ChapterLesson {
     [key: string]: unknown;
 }
 
+export interface Lesson {
+    id: string;
+    title?: string;
+    content?: string;
+    orderIndex?: number;
+    videoUrl?: string;
+    durationSeconds?: number;
+    pdfUrl?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    [key: string]: unknown;
+}
+
+export interface CreateLessonPayload {
+    title: string;
+    content?: string;
+    orderIndex?: number;
+    videoUrl?: string;
+    durationSeconds?: number;
+    pdfUrl?: string;
+    [key: string]: unknown;
+}
+
+export interface UpdateLessonPayload {
+    title?: string;
+    content?: string;
+    orderIndex?: number;
+    videoUrl?: string;
+    durationSeconds?: number;
+    pdfUrl?: string;
+    [key: string]: unknown;
+}
+
+export interface LessonProgressUpdatePayload {
+    watchTimeSeconds?: number;
+    positionSeconds?: number;
+    progressPercent?: number;
+    [key: string]: unknown;
+}
+
+export interface LessonCompletionResponse {
+    success?: boolean;
+    message?: string;
+    data?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+export interface LessonPdfMaterial {
+    url?: string;
+    title?: string;
+    [key: string]: unknown;
+}
+
 export interface ChapterProgressData {
     chapterId?: string;
     completed?: boolean;

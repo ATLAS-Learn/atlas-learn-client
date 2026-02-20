@@ -44,6 +44,12 @@ import {
     SubjectChapterProgress,
     SubjectChapterUnlockResponse,
     SubjectExamHint,
+    Lesson,
+    CreateLessonPayload,
+    UpdateLessonPayload,
+    LessonProgressUpdatePayload,
+    LessonCompletionResponse,
+    LessonPdfMaterial,
     ChapterPdfMaterial,
     ChapterLesson,
     ChapterProgressData,
@@ -107,7 +113,7 @@ class APIClient {
     private async request<T>(
         endpoint: string,
         options: {
-            method?: "GET" | "POST" | "PUT" | "DELETE";
+            method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
             data?: any;
             params?: any;
         } = {}
@@ -572,6 +578,98 @@ class APIClient {
         );
         const hints = this.unwrapData<SubjectExamHint[]>(response);
         return Array.isArray(hints) ? hints : [];
+    }
+
+    // Lesson endpoints (subject chapter)
+    async getSubjectChapterLessons(subjectId: string, chapterId: string): Promise<Lesson[]> {
+        const response = await this.request<Lesson[] | { success?: boolean; data?: Lesson[] }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons`
+        );
+        const lessons = this.unwrapData<Lesson[]>(response);
+        return Array.isArray(lessons) ? lessons : [];
+    }
+
+    async createSubjectChapterLesson(
+        subjectId: string,
+        chapterId: string,
+        data: CreateLessonPayload
+    ): Promise<Lesson> {
+        const response = await this.request<Lesson | { success?: boolean; data?: Lesson }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons`,
+            {
+                method: "POST",
+                data,
+            }
+        );
+        return this.unwrapData<Lesson>(response);
+    }
+
+    async getSubjectChapterLesson(subjectId: string, chapterId: string, lessonId: string): Promise<Lesson> {
+        const response = await this.request<Lesson | { success?: boolean; data?: Lesson }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}`
+        );
+        return this.unwrapData<Lesson>(response);
+    }
+
+    async updateSubjectChapterLesson(
+        subjectId: string,
+        chapterId: string,
+        lessonId: string,
+        data: UpdateLessonPayload
+    ): Promise<Lesson> {
+        const response = await this.request<Lesson | { success?: boolean; data?: Lesson }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}`,
+            {
+                method: "PATCH",
+                data,
+            }
+        );
+        return this.unwrapData<Lesson>(response);
+    }
+
+    async deleteSubjectChapterLesson(subjectId: string, chapterId: string, lessonId: string): Promise<void> {
+        await this.request<void>(`/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}`, {
+            method: "DELETE",
+        });
+    }
+
+    async completeSubjectChapterLesson(
+        subjectId: string,
+        chapterId: string,
+        lessonId: string
+    ): Promise<LessonCompletionResponse> {
+        return this.request<LessonCompletionResponse>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/complete`,
+            {
+                method: "POST",
+            }
+        );
+    }
+
+    async updateSubjectChapterLessonProgress(
+        subjectId: string,
+        chapterId: string,
+        lessonId: string,
+        data: LessonProgressUpdatePayload
+    ): Promise<LessonCompletionResponse> {
+        return this.request<LessonCompletionResponse>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/progress`,
+            {
+                method: "POST",
+                data,
+            }
+        );
+    }
+
+    async getSubjectChapterLessonPdf(
+        subjectId: string,
+        chapterId: string,
+        lessonId: string
+    ): Promise<LessonPdfMaterial> {
+        const response = await this.request<LessonPdfMaterial | { success?: boolean; data?: LessonPdfMaterial }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/pdf`
+        );
+        return this.unwrapData<LessonPdfMaterial>(response);
     }
 
     // Dashboard endpoints
