@@ -255,9 +255,13 @@ export interface Lesson {
     title?: string;
     content?: string;
     orderIndex?: number;
+    estimatedMinutes?: number;
     videoUrl?: string;
     durationSeconds?: number;
     pdfUrl?: string;
+    examples?: unknown;
+    keyPoints?: unknown;
+    chapterId?: string;
     createdAt?: string;
     updatedAt?: string;
     [key: string]: unknown;
@@ -267,9 +271,12 @@ export interface CreateLessonPayload {
     title: string;
     content?: string;
     orderIndex?: number;
+    estimatedMinutes?: number;
     videoUrl?: string;
     durationSeconds?: number;
     pdfUrl?: string;
+    examples?: unknown;
+    keyPoints?: unknown;
     [key: string]: unknown;
 }
 
@@ -277,9 +284,12 @@ export interface UpdateLessonPayload {
     title?: string;
     content?: string;
     orderIndex?: number;
+    estimatedMinutes?: number;
     videoUrl?: string;
     durationSeconds?: number;
     pdfUrl?: string;
+    examples?: unknown;
+    keyPoints?: unknown;
     [key: string]: unknown;
 }
 
@@ -335,6 +345,7 @@ export interface Chapter {
     order: number;
     content: ChapterSection[];
     subject: string;
+    subjectId?: string;
     estimatedTime: number; // in minutes
 }
 

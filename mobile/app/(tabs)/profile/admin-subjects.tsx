@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import {
+  Lesson,
   Subject,
   SubjectChapter,
   SubjectQueryOptions,
@@ -66,6 +67,23 @@ export default function AdminSubjectsScreen() {
   const [chapterEstimatedMinutes, setChapterEstimatedMinutes] = useState("");
   const [chapterPdfUrl, setChapterPdfUrl] = useState("");
 
+  const [lessonsModalOpen, setLessonsModalOpen] = useState(false);
+  const [lessonsChapter, setLessonsChapter] = useState<SubjectChapter | null>(null);
+  const [subjectLessons, setSubjectLessons] = useState<Lesson[]>([]);
+  const [loadingLessons, setLoadingLessons] = useState(false);
+  const [savingLesson, setSavingLesson] = useState(false);
+  const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
+
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  const [lessonTitle, setLessonTitle] = useState("");
+  const [lessonContent, setLessonContent] = useState("");
+  const [lessonOrderIndex, setLessonOrderIndex] = useState("");
+  const [lessonEstimatedMinutes, setLessonEstimatedMinutes] = useState("");
+  const [lessonVideoUrl, setLessonVideoUrl] = useState("");
+  const [lessonPdfUrl, setLessonPdfUrl] = useState("");
+  const [lessonExamples, setLessonExamples] = useState("");
+  const [lessonKeyPoints, setLessonKeyPoints] = useState("");
+
   const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [statsSubject, setStatsSubject] = useState<Subject | null>(null);
   const [subjectStats, setSubjectStats] = useState<SubjectStats | null>(null);
@@ -114,6 +132,18 @@ export default function AdminSubjectsScreen() {
     setChapterUnlockThreshold("");
     setChapterEstimatedMinutes("");
     setChapterPdfUrl("");
+  };
+
+  const resetLessonForm = () => {
+    setEditingLessonId(null);
+    setLessonTitle("");
+    setLessonContent("");
+    setLessonOrderIndex("");
+    setLessonEstimatedMinutes("");
+    setLessonVideoUrl("");
+    setLessonPdfUrl("");
+    setLessonExamples("");
+    setLessonKeyPoints("");
   };
 
   const openCreateSubject = () => {
@@ -229,11 +259,43 @@ export default function AdminSubjectsScreen() {
     }
   };
 
+  const loadSubjectLessons = async (subjectId: string, chapterId: string) => {
+    setLoadingLessons(true);
+    try {
+      const lessons = await apiClient.getSubjectChapterLessons(subjectId, chapterId);
+      setSubjectLessons(Array.isArray(lessons) ? lessons : []);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load chapter lessons.");
+    } finally {
+      setLoadingLessons(false);
+    }
+  };
+
   const handleOpenChaptersManager = async (subject: Subject) => {
     setChaptersSubject(subject);
     resetChapterForm();
     setChaptersModalOpen(true);
     await loadSubjectChapters(subject.id);
+  };
+
+  const handleOpenLessonsManager = async (chapter: SubjectChapter) => {
+    if (!chaptersSubject?.id) return;
+    setLessonsChapter(chapter);
+    resetLessonForm();
+    setLessonsModalOpen(true);
+    await loadSubjectLessons(chaptersSubject.id, chapter.id);
+  };
+
+  const openEditLesson = (lesson: Lesson) => {
+    setEditingLessonId(lesson.id);
+    setLessonTitle(lesson.title || "");
+    setLessonContent(lesson.content || "");
+    setLessonOrderIndex(lesson.orderIndex !== undefined ? String(lesson.orderIndex) : "");
+    setLessonEstimatedMinutes(lesson.estimatedMinutes !== undefined ? String(lesson.estimatedMinutes) : "");
+    setLessonVideoUrl(lesson.videoUrl || "");
+    setLessonPdfUrl(lesson.pdfUrl || "");
+    setLessonExamples(lesson.examples ? JSON.stringify(lesson.examples, null, 2) : "");
+    setLessonKeyPoints(lesson.keyPoints ? JSON.stringify(lesson.keyPoints, null, 2) : "");
   };
 
   const openEditChapter = (chapter: SubjectChapter) => {
@@ -318,6 +380,86 @@ export default function AdminSubjectsScreen() {
             Alert.alert("Error", error.message || "Failed to delete chapter.");
           } finally {
             setDeletingChapterId(null);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleSaveLesson = async () => {
+    if (!chaptersSubject?.id || !lessonsChapter?.id) return;
+    if (!lessonTitle.trim()) {
+      Alert.alert("Missing Title", "Lesson title is required.");
+      return;
+    }
+
+    let parsedExamples: unknown | undefined;
+    let parsedKeyPoints: unknown | undefined;
+    try {
+      if (lessonExamples.trim()) {
+        parsedExamples = JSON.parse(lessonExamples);
+      }
+      if (lessonKeyPoints.trim()) {
+        parsedKeyPoints = JSON.parse(lessonKeyPoints);
+      }
+    } catch {
+      Alert.alert("Invalid JSON", "Examples/Key Points must be valid JSON.");
+      return;
+    }
+
+    setSavingLesson(true);
+    try {
+      const payload = {
+        title: lessonTitle.trim(),
+        content: lessonContent.trim() || undefined,
+        orderIndex: parseOptionalInteger(lessonOrderIndex),
+        estimatedMinutes: parseOptionalInteger(lessonEstimatedMinutes),
+        videoUrl: lessonVideoUrl.trim() || undefined,
+        pdfUrl: lessonPdfUrl.trim() || undefined,
+        examples: parsedExamples,
+        keyPoints: parsedKeyPoints,
+      };
+
+      if (editingLessonId) {
+        await apiClient.updateSubjectChapterLesson(
+          chaptersSubject.id,
+          lessonsChapter.id,
+          editingLessonId,
+          payload
+        );
+      } else {
+        await apiClient.createSubjectChapterLesson(chaptersSubject.id, lessonsChapter.id, payload);
+      }
+
+      resetLessonForm();
+      await loadSubjectLessons(chaptersSubject.id, lessonsChapter.id);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to save lesson.");
+    } finally {
+      setSavingLesson(false);
+    }
+  };
+
+  const handleDeleteLesson = (lesson: Lesson) => {
+    if (!chaptersSubject?.id || !lessonsChapter?.id) return;
+    Alert.alert("Delete Lesson", `Delete "${lesson.title || "Untitled"}"?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          setDeletingLessonId(lesson.id);
+          try {
+            await apiClient.deleteSubjectChapterLesson(
+              chaptersSubject.id,
+              lessonsChapter.id,
+              lesson.id
+            );
+            await loadSubjectLessons(chaptersSubject.id, lessonsChapter.id);
+          } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to delete lesson.");
+          } finally {
+            setDeletingLessonId(null);
           }
         },
       },
@@ -669,6 +811,9 @@ export default function AdminSubjectsScreen() {
                       <TouchableOpacity style={styles.smallButton} onPress={() => handleViewChapterProgress(chapter)}>
                         <Text style={styles.smallButtonText}>Progress</Text>
                       </TouchableOpacity>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleOpenLessonsManager(chapter)}>
+                        <Text style={styles.smallButtonText}>Lessons</Text>
+                      </TouchableOpacity>
                       <TouchableOpacity style={styles.smallButton} onPress={() => handleUnlockChapter(chapter)}>
                         <Text style={styles.smallButtonText}>Unlock</Text>
                       </TouchableOpacity>
@@ -696,6 +841,121 @@ export default function AdminSubjectsScreen() {
             </ScrollView>
 
             <TouchableOpacity style={styles.cancelBtn} onPress={() => setChaptersModalOpen(false)}>
+              <Text style={styles.cancelText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={lessonsModalOpen} transparent animationType="slide" onRequestClose={() => setLessonsModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, styles.largeModalCard]}>
+            <Text style={styles.modalTitle}>Lessons{lessonsChapter ? `: ${lessonsChapter.title}` : ""}</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Lesson Title"
+              value={lessonTitle}
+              onChangeText={setLessonTitle}
+            />
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Lesson Content (optional)"
+              value={lessonContent}
+              onChangeText={setLessonContent}
+              multiline
+            />
+
+            <View style={styles.twoColumnRow}>
+              <TextInput
+                style={[styles.input, styles.halfInput]}
+                placeholder="Order Index"
+                value={lessonOrderIndex}
+                onChangeText={setLessonOrderIndex}
+                keyboardType="number-pad"
+              />
+              <TextInput
+                style={[styles.input, styles.halfInput]}
+                placeholder="Estimated Minutes"
+                value={lessonEstimatedMinutes}
+                onChangeText={setLessonEstimatedMinutes}
+                keyboardType="number-pad"
+              />
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Video URL (optional)"
+              value={lessonVideoUrl}
+              onChangeText={setLessonVideoUrl}
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="PDF URL (optional)"
+              value={lessonPdfUrl}
+              onChangeText={setLessonPdfUrl}
+              autoCapitalize="none"
+            />
+
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Examples JSON (optional)"
+              value={lessonExamples}
+              onChangeText={setLessonExamples}
+              multiline
+            />
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Key Points JSON (optional)"
+              value={lessonKeyPoints}
+              onChangeText={setLessonKeyPoints}
+              multiline
+            />
+
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSaveLesson} disabled={savingLesson}>
+              {savingLesson ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.submitText}>{editingLessonId ? "Update Lesson" : "Create Lesson"}</Text>
+              )}
+            </TouchableOpacity>
+
+            <ScrollView style={styles.modalList} contentContainerStyle={styles.modalListContent}>
+              {loadingLessons ? (
+                <ActivityIndicator size="small" color="#F2B138" />
+              ) : subjectLessons.length === 0 ? (
+                <Text style={styles.metaText}>No lessons found for this chapter.</Text>
+              ) : (
+                subjectLessons.map((lesson) => (
+                  <View key={lesson.id} style={styles.chapterCard}>
+                    <Text style={styles.cardTitle}>{lesson.title || "Untitled Lesson"}</Text>
+                    <Text style={styles.metaText}>ID: {lesson.id}</Text>
+                    <Text style={styles.metaText}>Order: {lesson.orderIndex ?? "-"}</Text>
+                    <Text style={styles.metaText}>Minutes: {lesson.estimatedMinutes ?? "-"}</Text>
+
+                    <View style={styles.cardActions}>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => openEditLesson(lesson)}>
+                        <Text style={styles.smallButtonText}>Edit</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.smallButton, styles.deleteButton]}
+                        onPress={() => handleDeleteLesson(lesson)}
+                        disabled={deletingLessonId === lesson.id}
+                      >
+                        {deletingLessonId === lesson.id ? (
+                          <ActivityIndicator size="small" color="#F44336" />
+                        ) : (
+                          <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setLessonsModalOpen(false)}>
               <Text style={styles.cancelText}>Close</Text>
             </TouchableOpacity>
           </View>

@@ -12,7 +12,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { Chapter } from "@/lib/types";
+import { Chapter, Lesson } from "@/lib/types";
 import ChapterHeader from "@/components/lessons/chapter-header";
 import ContentSection from "@/components/lessons/content-section";
 
@@ -22,6 +22,8 @@ export default function ChapterScreen() {
     const chapterId = Array.isArray(id) ? id[0] : id;
     const [chapter, setChapter] = useState<Chapter | null>(null);
     const [loading, setLoading] = useState(true);
+    const [lessons, setLessons] = useState<Lesson[]>([]);
+    const [lessonsLoading, setLessonsLoading] = useState(false);
     const [insightModalVisible, setInsightModalVisible] = useState(false);
     const [insightTitle, setInsightTitle] = useState("");
     const [insightBody, setInsightBody] = useState("");
@@ -50,6 +52,12 @@ export default function ChapterScreen() {
         }
     }, [chapterId, loadChapter]);
 
+    useEffect(() => {
+        if (chapterId && chapter) {
+            loadLessons();
+        }
+    }, [chapter, chapterId, loadLessons]);
+
     const handleStartQuiz = () => {
         if (!chapterId) return;
         router.push(`/(tabs)/learn/${chapterId}/quiz`);
@@ -74,18 +82,28 @@ export default function ChapterScreen() {
         }
     };
 
-    const handleViewLessons = async () => {
+    const getSubjectIdFromChapter = (chapterValue: Chapter | null): string | undefined => {
+        if (!chapterValue) return undefined;
+        if (chapterValue.subjectId) return chapterValue.subjectId;
+        const legacy = chapterValue as Chapter & { subject_id?: string };
+        return legacy.subject_id;
+    };
+
+    const loadLessons = useCallback(async () => {
         if (!chapterId) return;
-        setLoadingInsight(true);
+        setLessonsLoading(true);
         try {
-            const lessons = await apiClient.getChapterLessons(chapterId);
-            showInsight("Chapter Lessons", lessons);
+            const subjectId = getSubjectIdFromChapter(chapter);
+            const data = subjectId
+                ? await apiClient.getSubjectChapterLessons(subjectId, chapterId)
+                : await apiClient.getChapterLessons(chapterId);
+            setLessons(Array.isArray(data) ? data : []);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to fetch chapter lessons.");
         } finally {
-            setLoadingInsight(false);
+            setLessonsLoading(false);
         }
-    };
+    }, [chapter, chapterId]);
 
     const handleViewProgress = async () => {
         if (!chapterId) return;
@@ -126,6 +144,23 @@ export default function ChapterScreen() {
         }
     };
 
+    const handleOpenLesson = (lessonId: string) => {
+        if (!chapterId) return;
+        const subjectId = getSubjectIdFromChapter(chapter);
+        if (!subjectId) {
+            Alert.alert("Missing Subject", "This chapter is missing its subject ID.");
+            return;
+        }
+        router.push({
+            pathname: "/(tabs)/learn/[id]/lessons/[lessonId]",
+            params: {
+                id: chapterId,
+                lessonId,
+                subjectId: subjectId || "",
+            },
+        } as any);
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -159,8 +194,8 @@ export default function ChapterScreen() {
                     <TouchableOpacity style={styles.actionButton} onPress={handleViewPdf} disabled={loadingInsight}>
                         <Text style={styles.actionButtonText}>PDF</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton} onPress={handleViewLessons} disabled={loadingInsight}>
-                        <Text style={styles.actionButtonText}>Lessons</Text>
+                    <TouchableOpacity style={styles.actionButton} onPress={loadLessons} disabled={lessonsLoading}>
+                        <Text style={styles.actionButtonText}>Refresh Lessons</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionButton} onPress={handleViewProgress} disabled={loadingInsight}>
                         <Text style={styles.actionButtonText}>Progress</Text>
@@ -172,6 +207,48 @@ export default function ChapterScreen() {
                         <Text style={styles.actionButtonText}>Unlock</Text>
                     </TouchableOpacity>
                 </View>
+
+                <View style={styles.lessonsHeader}>
+                    <Text style={styles.lessonsTitle}>Lessons</Text>
+                    <Text style={styles.lessonsCount}>{lessons.length} total</Text>
+                </View>
+
+                {lessonsLoading ? (
+                    <View style={styles.lessonLoading}>
+                        <ActivityIndicator size="small" color="#F2B138" />
+                        <Text style={styles.lessonLoadingText}>Loading lessons...</Text>
+                    </View>
+                ) : lessons.length === 0 ? (
+                    <View style={styles.emptyLessons}>
+                        <Ionicons name="book-outline" size={36} color="#CCC" />
+                        <Text style={styles.emptyLessonsText}>No lessons yet.</Text>
+                    </View>
+                ) : (
+                    lessons.map((lesson, index) => (
+                        <TouchableOpacity
+                            key={lesson.id}
+                            style={styles.lessonCard}
+                            onPress={() => handleOpenLesson(lesson.id)}
+                        >
+                            <View style={styles.lessonRow}>
+                                <Text style={styles.lessonIndex}>{lesson.orderIndex ?? index + 1}</Text>
+                                <View style={styles.lessonInfo}>
+                                    <Text style={styles.lessonTitle} numberOfLines={2}>
+                                        {lesson.title || "Untitled lesson"}
+                                    </Text>
+                                    <Text style={styles.lessonMeta}>
+                                        {lesson.estimatedMinutes
+                                            ? `${lesson.estimatedMinutes} min`
+                                            : lesson.durationSeconds
+                                              ? `${Math.ceil(lesson.durationSeconds / 60)} min`
+                                              : "Time n/a"}
+                                    </Text>
+                                </View>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color="#999" />
+                        </TouchableOpacity>
+                    ))
+                )}
 
                 {chapter.content.map((section) => (
                     <ContentSection key={section.id} section={section} />
@@ -271,6 +348,91 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: "#333",
         fontWeight: "700",
+    },
+    lessonsHeader: {
+        marginTop: 10,
+        marginBottom: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    lessonsTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#282F2E",
+    },
+    lessonsCount: {
+        fontSize: 12,
+        color: "#666",
+        fontWeight: "600",
+    },
+    lessonLoading: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 16,
+    },
+    lessonLoadingText: {
+        fontSize: 13,
+        color: "#666",
+    },
+    emptyLessons: {
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 20,
+        marginBottom: 12,
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#EEE",
+    },
+    emptyLessonsText: {
+        marginTop: 8,
+        fontSize: 13,
+        color: "#999",
+        fontWeight: "600",
+    },
+    lessonCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: 14,
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#EAEAEA",
+        marginBottom: 10,
+    },
+    lessonRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        flex: 1,
+    },
+    lessonIndex: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        textAlign: "center",
+        textAlignVertical: "center",
+        backgroundColor: "#FFF4D9",
+        color: "#B87900",
+        fontWeight: "700",
+        fontSize: 13,
+    },
+    lessonInfo: {
+        flex: 1,
+    },
+    lessonTitle: {
+        fontSize: 15,
+        fontWeight: "700",
+        color: "#222",
+    },
+    lessonMeta: {
+        marginTop: 4,
+        fontSize: 12,
+        color: "#777",
+        fontWeight: "600",
     },
     footer: {
         padding: 16,
