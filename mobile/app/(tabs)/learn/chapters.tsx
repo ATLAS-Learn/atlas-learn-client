@@ -12,7 +12,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { Chapter, Quiz } from "@/lib/types";
+import { Chapter } from "@/lib/types";
 import { useUserStore } from "@/lib/store/user";
 
 export default function ChaptersListScreen() {
@@ -29,11 +29,20 @@ export default function ChaptersListScreen() {
 
     const loadChapters = async () => {
         try {
-            const [data, quizzes, attempts] = await Promise.all([
+            const [data, progressData] = await Promise.all([
                 apiClient.getChapters(),
-                apiClient.getQuizzes(1000),
-                user ? apiClient.getUserQuizAttempts(user.id) : Promise.resolve([]),
+                apiClient.getOverallProgress(),
             ]);
+
+            const sortedAllChapters = [...data].sort((a, b) => a.order - b.order);
+            const completedCount = Math.max(
+                0,
+                Math.min(progressData?.overall?.chapters?.completed || 0, sortedAllChapters.length)
+            );
+            const completedChapterIds = new Set<string>(
+                sortedAllChapters.slice(0, completedCount).map((chapter) => chapter.id)
+            );
+
             // Filter chapters by user level if set
             let filteredChapters = data;
             if (user?.level) {
@@ -42,17 +51,6 @@ export default function ChaptersListScreen() {
             // Sort by order
             filteredChapters.sort((a, b) => a.order - b.order);
             setChapters(filteredChapters);
-
-            const quizzesById = new Map<string, Quiz>(quizzes.map((quiz) => [quiz.id, quiz]));
-            const completedChapterIds = new Set<string>();
-            attempts
-                .filter((attempt) => attempt.passed)
-                .forEach((attempt) => {
-                    const quiz = quizzesById.get(attempt.quizId);
-                    if (quiz?.chapterId) {
-                        completedChapterIds.add(quiz.chapterId);
-                    }
-                });
             setCompletedChapters(completedChapterIds);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to load chapters. Please try again.");

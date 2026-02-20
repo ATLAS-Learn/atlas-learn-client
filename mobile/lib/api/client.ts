@@ -403,8 +403,10 @@ class APIClient {
 
     // Chapter endpoints
     async getChapters(): Promise<Chapter[]> {
-        // Get all chapters
-        return this.request<Chapter[]>(`/chapters`);
+        // Supports both raw array and wrapped response: { success, data: [...] }
+        const response = await this.request<Chapter[] | { data?: Chapter[] }>(`/chapters`);
+        const chapters = this.unwrapData<Chapter[]>(response);
+        return Array.isArray(chapters) ? chapters : [];
     }
 
     async getChapter(chapterId: string): Promise<Chapter> {
