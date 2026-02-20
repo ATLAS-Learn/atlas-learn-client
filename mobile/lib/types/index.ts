@@ -265,6 +265,14 @@ export interface ChapterUnlockResponse {
     [key: string]: unknown;
 }
 
+export interface ChapterExamHint {
+    id: string;
+    title?: string;
+    hint?: string;
+    description?: string;
+    [key: string]: unknown;
+}
+
 // Chapter and Content Types
 export interface Chapter {
     id: string;

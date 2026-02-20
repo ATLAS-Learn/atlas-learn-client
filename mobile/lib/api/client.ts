@@ -48,6 +48,7 @@ import {
     ChapterLesson,
     ChapterProgressData,
     ChapterUnlockResponse,
+    ChapterExamHint,
 } from "@/lib/types";
 
 // API Client class using Axios
@@ -638,6 +639,14 @@ class APIClient {
         return this.request<ChapterUnlockResponse>(`/chapters/${chapterId}/progress/unlock`, {
             method: "POST",
         });
+    }
+
+    async getChapterExamHints(chapterId: string): Promise<ChapterExamHint[]> {
+        const response = await this.request<ChapterExamHint[] | { success?: boolean; data?: ChapterExamHint[] }>(
+            `/chapters/${chapterId}/exam-hints`
+        );
+        const hints = this.unwrapData<ChapterExamHint[]>(response);
+        return Array.isArray(hints) ? hints : [];
     }
 
     async getChapterQuiz(chapterId: string): Promise<Quiz> {

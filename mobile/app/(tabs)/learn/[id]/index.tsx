@@ -100,6 +100,19 @@ export default function ChapterScreen() {
         }
     };
 
+    const handleViewExamHints = async () => {
+        if (!chapterId) return;
+        setLoadingInsight(true);
+        try {
+            const hints = await apiClient.getChapterExamHints(chapterId);
+            showInsight("Chapter Exam Hints", hints);
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to fetch chapter exam hints.");
+        } finally {
+            setLoadingInsight(false);
+        }
+    };
+
     const handleUnlockChapter = async () => {
         if (!chapterId) return;
         setLoadingInsight(true);
@@ -151,6 +164,9 @@ export default function ChapterScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionButton} onPress={handleViewProgress} disabled={loadingInsight}>
                         <Text style={styles.actionButtonText}>Progress</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionButton} onPress={handleViewExamHints} disabled={loadingInsight}>
+                        <Text style={styles.actionButtonText}>Exam Hints</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionButton} onPress={handleUnlockChapter} disabled={loadingInsight}>
                         <Text style={styles.actionButtonText}>Unlock</Text>
