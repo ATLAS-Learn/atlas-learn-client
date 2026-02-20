@@ -12,6 +12,7 @@ import {
     Keyboard,
     Alert,
     ScrollView,
+    useWindowDimensions,
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +21,7 @@ import { apiClient } from "@/lib/api";
 
 export default function ForgotPasswordScreen() {
     const router = useRouter();
+    const { width, height } = useWindowDimensions();
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<ValidationErrors>({});
@@ -57,7 +59,7 @@ export default function ForgotPasswordScreen() {
                     <Ionicons name="mail-outline" size={80} color="#4CAF50" />
                     <Text style={styles.successTitle}>Check Your Email</Text>
                     <Text style={styles.successText}>
-                        We've sent password reset instructions to {email}
+                        We&apos;ve sent password reset instructions to {email}
                     </Text>
                     <TouchableOpacity
                         style={styles.backToLoginButton}
@@ -78,21 +80,30 @@ export default function ForgotPasswordScreen() {
                 keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
             >
                 <ScrollView
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        {
+                            paddingTop: Math.max(64, Math.floor(height * 0.08)),
+                            paddingHorizontal: width < 390 ? 16 : 24,
+                        },
+                    ]}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
+                    <TouchableOpacity
+                        style={[styles.backArrow, { top: Math.max(32, Math.floor(height * 0.06)) }]}
+                        onPress={() => router.back()}
+                    >
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
 
-                    <View style={styles.logoContainer}>
+                    <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
                         <Ionicons name="lock-closed-outline" size={80} color="#F2B138" />
                     </View>
 
                     <Text style={styles.title}>Forgot Password?</Text>
                     <Text style={styles.subtitle}>
-                        Enter your email address and we'll send you instructions to reset your password.
+                        Enter your email address and we&apos;ll send you instructions to reset your password.
                     </Text>
 
                     <View style={styles.inputContainer}>
@@ -142,21 +153,18 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        paddingHorizontal: 25,
         justifyContent: "center",
-        paddingTop: 100,
         paddingBottom: 40,
     },
     backArrow: {
         position: "absolute",
-        top: 60,
-        left: 25,
+        left: 24,
         zIndex: 10,
     },
     logoContainer: {
         alignItems: "center",
         marginBottom: 30,
-        marginTop: 40,
+        marginTop: 32,
     },
     title: {
         fontSize: 32,
@@ -253,4 +261,3 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
 });
-

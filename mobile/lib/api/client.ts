@@ -44,6 +44,10 @@ import {
     SubjectChapterProgress,
     SubjectChapterUnlockResponse,
     SubjectExamHint,
+    ChapterPdfMaterial,
+    ChapterLesson,
+    ChapterProgressData,
+    ChapterUnlockResponse,
 } from "@/lib/types";
 
 // API Client class using Axios
@@ -588,10 +592,52 @@ class APIClient {
         return this.request<Chapter>(`/chapters/${chapterId}`);
     }
 
+    async updateChapter(chapterId: string, data: Partial<Chapter>): Promise<Chapter> {
+        const response = await this.request<Chapter | { success?: boolean; data?: Chapter }>(`/chapters/${chapterId}`, {
+            method: "PUT",
+            data,
+        });
+        return this.unwrapData<Chapter>(response);
+    }
+
+    async deleteChapter(chapterId: string): Promise<void> {
+        await this.request<void>(`/chapters/${chapterId}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getChapterPdf(chapterId: string): Promise<ChapterPdfMaterial> {
+        const response = await this.request<ChapterPdfMaterial | { success?: boolean; data?: ChapterPdfMaterial }>(
+            `/chapters/${chapterId}/pdf`
+        );
+        return this.unwrapData<ChapterPdfMaterial>(response);
+    }
+
+    async getChapterLessons(chapterId: string): Promise<ChapterLesson[]> {
+        const response = await this.request<ChapterLesson[] | { success?: boolean; data?: ChapterLesson[] }>(
+            `/chapters/${chapterId}/lessons`
+        );
+        const lessons = this.unwrapData<ChapterLesson[]>(response);
+        return Array.isArray(lessons) ? lessons : [];
+    }
+
     // Chapter Quiz endpoints
     async getChapterQuizzes(chapterId: string): Promise<Quiz[]> {
         // Get all quizzes for a chapter
         return this.request<Quiz[]>(`/chapters/${chapterId}/quizzes`);
+    }
+
+    async getChapterProgress(chapterId: string): Promise<ChapterProgressData> {
+        const response = await this.request<ChapterProgressData | { success?: boolean; data?: ChapterProgressData }>(
+            `/chapters/${chapterId}/progress`
+        );
+        return this.unwrapData<ChapterProgressData>(response);
+    }
+
+    async unlockChapter(chapterId: string): Promise<ChapterUnlockResponse> {
+        return this.request<ChapterUnlockResponse>(`/chapters/${chapterId}/progress/unlock`, {
+            method: "POST",
+        });
     }
 
     async getChapterQuiz(chapterId: string): Promise<Quiz> {

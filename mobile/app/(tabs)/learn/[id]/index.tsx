@@ -7,6 +7,7 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
+    Modal,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +22,10 @@ export default function ChapterScreen() {
     const chapterId = Array.isArray(id) ? id[0] : id;
     const [chapter, setChapter] = useState<Chapter | null>(null);
     const [loading, setLoading] = useState(true);
+    const [insightModalVisible, setInsightModalVisible] = useState(false);
+    const [insightTitle, setInsightTitle] = useState("");
+    const [insightBody, setInsightBody] = useState("");
+    const [loadingInsight, setLoadingInsight] = useState(false);
 
     const loadChapter = useCallback(async () => {
         try {
@@ -48,6 +53,64 @@ export default function ChapterScreen() {
     const handleStartQuiz = () => {
         if (!chapterId) return;
         router.push(`/(tabs)/learn/${chapterId}/quiz`);
+    };
+
+    const showInsight = (title: string, data: unknown) => {
+        setInsightTitle(title);
+        setInsightBody(JSON.stringify(data, null, 2));
+        setInsightModalVisible(true);
+    };
+
+    const handleViewPdf = async () => {
+        if (!chapterId) return;
+        setLoadingInsight(true);
+        try {
+            const pdf = await apiClient.getChapterPdf(chapterId);
+            showInsight("Chapter PDF", pdf);
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to fetch chapter PDF.");
+        } finally {
+            setLoadingInsight(false);
+        }
+    };
+
+    const handleViewLessons = async () => {
+        if (!chapterId) return;
+        setLoadingInsight(true);
+        try {
+            const lessons = await apiClient.getChapterLessons(chapterId);
+            showInsight("Chapter Lessons", lessons);
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to fetch chapter lessons.");
+        } finally {
+            setLoadingInsight(false);
+        }
+    };
+
+    const handleViewProgress = async () => {
+        if (!chapterId) return;
+        setLoadingInsight(true);
+        try {
+            const progress = await apiClient.getChapterProgress(chapterId);
+            showInsight("Chapter Progress", progress);
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to fetch chapter progress.");
+        } finally {
+            setLoadingInsight(false);
+        }
+    };
+
+    const handleUnlockChapter = async () => {
+        if (!chapterId) return;
+        setLoadingInsight(true);
+        try {
+            const result = await apiClient.unlockChapter(chapterId);
+            showInsight("Unlock Chapter", result);
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to unlock chapter.");
+        } finally {
+            setLoadingInsight(false);
+        }
     };
 
     if (loading) {
@@ -79,6 +142,20 @@ export default function ChapterScreen() {
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
                 <ChapterHeader chapter={chapter} />
+                <View style={styles.actionRow}>
+                    <TouchableOpacity style={styles.actionButton} onPress={handleViewPdf} disabled={loadingInsight}>
+                        <Text style={styles.actionButtonText}>PDF</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionButton} onPress={handleViewLessons} disabled={loadingInsight}>
+                        <Text style={styles.actionButtonText}>Lessons</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionButton} onPress={handleViewProgress} disabled={loadingInsight}>
+                        <Text style={styles.actionButtonText}>Progress</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionButton} onPress={handleUnlockChapter} disabled={loadingInsight}>
+                        <Text style={styles.actionButtonText}>Unlock</Text>
+                    </TouchableOpacity>
+                </View>
 
                 {chapter.content.map((section) => (
                     <ContentSection key={section.id} section={section} />
@@ -91,6 +168,25 @@ export default function ChapterScreen() {
                     <Ionicons name="arrow-forward" size={20} color="#fff" />
                 </TouchableOpacity>
             </View>
+
+            <Modal
+                visible={insightModalVisible}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setInsightModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>{insightTitle}</Text>
+                        <ScrollView style={styles.modalScroll}>
+                            <Text style={styles.modalBody}>{insightBody || "No data."}</Text>
+                        </ScrollView>
+                        <TouchableOpacity style={styles.quizButton} onPress={() => setInsightModalVisible(false)}>
+                            <Text style={styles.quizButtonText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -141,6 +237,25 @@ const styles = StyleSheet.create({
     content: {
         padding: 24,
     },
+    actionRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+        marginBottom: 14,
+    },
+    actionButton: {
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        backgroundColor: "#fff",
+    },
+    actionButtonText: {
+        fontSize: 12,
+        color: "#333",
+        fontWeight: "700",
+    },
     footer: {
         padding: 16,
         backgroundColor: "#fff",
@@ -161,5 +276,32 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 18,
         fontWeight: "700",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.35)",
+        justifyContent: "center",
+        padding: 16,
+    },
+    modalCard: {
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 16,
+        maxHeight: "85%",
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#282F2E",
+        marginBottom: 10,
+    },
+    modalScroll: {
+        maxHeight: 320,
+        marginBottom: 12,
+    },
+    modalBody: {
+        fontSize: 12,
+        color: "#444",
+        lineHeight: 18,
     },
 });

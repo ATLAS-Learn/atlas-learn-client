@@ -288,7 +288,7 @@ export default function AdminSubjectsScreen() {
     setSavingChapter(true);
     try {
       if (editingChapterId) {
-        await apiClient.updateSubjectChapter(chaptersSubject.id, editingChapterId, payload);
+        await apiClient.updateChapter(editingChapterId, payload);
       } else {
         await apiClient.createSubjectChapter(chaptersSubject.id, payload);
       }
@@ -312,7 +312,7 @@ export default function AdminSubjectsScreen() {
         onPress: async () => {
           setDeletingChapterId(chapter.id);
           try {
-            await apiClient.deleteSubjectChapter(chaptersSubject.id, chapter.id);
+            await apiClient.deleteChapter(chapter.id);
             await loadSubjectChapters(chaptersSubject.id);
           } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to delete chapter.");

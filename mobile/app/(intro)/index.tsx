@@ -4,11 +4,12 @@ import { INTRO_STEPS } from "@/lib/constants";
 import { setItem } from "@/lib/utils/storage";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Image, Text, TouchableHighlight, View } from "react-native";
+import { Image, Text, TouchableHighlight, View, useWindowDimensions } from "react-native";
 
 export default function Intro() {
   const [currentStep, setCurrentStep] = useState(1);
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(false);
   const completeOnboarding = async () => {
     await setItem("onboardingComplete", "true");
@@ -24,8 +25,15 @@ export default function Intro() {
     setCurrentStep((prev) => (prev < INTRO_STEPS ? prev + 1 : INTRO_STEPS));
   };
 
+  const containerPadding = width < 390 ? 16 : 25;
+  const gapSize = width < 390 ? 20 : 28;
+  const topPadding = Math.max(16, Math.floor(height * 0.05));
+
   return (
-    <View className="flex-1 justify-center items-center h-full w-full p-[25px] flex flex-col gap-28 relative">
+    <View
+      className="flex-1 justify-center items-center h-full w-full flex flex-col relative"
+      style={{ padding: containerPadding, paddingTop: topPadding, gap: gapSize * 4 }}
+    >
       {/* Top banner */}
       <TopBanner step={currentStep} />
 

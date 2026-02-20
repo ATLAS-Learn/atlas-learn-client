@@ -12,6 +12,7 @@ import {
     Keyboard,
     Alert,
     ScrollView,
+    useWindowDimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +23,7 @@ import { getItem, removeItem } from "@/lib/utils/storage";
 
 export default function VerifyEmailScreen() {
     const router = useRouter();
+    const { width, height } = useWindowDimensions();
     const params = useLocalSearchParams<{ email?: string }>();
     const { setAuth } = useAuthStore();
     const { setUser } = useUserStore();
@@ -90,7 +92,7 @@ export default function VerifyEmailScreen() {
                     try {
                         const user = JSON.parse(pendingUserStr);
                         setUser(user);
-                    } catch (e) {
+                    } catch {
                         // If parsing fails, fetch user from API
                         const user = await apiClient.getCurrentUser();
                         setUser(user);
@@ -109,7 +111,7 @@ export default function VerifyEmailScreen() {
                 try {
                     const user = await apiClient.getCurrentUser();
                     setUser(user);
-                } catch (e) {
+                } catch {
                     // If that fails, user needs to sign in again
                     Alert.alert(
                         "Verification Complete",
@@ -188,15 +190,24 @@ export default function VerifyEmailScreen() {
                 keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
             >
                 <ScrollView
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        {
+                            paddingTop: Math.max(64, Math.floor(height * 0.08)),
+                            paddingHorizontal: width < 390 ? 16 : 24,
+                        },
+                    ]}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
+                    <TouchableOpacity
+                        style={[styles.backArrow, { top: Math.max(32, Math.floor(height * 0.06)) }]}
+                        onPress={() => router.back()}
+                    >
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
 
-                    <View style={styles.logoContainer}>
+                    <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
                         <Ionicons name="mail-outline" size={80} color="#F2B138" />
                     </View>
 
@@ -284,21 +295,18 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        paddingHorizontal: 25,
         justifyContent: "center",
-        paddingTop: 100,
         paddingBottom: 40,
     },
     backArrow: {
         position: "absolute",
-        top: 60,
-        left: 25,
+        left: 24,
         zIndex: 10,
     },
     logoContainer: {
         alignItems: "center",
         marginBottom: 30,
-        marginTop: 40,
+        marginTop: 32,
     },
     title: {
         fontSize: 32,

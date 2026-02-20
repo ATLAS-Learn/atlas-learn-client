@@ -236,6 +236,35 @@ export interface SubjectExamHint {
     [key: string]: unknown;
 }
 
+export interface ChapterPdfMaterial {
+    url?: string;
+    title?: string;
+    [key: string]: unknown;
+}
+
+export interface ChapterLesson {
+    id: string;
+    title?: string;
+    content?: string;
+    orderIndex?: number;
+    [key: string]: unknown;
+}
+
+export interface ChapterProgressData {
+    chapterId?: string;
+    completed?: boolean;
+    unlocked?: boolean;
+    completionPercentage?: number;
+    [key: string]: unknown;
+}
+
+export interface ChapterUnlockResponse {
+    success?: boolean;
+    message?: string;
+    data?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
 // Chapter and Content Types
 export interface Chapter {
     id: string;

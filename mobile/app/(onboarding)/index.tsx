@@ -5,28 +5,36 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Image,
+  useWindowDimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function Onboarding() {
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
 
   const handleStartAssessment = () => {
     router.push("/(onboarding)/assessment");
   };
 
+  const contentPadding = width < 390 ? 16 : 24;
+  const iconSize = width < 390 ? 64 : 80;
+  const titleSize = width < 390 ? 24 : 28;
+  const descriptionSize = width < 390 ? 14 : 16;
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.iconContainer}>
-        <Ionicons name="school-outline" size={80} color="#F2B138" />
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, { padding: contentPadding, paddingTop: Math.max(24, Math.floor(height * 0.08)) }]}>
+      <View style={[styles.iconContainer, { width: iconSize + 40, height: iconSize + 40, borderRadius: (iconSize + 40) / 2 }]}>
+        <Ionicons name="school-outline" size={iconSize} color="#F2B138" />
       </View>
 
-      <Text style={styles.title}>Find Your Perfect Starting Point</Text>
+      <Text style={[styles.title, { fontSize: titleSize, lineHeight: Math.round(titleSize * 1.3) }]}>
+        Find Your Perfect Starting Point
+      </Text>
 
-      <Text style={styles.description}>
-        We'll ask you 5 questions to understand your current knowledge level.
+      <Text style={[styles.description, { fontSize: descriptionSize }]}>
+        We&apos;ll ask you 5 questions to understand your current knowledge level.
         This helps us give you the right material tailored to your needs.
       </Text>
 
