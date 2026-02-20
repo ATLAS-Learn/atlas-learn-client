@@ -160,6 +160,11 @@ export default function LearnDashboardScreen() {
     );
   }
 
+  const headerName =
+    dashboardData.user?.name ||
+    dashboardData.user?.email?.split("@")[0] ||
+    "Student";
+
   return (
     <ScrollView
       style={styles.container}
@@ -169,7 +174,7 @@ export default function LearnDashboardScreen() {
       }
     >
       <WelcomeHeader
-        name={dashboardData.user.name.split(" ")[0]}
+        name={headerName.split(" ")[0]}
         streak={dashboardData.progress.streak}
       />
 
