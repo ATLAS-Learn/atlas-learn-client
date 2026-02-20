@@ -1,0 +1,829 @@
+import axios, { AxiosInstance, AxiosError } from "axios";
+import { API_BASE_URL } from "@/lib/constants/api";
+import {
+    User,
+    AuthResponse,
+    AssessmentQuestion,
+    AssessmentAdminItem,
+    AssessmentAdminQuestion,
+    AssessmentResult,
+    CreateAssessmentPayload,
+    UpdateAssessmentPayload,
+    CreateAssessmentQuestionPayload,
+    UpdateAssessmentQuestionPayload,
+    Chapter,
+    Quiz,
+    QuizSubmission,
+    QuizResult,
+    QuizAttempt,
+    QuizStats,
+    Level,
+    OverallProgressData,
+    RoleUpgradeRequestPayload,
+    RoleUpgradeRequestResponse,
+    RoleUpgradeDecisionResponse,
+    PendingRoleUpgradeRequest,
+    TeacherStudentsQueryParams,
+    TeacherStudentsListResponse,
+    TeacherStudentProgressResponse,
+    TeacherStudentProgressData,
+    TeacherStudentQuizAttemptsResponse,
+    TeacherStudentQuizAttemptApiItem,
+    TeacherDashboardData,
+    StudentDetail,
+    StudentStatus,
+    UpdateProfilePayload,
+    Subject,
+    CreateSubjectPayload,
+    UpdateSubjectPayload,
+    SubjectQueryOptions,
+    SubjectChapter,
+    CreateSubjectChapterPayload,
+    UpdateSubjectChapterPayload,
+    SubjectStats,
+    SubjectChapterProgress,
+    SubjectChapterUnlockResponse,
+    SubjectExamHint,
+} from "@/lib/types";
+
+// API Client class using Axios
+class APIClient {
+    private axiosInstance: AxiosInstance;
+    private token: string | null = null;
+
+    constructor(baseURL: string) {
+        this.axiosInstance = axios.create({
+            baseURL,
+            withCredentials: true,
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+
+        // Request interceptor to add auth token
+        this.axiosInstance.interceptors.request.use(
+            (config) => {
+                if (this.token) {
+                    config.headers.Authorization = `Bearer ${this.token}`;
+                }
+                console.log(`[API] ${config.method?.toUpperCase() || 'GET'} ${config.url}`);
+                return config;
+            },
+            (error) => {
+                return Promise.reject(error);
+            }
+        );
+
+        // Response interceptor for error handling
+        // Centralizes error handling and provides consistent error messages
+        this.axiosInstance.interceptors.response.use(
+            (response) => response,
+            (error: AxiosError) => {
+                let errorMessage = "Request failed";
+                // Extract error message from response, request, or error object
+                if (error.response) {
+                    const data = error.response.data as any;
+                    errorMessage = data?.message || data?.error || `HTTP ${error.response.status}: ${error.response.statusText}`;
+                } else if (error.request) {
+                    errorMessage = "Network error - please check your connection";
+                } else {
+                    errorMessage = error.message || "An unexpected error occurred";
+                }
+                console.error(`API Error [${error.response?.status || 'N/A'}]:`, error.config?.url, errorMessage);
+                return Promise.reject(new Error(errorMessage));
+            }
+        );
+    }
+
+    setToken(token: string | null) {
+        this.token = token;
+    }
+
+    private async request<T>(
+        endpoint: string,
+        options: {
+            method?: "GET" | "POST" | "PUT" | "DELETE";
+            data?: any;
+            params?: any;
+        } = {}
+    ): Promise<T> {
+        const { method = "GET", data, params } = options;
+        const response = await this.axiosInstance.request<T>({
+            url: endpoint,
+            method,
+            data,
+            params,
+        });
+        return response.data;
+    }
+
+    private unwrapData<T>(response: T | { data?: T }): T {
+        if (typeof response === "object" && response !== null && "data" in response) {
+            return (response as { data?: T }).data as T;
+        }
+        return response as T;
+    }
+
+    // Auth endpoints
+    async signUpWithOTP(data: {
+        name: string;
+        email: string;
+        username?: string;
+        role?: "student" | "teacher" | "admin";
+        image?: string;
+        bio?: string;
+        school?: string;
+        examYear?: number;
+        level?: Level;
+    }): Promise<{ success: boolean; message: string }> {
+        return this.request<{ success: boolean; message: string }>("/auth/sign-up/otp", {
+            method: "POST",
+            data,
+        });
+    }
+
+    async signOut(): Promise<void> {
+        return this.request<void>("/auth/sign-out", {
+            method: "POST",
+        });
+    }
+
+    async getCurrentUser(): Promise<User> {
+        return this.request<User>("/auth/me");
+    }
+
+    async updateCurrentUserProfile(data: UpdateProfilePayload): Promise<User> {
+        const response = await this.request<User | { success?: boolean; data?: User }>("/auth/me", {
+            method: "PUT",
+            data,
+        });
+        return this.unwrapData<User>(response);
+    }
+
+    async forgotPassword(email: string): Promise<{ message: string }> {
+        return this.request<{ message: string }>("/auth/forgot-password", {
+            method: "POST",
+            data: { email },
+        });
+    }
+
+    async resetPassword(token: string, password: string): Promise<{ message: string }> {
+        return this.request<{ message: string }>("/auth/reset-password", {
+            method: "POST",
+            data: { token, password },
+        });
+    }
+
+    async verifyEmail(code: string): Promise<{ message: string }> {
+        return this.request<{ message: string }>("/auth/verify-email", {
+            method: "POST",
+            data: { code },
+        });
+    }
+
+    async resendVerification(): Promise<{ message: string }> {
+        return this.request<{ message: string }>("/auth/resend-verification", {
+            method: "POST",
+        });
+    }
+
+    // OTP Login endpoints
+    async requestOTP(email: string): Promise<{ message: string }> {
+        return this.request<{ message: string }>("/auth/otp/request", {
+            method: "POST",
+            data: { email },
+        });
+    }
+
+    async verifyOTP(email: string, otp: string): Promise<AuthResponse> {
+        return this.request<AuthResponse>("/auth/otp/verify", {
+            method: "POST",
+            data: { email, otp },
+        });
+    }
+
+    async verifyOTPLogin(email: string, otp: string): Promise<AuthResponse> {
+        return this.verifyOTP(email, otp);
+    }
+
+    // Session management endpoints
+    async getSessions(): Promise<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }[]> {
+        return this.request<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }[]>("/auth/sessions");
+    }
+
+    async revokeSession(sessionId: string): Promise<{ message: string }> {
+        return this.request<{ message: string }>("/auth/sessions/revoke", {
+            method: "POST",
+            data: { sessionId },
+        });
+    }
+
+    // Role upgrade endpoints
+    async requestRoleUpgrade(data: RoleUpgradeRequestPayload): Promise<RoleUpgradeRequestResponse> {
+        return this.request<RoleUpgradeRequestResponse>("/auth/request-role-upgrade", {
+            method: "POST",
+            data,
+        });
+    }
+
+    async approveRoleUpgrade(userId: string): Promise<RoleUpgradeDecisionResponse> {
+        return this.request<RoleUpgradeDecisionResponse>(`/auth/approve-role-upgrade/${userId}`, {
+            method: "POST",
+        });
+    }
+
+    async rejectRoleUpgrade(userId: string): Promise<RoleUpgradeDecisionResponse> {
+        return this.request<RoleUpgradeDecisionResponse>(`/auth/reject-role-upgrade/${userId}`, {
+            method: "POST",
+        });
+    }
+
+    async getPendingRoleUpgrades(): Promise<PendingRoleUpgradeRequest[]> {
+        const response = await this.request<
+            PendingRoleUpgradeRequest[] | { data?: PendingRoleUpgradeRequest[] }
+        >("/auth/pending-role-upgrades");
+        if (Array.isArray(response)) {
+            return response;
+        }
+        return response?.data ?? [];
+    }
+
+    // Assessment endpoints
+    // Using dedicated assessment endpoints: /api/v1/assessment/*
+    
+    /**
+     * Start assessment and retrieve questions
+     * @returns Array of assessment questions mapped to the expected format
+     * @throws Error if response structure is invalid or no active assessment available
+     */
+    async startAssessment(): Promise<AssessmentQuestion[]> {
+        // API returns: { success: true, data: { id, title, description, questionCount, questions: [...] } }
+        const response = await this.request<{
+            success: boolean;
+            data: {
+                id: string;
+                title: string;
+                description: string;
+                questionCount: number;
+                questions: {
+                    id: string;
+                    questionText: string;
+                    options: string[];
+                    orderIndex: number;
+                }[];
+            };
+        }>("/assessment/start");
+        
+        // Validate response structure to prevent runtime errors
+        if (!response?.data?.questions || !Array.isArray(response.data.questions)) {
+            throw new Error("Invalid assessment response: questions array not found");
+        }
+        
+        // Map API response format to AssessmentQuestion format
+        // API uses 'questionText' but our types expect 'question'
+        return response.data.questions.map((q) => ({
+            id: q.id,
+            question: q.questionText || "", // Map questionText to question
+            options: q.options || [],
+            correctAnswer: -1, // Assessments don't have correct answers, use -1 as placeholder
+            topic: "", // Not provided by API, use empty string
+        }));
+    }
+
+    /**
+     * Submit assessment answers
+     * @param answers Array of answer indices in question order (e.g., [0, 1, 2, 0, 1])
+     * @returns Assessment result with score, level, and message
+     */
+    async submitAssessment(answers: number[]): Promise<AssessmentResult> {
+        // API expects: { answers: [0, 1, 2, 0, 1] } - array of answer indices
+        const result = await this.request<{
+            success: boolean;
+            message: string;
+            data: {
+                attemptId: string;
+                score: number;
+                level: Level;
+                levelLabel: string;
+                levelDescription: string;
+                correctAnswers: number;
+                totalQuestions: number;
+                recommendedChapter?: unknown;
+                completedAt: string;
+            };
+        }>("/assessment/submit", {
+            method: "POST",
+            data: { answers },
+        });
+
+        if (!result?.data) {
+            throw new Error("Invalid assessment submission response");
+        }
+
+        return {
+            score: result.data.correctAnswers ?? result.data.score,
+            totalQuestions: result.data.totalQuestions,
+            level: result.data.level,
+            message: result.data.levelDescription || result.message || "Assessment completed successfully",
+        };
+    }
+
+    async getAssessmentResult(): Promise<AssessmentResult> {
+        // Get assessment result after submission
+        return this.request<AssessmentResult>("/assessment/result");
+    }
+
+    async getAssessmentStatus(): Promise<{ completed: boolean; level?: Level }> {
+        // Check if assessment is completed
+        return this.request<{ completed: boolean; level?: Level }>("/assessment/status");
+    }
+
+    async getOverallProgress(): Promise<OverallProgressData> {
+        const response = await this.request<
+            OverallProgressData | { success?: boolean; data?: OverallProgressData }
+        >("/progress/overall");
+        return this.unwrapData<OverallProgressData>(response);
+    }
+
+    // Assessment management endpoints (Admin/Teacher)
+    async getAssessments(): Promise<AssessmentAdminItem[]> {
+        const response = await this.request<AssessmentAdminItem[] | { data?: AssessmentAdminItem[] }>("/assessments");
+        return this.unwrapData<AssessmentAdminItem[]>(response) || [];
+    }
+
+    async createAssessment(data: CreateAssessmentPayload): Promise<AssessmentAdminItem> {
+        const response = await this.request<AssessmentAdminItem | { data?: AssessmentAdminItem }>("/assessments", {
+            method: "POST",
+            data,
+        });
+        return this.unwrapData<AssessmentAdminItem>(response);
+    }
+
+    async getAssessmentById(assessmentId: string): Promise<AssessmentAdminItem> {
+        const response = await this.request<AssessmentAdminItem | { data?: AssessmentAdminItem }>(`/assessments/${assessmentId}`);
+        return this.unwrapData<AssessmentAdminItem>(response);
+    }
+
+    async updateAssessment(
+        assessmentId: string,
+        data: UpdateAssessmentPayload
+    ): Promise<AssessmentAdminItem> {
+        const response = await this.request<AssessmentAdminItem | { data?: AssessmentAdminItem }>(`/assessments/${assessmentId}`, {
+            method: "PUT",
+            data,
+        });
+        return this.unwrapData<AssessmentAdminItem>(response);
+    }
+
+    async deleteAssessment(assessmentId: string): Promise<void> {
+        await this.request<void>(`/assessments/${assessmentId}`, {
+            method: "DELETE",
+        });
+    }
+
+    async createAssessmentQuestion(
+        assessmentId: string,
+        data: CreateAssessmentQuestionPayload
+    ): Promise<AssessmentAdminQuestion> {
+        const response = await this.request<AssessmentAdminQuestion | { data?: AssessmentAdminQuestion }>(
+            `/assessments/${assessmentId}/questions`,
+            {
+                method: "POST",
+                data,
+            }
+        );
+        return this.unwrapData<AssessmentAdminQuestion>(response);
+    }
+
+    async updateAssessmentQuestion(
+        assessmentId: string,
+        questionId: string,
+        data: UpdateAssessmentQuestionPayload
+    ): Promise<AssessmentAdminQuestion> {
+        const response = await this.request<AssessmentAdminQuestion | { data?: AssessmentAdminQuestion }>(
+            `/assessments/${assessmentId}/questions/${questionId}`,
+            {
+                method: "PUT",
+                data,
+            }
+        );
+        return this.unwrapData<AssessmentAdminQuestion>(response);
+    }
+
+    async deleteAssessmentQuestion(assessmentId: string, questionId: string): Promise<void> {
+        await this.request<void>(`/assessments/${assessmentId}/questions/${questionId}`, {
+            method: "DELETE",
+        });
+    }
+
+    // Legacy method for backward compatibility (if needed)
+    async getAssessmentQuestions(): Promise<AssessmentQuestion[]> {
+        return this.startAssessment();
+    }
+
+    // Subject endpoints
+    async getSubjects(options: SubjectQueryOptions = {}): Promise<Subject[]> {
+        const includeChapters = options.includeChapters ?? false;
+        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
+
+        const response = await this.request<
+            Subject[] | { success?: boolean; count?: number; data?: Subject[] }
+        >("/subjects", {
+            params: { includeChapters, includeChapterDetails },
+        });
+        const subjects = this.unwrapData<Subject[]>(response);
+        return Array.isArray(subjects) ? subjects : [];
+    }
+
+    async createSubject(data: CreateSubjectPayload): Promise<Subject> {
+        const response = await this.request<Subject | { data?: Subject }>("/subjects", {
+            method: "POST",
+            data,
+        });
+        return this.unwrapData<Subject>(response);
+    }
+
+    async getSubjectById(subjectId: string, options: SubjectQueryOptions = {}): Promise<Subject> {
+        const includeChapters = options.includeChapters ?? false;
+        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
+
+        const response = await this.request<Subject | { success?: boolean; data?: Subject }>(
+            `/subjects/${subjectId}`,
+            {
+                params: { includeChapters, includeChapterDetails },
+            }
+        );
+        return this.unwrapData<Subject>(response);
+    }
+
+    async updateSubject(subjectId: string, data: UpdateSubjectPayload): Promise<Subject> {
+        const response = await this.request<Subject | { data?: Subject }>(`/subjects/${subjectId}`, {
+            method: "PUT",
+            data,
+        });
+        return this.unwrapData<Subject>(response);
+    }
+
+    async deleteSubject(subjectId: string): Promise<void> {
+        await this.request<void>(`/subjects/${subjectId}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getSubjectByCode(code: string, options: SubjectQueryOptions = {}): Promise<Subject> {
+        const includeChapters = options.includeChapters ?? false;
+        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
+
+        const response = await this.request<Subject | { success?: boolean; data?: Subject }>(
+            `/subjects/code/${encodeURIComponent(code)}`,
+            {
+                params: { includeChapters, includeChapterDetails },
+            }
+        );
+        return this.unwrapData<Subject>(response);
+    }
+
+    async getSubjectChapters(subjectId: string): Promise<SubjectChapter[]> {
+        const response = await this.request<
+            SubjectChapter[] | { success?: boolean; count?: number; data?: SubjectChapter[] }
+        >(`/subjects/${subjectId}/chapters`);
+        const chapters = this.unwrapData<SubjectChapter[]>(response);
+        return Array.isArray(chapters) ? chapters : [];
+    }
+
+    async createSubjectChapter(subjectId: string, data: CreateSubjectChapterPayload): Promise<SubjectChapter> {
+        const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
+            `/subjects/${subjectId}/chapters`,
+            {
+                method: "POST",
+                data,
+            }
+        );
+        return this.unwrapData<SubjectChapter>(response);
+    }
+
+    async getSubjectChapter(subjectId: string, chapterId: string): Promise<SubjectChapter> {
+        const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
+            `/subjects/${subjectId}/chapters/${chapterId}`
+        );
+        return this.unwrapData<SubjectChapter>(response);
+    }
+
+    async updateSubjectChapter(
+        subjectId: string,
+        chapterId: string,
+        data: UpdateSubjectChapterPayload
+    ): Promise<SubjectChapter> {
+        const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
+            `/subjects/${subjectId}/chapters/${chapterId}`,
+            {
+                method: "PUT",
+                data,
+            }
+        );
+        return this.unwrapData<SubjectChapter>(response);
+    }
+
+    async deleteSubjectChapter(subjectId: string, chapterId: string): Promise<void> {
+        await this.request<void>(`/subjects/${subjectId}/chapters/${chapterId}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getSubjectStats(subjectId: string): Promise<SubjectStats> {
+        const response = await this.request<SubjectStats | { success?: boolean; data?: SubjectStats }>(
+            `/subjects/${subjectId}/stats`
+        );
+        return this.unwrapData<SubjectStats>(response);
+    }
+
+    async getSubjectChapterQuizzes(subjectId: string, chapterId: string): Promise<Quiz[]> {
+        const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/quizzes`
+        );
+        const quizzes = this.unwrapData<Quiz[]>(response);
+        return Array.isArray(quizzes) ? quizzes : [];
+    }
+
+    async getSubjectChapterProgress(subjectId: string, chapterId: string): Promise<SubjectChapterProgress> {
+        const response = await this.request<
+            SubjectChapterProgress | { success?: boolean; data?: SubjectChapterProgress }
+        >(`/subjects/${subjectId}/chapters/${chapterId}/progress`);
+        return this.unwrapData<SubjectChapterProgress>(response);
+    }
+
+    async unlockSubjectChapter(subjectId: string, chapterId: string): Promise<SubjectChapterUnlockResponse> {
+        return this.request<SubjectChapterUnlockResponse>(
+            `/subjects/${subjectId}/chapters/${chapterId}/progress/unlock`,
+            {
+                method: "POST",
+            }
+        );
+    }
+
+    async getSubjectChapterExamHints(subjectId: string, chapterId: string): Promise<SubjectExamHint[]> {
+        const response = await this.request<SubjectExamHint[] | { success?: boolean; data?: SubjectExamHint[] }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/exam-hints`
+        );
+        const hints = this.unwrapData<SubjectExamHint[]>(response);
+        return Array.isArray(hints) ? hints : [];
+    }
+
+    // Dashboard endpoints
+    // NOTE: Server doesn't have a dashboard endpoint yet, so dashboard screen uses local stores
+    // When server API is ready, implement: GET /api/dashboard
+    // async getDashboard(): Promise<DashboardData> {
+    //     return this.request<DashboardData>("/dashboard");
+    // }
+
+    // Chapter endpoints
+    async getChapters(): Promise<Chapter[]> {
+        // Supports both raw array and wrapped response: { success, data: [...] }
+        const response = await this.request<Chapter[] | { data?: Chapter[] }>(`/chapters`);
+        const chapters = this.unwrapData<Chapter[]>(response);
+        return Array.isArray(chapters) ? chapters : [];
+    }
+
+    async getChapter(chapterId: string): Promise<Chapter> {
+        return this.request<Chapter>(`/chapters/${chapterId}`);
+    }
+
+    // Chapter Quiz endpoints
+    async getChapterQuizzes(chapterId: string): Promise<Quiz[]> {
+        // Get all quizzes for a chapter
+        return this.request<Quiz[]>(`/chapters/${chapterId}/quizzes`);
+    }
+
+    async getChapterQuiz(chapterId: string): Promise<Quiz> {
+        // Get the first quiz for a chapter (for backward compatibility)
+        const quizzes = await this.getChapterQuizzes(chapterId);
+        if (quizzes.length === 0) {
+            throw new Error(`No quizzes found for chapter ${chapterId}`);
+        }
+        return quizzes[0];
+    }
+
+    async createChapterQuiz(chapterId: string, quizData: Partial<Quiz>): Promise<Quiz> {
+        // Create a new quiz for a chapter
+        return this.request<Quiz>(`/chapters/${chapterId}/quizzes`, {
+            method: "POST",
+            data: quizData,
+        });
+    }
+
+    // Quiz endpoints
+    async getQuizzes(limit: number = 5): Promise<Quiz[]> {
+        // Try with limit parameter first, fallback to no parameter
+        try {
+            return await this.request<Quiz[]>(`/quizzes?limit=${limit}`);
+        } catch {
+            // If query parameter fails, try without it
+            const allQuizzes = await this.request<Quiz[]>(`/quizzes`);
+            return allQuizzes.slice(0, limit);
+        }
+    }
+
+    async getQuiz(quizId: string): Promise<Quiz> {
+        return this.request<Quiz>(`/quizzes/${quizId}`);
+    }
+
+    async updateQuiz(quizId: string, quizData: Partial<Quiz>): Promise<Quiz> {
+        return this.request<Quiz>(`/quizzes/${quizId}`, {
+            method: "PUT",
+            data: quizData,
+        });
+    }
+
+    async deleteQuiz(quizId: string): Promise<void> {
+        return this.request<void>(`/quizzes/${quizId}`, {
+            method: "DELETE",
+        });
+    }
+
+    async addQuizQuestion(quizId: string, questionData: any): Promise<any> {
+        return this.request<any>(`/quizzes/${quizId}/questions`, {
+            method: "POST",
+            data: questionData,
+        });
+    }
+
+    async updateQuizQuestion(quizId: string, questionId: string, questionData: any): Promise<any> {
+        return this.request<any>(`/quizzes/${quizId}/questions/${questionId}`, {
+            method: "PUT",
+            data: questionData,
+        });
+    }
+
+    async deleteQuizQuestion(quizId: string, questionId: string): Promise<void> {
+        return this.request<void>(`/quizzes/${quizId}/questions/${questionId}`, {
+            method: "DELETE",
+        });
+    }
+
+    async submitQuiz(quizId: string, submission: QuizSubmission): Promise<QuizResult> {
+        return this.request<QuizResult>(`/quizzes/${quizId}/submit`, {
+            method: "POST",
+            data: submission,
+        });
+    }
+
+    async getQuizAttempts(quizId: string): Promise<QuizAttempt[]> {
+        // Get all attempts for a quiz
+        return this.request<QuizAttempt[]>(`/quizzes/${quizId}/attempts`);
+    }
+
+    async getUserQuizAttempts(userId: string): Promise<QuizAttempt[]> {
+        // Get all quiz attempts by a user
+        return this.request<QuizAttempt[]>(`/users/${userId}/quiz-attempts`);
+    }
+
+    async getQuizStats(quizId: string): Promise<QuizStats> {
+        // Get statistics for a quiz
+        return this.request<QuizStats>(`/quizzes/${quizId}/stats`);
+    }
+
+    // Teacher endpoints
+    async getTeacherStudents(
+        params: TeacherStudentsQueryParams = {}
+    ): Promise<TeacherStudentsListResponse> {
+        return this.request<TeacherStudentsListResponse>("/teacher/students", { params });
+    }
+
+    async getStudentProgress(studentId: string): Promise<TeacherStudentProgressData> {
+        const response = await this.request<TeacherStudentProgressResponse>(
+            `/teacher/students/${studentId}/progress`
+        );
+        return response.data;
+    }
+
+    async getStudentQuizAttemptsForTeacher(
+        studentId: string,
+        params: { subjectId?: string; chapterId?: string; limit?: number; offset?: number } = {}
+    ): Promise<TeacherStudentQuizAttemptsResponse> {
+        return this.request<TeacherStudentQuizAttemptsResponse>(`/teacher/students/${studentId}/quiz-attempts`, {
+            params,
+        });
+    }
+
+    async getTeacherDashboard(): Promise<TeacherDashboardData> {
+        const studentsResponse = await this.getTeacherStudents({ limit: 50, offset: 0 });
+        const students = studentsResponse.data || [];
+
+        const progressPairs = await Promise.all(
+            students.map(async (student) => {
+                try {
+                    const progress = await this.getStudentProgress(student.id);
+                    return [student.id, progress] as const;
+                } catch {
+                    return [student.id, null] as const;
+                }
+            })
+        );
+
+        const progressMap = new Map<string, TeacherStudentProgressData | null>(progressPairs);
+
+        const mappedStudents = students.map((student) => {
+            const progress = progressMap.get(student.id);
+            const overallProgress = progress?.overall?.completionPercentage ?? 0;
+            const status = mapStatusFromProgress(overallProgress);
+
+            return {
+                id: student.id,
+                name: student.name,
+                email: student.email,
+                status,
+                currentChapterId: undefined,
+                currentChapterTitle: undefined,
+                overallProgress,
+                lastActiveDate: student.lastLoginAt || student.createdAt,
+            };
+        });
+
+        const onTrackCount = mappedStudents.filter(
+            (student) => student.status === StudentStatus.ON_TRACK
+        ).length;
+        const behindCount = mappedStudents.filter(
+            (student) => student.status === StudentStatus.BEHIND
+        ).length;
+        const atRiskCount = mappedStudents.filter(
+            (student) => student.status === StudentStatus.AT_RISK
+        ).length;
+
+        return {
+            students: mappedStudents,
+            totalStudents: studentsResponse.total ?? mappedStudents.length,
+            onTrackCount,
+            behindCount,
+            atRiskCount,
+        };
+    }
+
+    async getStudentDetail(studentId: string): Promise<StudentDetail> {
+        const [progress, attemptsResponse] = await Promise.all([
+            this.getStudentProgress(studentId),
+            this.getStudentQuizAttemptsForTeacher(studentId, { limit: 50, offset: 0 }),
+        ]);
+
+        const overallProgress = progress.overall?.completionPercentage ?? 0;
+        const status = mapStatusFromProgress(overallProgress);
+        const quizAttempts = (attemptsResponse.data || []).map((attempt) =>
+            mapTeacherAttemptToQuizAttempt(attempt, studentId)
+        );
+
+        const completedChapterCount = progress.overall?.chapters?.completed ?? 0;
+        const completedChapters = Array.from(
+            { length: completedChapterCount },
+            (_, index) => `completed-chapter-${index + 1}`
+        );
+
+        return {
+            id: progress.student.id,
+            name: progress.student.name,
+            email: progress.student.email,
+            status,
+            level: normalizeLevel(progress.level),
+            currentChapterId: undefined,
+            currentChapterTitle: undefined,
+            overallProgress,
+            lastActiveDate: progress.assessmentCompletedAt || new Date().toISOString(),
+            streak: 0,
+            completedChapters,
+            chapterProgress: [],
+            quizAttempts,
+        };
+    }
+}
+
+function mapStatusFromProgress(overallProgress: number): StudentStatus {
+    if (overallProgress >= 75) return StudentStatus.ON_TRACK;
+    if (overallProgress >= 40) return StudentStatus.BEHIND;
+    return StudentStatus.AT_RISK;
+}
+
+function normalizeLevel(level: string): Level {
+    if (level === Level.FOUNDATIONAL || level === Level.CORE || level === Level.ADVANCED) {
+        return level;
+    }
+    return Level.FOUNDATIONAL;
+}
+
+function mapTeacherAttemptToQuizAttempt(
+    attempt: TeacherStudentQuizAttemptApiItem,
+    studentId: string
+): QuizAttempt {
+    const totalQuestions = attempt.quiz?.totalQuestions || 0;
+    const percentage = totalQuestions > 0 ? Math.round((attempt.score / totalQuestions) * 100) : 0;
+
+    return {
+        id: attempt.attemptId,
+        quizId: attempt.quiz?.id || "",
+        userId: studentId,
+        score: attempt.score,
+        percentage,
+        passed: attempt.passed,
+        completedAt: attempt.completedAt,
+    };
+}
+
+// Export singleton instance
+export const apiClient = new APIClient(API_BASE_URL || "http://localhost:3000/api/v1");

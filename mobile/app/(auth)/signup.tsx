@@ -11,32 +11,32 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  ActivityIndicator,
+  Alert,
+  useWindowDimensions,
 } from "react-native";
-import Checkbox from "expo-checkbox";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { FacebookIcon, GoogleIcon, AppleIcon } from "@/assets/images";
-import PhoneNumberInput from "@/components/phone-select-dropdown";
-import { ValidationErrors, validateFields } from "@/utils/validate";
-import { useAuth } from "@/context/AuthContext";
+import { ValidationErrors, validateFields } from "@/lib/utils/validate";
+import { apiClient } from "@/lib/api";
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const { signUp } = useAuth();
-  const [phone, setPhone] = useState("");
+  const { width, height } = useWindowDimensions();
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
-  const [password, setPassword] = useState("");
-  const [isChecked, setIsChecked] = useState(false);
+  const [username, setUsername] = useState("");
+  const [school, setSchool] = useState("");
+  const [examYear, setExamYear] = useState("");
+  const [bio, setBio] = useState("");
+  const [image, setImage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
 
   const handleSignUp = async () => {
-    const newErrors = validateFields({
+    const newErrors: ValidationErrors = validateFields({
       fullName,
       email,
-      password,
     });
 
     setErrors(newErrors);
@@ -44,13 +44,31 @@ export default function SignUpScreen() {
     if (Object.keys(newErrors).length === 0) {
       setLoading(true);
       try {
-        await signUp(fullName, email, password);
-        setEmail("");
-        setPassword("");
-        setFullName("");
-        setPhone("");
+        await apiClient.signUpWithOTP({
+          name: fullName,
+          email,
+          username: username.trim() || undefined,
+          role: "student",
+          image: image.trim() || undefined,
+          bio: bio.trim() || undefined,
+          school: school.trim() || undefined,
+          examYear: examYear.trim() ? Number(examYear) : undefined,
+        });
+
+        // Navigate to OTP verification screen
+        router.replace({
+          pathname: "/(auth)/verify-otp",
+          params: { email, mode: "signup", fullName },
+        });
       } catch (error: any) {
-        setErrors({ email: error.message || "Sign up failed" });
+        const errorMessage = error.message || "An error occurred. Please try again.";
+        
+        // If error is about email already existing, show it inline
+        if (errorMessage.toLowerCase().includes("already exists") || errorMessage.toLowerCase().includes("email")) {
+          setErrors({ email: errorMessage });
+        } else {
+          Alert.alert("Signup Failed", errorMessage);
+        }
       } finally {
         setLoading(false);
       }
@@ -62,38 +80,32 @@ export default function SignUpScreen() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
         <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.logoContainer}>
-            <Image source={require("@/assets/images/Blue atlas icon.png")} style={styles.logo} />
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: Math.max(88, Math.floor(height * 0.11)),
+              paddingHorizontal: width < 390 ? 16 : 24,
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[styles.logoContainer, { marginTop: width < 390 ? 32 : 52 }]}>
+            <Image
+              source={require("@/assets/images/Blue atlas icon.png")}
+              style={[styles.logo, { height: width < 390 ? 130 : 170, width: width < 390 ? 130 : 170 }]}
+            />
           </View>
 
           <Text style={styles.title}>Create New Account</Text>
-
-          <View style={styles.socialContainer}>
-            <TouchableOpacity style={styles.socialBtn}>
-              <Image source={FacebookIcon} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialBtn}>
-              <Image source={GoogleIcon} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialBtn}>
-              <Image source={AppleIcon} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.orText}>or continue with</Text>
-            <View style={styles.divider} />
-          </View>
-
-          <PhoneNumberInput/>
 
           {/* Email Input */}
           <View style={styles.inputContainer}>
@@ -109,10 +121,10 @@ export default function SignUpScreen() {
             />
           </View>
           {errors.email && (
-              <Text style={{ color: "red", marginBottom: 10 }}>{errors.email}</Text>
-            )
+            <Text style={{ color: "red", marginBottom: 10 }}>{errors.email}</Text>
+          )
           }
-           {/* Name Input */}
+          {/* Name Input */}
           <View style={styles.inputContainer}>
             <Ionicons name="person" size={24} color="#B3B3B3" style={styles.icon} />
             <TextInput
@@ -121,59 +133,80 @@ export default function SignUpScreen() {
               value={fullName}
               onChangeText={setFullName}
               style={styles.input}
+              returnKeyType="next"
             />
           </View>
           {errors.fullName && (
-              <Text style={{ color: "red", marginBottom: 10 }}>{errors.fullName}</Text>
-            )
+            <Text style={{ color: "red", marginBottom: 10 }}>{errors.fullName}</Text>
+          )
           }
 
-          {/* Password Input */}
           <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed" size={24} color="#B3B3B3" style={styles.icon} />
+            <Ionicons name="at" size={24} color="#B3B3B3" style={styles.icon} />
             <TextInput
-              placeholder="Password"
+              placeholder="Username (optional)"
               placeholderTextColor="#B3B3B3"
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
+              value={username}
+              onChangeText={setUsername}
+              style={styles.input}
+              autoCapitalize="none"
+            />
+          </View>
+          <View style={styles.inputContainer}>
+            <Ionicons name="school-outline" size={24} color="#B3B3B3" style={styles.icon} />
+            <TextInput
+              placeholder="School (optional)"
+              placeholderTextColor="#B3B3B3"
+              value={school}
+              onChangeText={setSchool}
               style={styles.input}
             />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons
-                name={showPassword ? "eye-off" : "eye"}
-                size={24}
-                color="#B3B3B3"
-              />
-            </TouchableOpacity>
           </View>
-          {errors.password && (
-              <Text style={{ color: "red", marginBottom: 10 }}>{errors.password}</Text>
-            )
-          }
-
-          <View style={styles.termsContainer}>
-            <Checkbox
-              value={isChecked}
-              onValueChange={setIsChecked}
-              color={isChecked ? "#F2B138" : undefined}
-              style={styles.checkbox}
+          <View style={styles.inputContainer}>
+            <Ionicons name="calendar-outline" size={24} color="#B3B3B3" style={styles.icon} />
+            <TextInput
+              placeholder="Exam Year (optional)"
+              placeholderTextColor="#B3B3B3"
+              value={examYear}
+              onChangeText={setExamYear}
+              style={styles.input}
+              keyboardType="number-pad"
             />
-            <Text style={styles.termsText}>
-              I Agree with{" "}
-              <Text style={styles.link}>Terms of Service</Text> and{" "}
-              <Text style={styles.link}>Privacy Policy</Text>
-            </Text>
+          </View>
+          <View style={styles.inputContainer}>
+            <Ionicons name="link-outline" size={24} color="#B3B3B3" style={styles.icon} />
+            <TextInput
+              placeholder="Image URL (optional)"
+              placeholderTextColor="#B3B3B3"
+              value={image}
+              onChangeText={setImage}
+              style={styles.input}
+              autoCapitalize="none"
+            />
+          </View>
+          <View style={[styles.inputContainer, styles.bioContainer]}>
+            <Ionicons name="document-text-outline" size={24} color="#B3B3B3" style={styles.icon} />
+            <TextInput
+              placeholder="Bio (optional)"
+              placeholderTextColor="#B3B3B3"
+              value={bio}
+              onChangeText={setBio}
+              style={[styles.input, styles.bioInput]}
+              multiline
+              numberOfLines={3}
+            />
           </View>
 
           <TouchableOpacity
-            style={styles.signUpButton}
+            style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
             onPress={handleSignUp}
             disabled={loading}
-            >
-            <Text style={styles.signUpText}>
-              {loading ? "Creating..." : "Sign Up"}
-            </Text>
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.signUpText}>Send OTP</Text>
+            )}
           </TouchableOpacity>
           <Text style={styles.loginText}>
             Already have an account?{" "}
@@ -193,7 +226,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingHorizontal: 25,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 100,
+    paddingBottom: 100, // Increased bottom padding for keyboard
   },
   backArrow: {
     position: "absolute",
@@ -203,54 +241,21 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: "center",
-    marginTop: 90,
+    marginTop: 52,
     marginBottom: 10,
 
   },
-   logo: {
+  logo: {
     fontWeight: "bold",
-    height: 200,
-    width: 200,
+    height: 170,
+    width: 170,
   },
   title: {
     fontSize: 30,
     fontWeight: "800",
     textAlign: "center",
     color: "#282F2E",
-    marginBottom:15
-  },
-
-  socialContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 5,
-  },
-  socialBtn: {
-    borderWidth: 0.5,
-    borderColor: "#CBD5E1",
-    borderRadius: 50,
-    width: 60,
-    height: 60,
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 8,
-    backgroundColor: "#FFFFFF",
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 25,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#EEEEEE",
-  },
-  orText: {
-    marginHorizontal: 10,
-    color: "#757575",
-    fontSize: 16,
-    fontWeight: "700",
+    marginBottom: 15
   },
   inputContainer: {
     flexDirection: "row",
@@ -270,6 +275,15 @@ const styles = StyleSheet.create({
     height: 64,
     fontSize: 16,
     color: "#333",
+  },
+  bioContainer: {
+    alignItems: "flex-start",
+  },
+  bioInput: {
+    minHeight: 88,
+    height: undefined,
+    textAlignVertical: "top",
+    paddingTop: 18,
   },
   countryCode: {
     fontSize: 16,
@@ -321,5 +335,8 @@ const styles = StyleSheet.create({
   loginLink: {
     color: "#F2B138",
     fontWeight: "600",
+  },
+  signUpButtonDisabled: {
+    opacity: 0.6,
   },
 });
