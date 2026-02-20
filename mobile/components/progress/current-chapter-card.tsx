@@ -12,6 +12,11 @@ export default function CurrentChapterCard({
     chapter,
     onPress,
 }: CurrentChapterCardProps) {
+    const sectionCount = Array.isArray(chapter?.content) ? chapter.content.length : 0;
+    const estimatedTime = typeof chapter?.estimatedTime === "number" ? chapter.estimatedTime : 0;
+    const title = chapter?.title || "Untitled chapter";
+    const description = chapter?.description || "No description available.";
+
     return (
         <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.8}>
             <View style={styles.content}>
@@ -20,9 +25,9 @@ export default function CurrentChapterCard({
                 </View>
                 <View style={styles.textContainer}>
                     <Text style={styles.label}>Current Chapter</Text>
-                    <Text style={styles.title}>{chapter.title}</Text>
+                    <Text style={styles.title}>{title}</Text>
                     <Text style={styles.description} numberOfLines={2}>
-                        {chapter.description}
+                        {description}
                     </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={24} color="#666" />
@@ -30,11 +35,11 @@ export default function CurrentChapterCard({
             <View style={styles.footer}>
                 <View style={styles.metaItem}>
                     <Ionicons name="time-outline" size={16} color="#666" />
-                    <Text style={styles.metaText}>{chapter.estimatedTime} min</Text>
+                    <Text style={styles.metaText}>{estimatedTime} min</Text>
                 </View>
                 <View style={styles.metaItem}>
                     <Ionicons name="layers-outline" size={16} color="#666" />
-                    <Text style={styles.metaText}>{chapter.content.length} sections</Text>
+                    <Text style={styles.metaText}>{sectionCount} sections</Text>
                 </View>
             </View>
         </TouchableOpacity>

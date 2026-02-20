@@ -32,6 +32,10 @@ import {
     TeacherDashboardData,
     StudentDetail,
     StudentStatus,
+    Subject,
+    CreateSubjectPayload,
+    UpdateSubjectPayload,
+    SubjectQueryOptions,
 } from "@/lib/types";
 
 // API Client class using Axios
@@ -392,6 +396,68 @@ class APIClient {
     // Legacy method for backward compatibility (if needed)
     async getAssessmentQuestions(): Promise<AssessmentQuestion[]> {
         return this.startAssessment();
+    }
+
+    // Subject endpoints
+    async getSubjects(options: SubjectQueryOptions = {}): Promise<Subject[]> {
+        const includeChapters = options.includeChapters ?? false;
+        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
+
+        const response = await this.request<
+            Subject[] | { success?: boolean; count?: number; data?: Subject[] }
+        >("/subjects", {
+            params: { includeChapters, includeChapterDetails },
+        });
+        const subjects = this.unwrapData<Subject[]>(response);
+        return Array.isArray(subjects) ? subjects : [];
+    }
+
+    async createSubject(data: CreateSubjectPayload): Promise<Subject> {
+        const response = await this.request<Subject | { data?: Subject }>("/subjects", {
+            method: "POST",
+            data,
+        });
+        return this.unwrapData<Subject>(response);
+    }
+
+    async getSubjectById(subjectId: string, options: SubjectQueryOptions = {}): Promise<Subject> {
+        const includeChapters = options.includeChapters ?? false;
+        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
+
+        const response = await this.request<Subject | { success?: boolean; data?: Subject }>(
+            `/subjects/${subjectId}`,
+            {
+                params: { includeChapters, includeChapterDetails },
+            }
+        );
+        return this.unwrapData<Subject>(response);
+    }
+
+    async updateSubject(subjectId: string, data: UpdateSubjectPayload): Promise<Subject> {
+        const response = await this.request<Subject | { data?: Subject }>(`/subjects/${subjectId}`, {
+            method: "PUT",
+            data,
+        });
+        return this.unwrapData<Subject>(response);
+    }
+
+    async deleteSubject(subjectId: string): Promise<void> {
+        await this.request<void>(`/subjects/${subjectId}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getSubjectByCode(code: string, options: SubjectQueryOptions = {}): Promise<Subject> {
+        const includeChapters = options.includeChapters ?? false;
+        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
+
+        const response = await this.request<Subject | { success?: boolean; data?: Subject }>(
+            `/subjects/code/${encodeURIComponent(code)}`,
+            {
+                params: { includeChapters, includeChapterDetails },
+            }
+        );
+        return this.unwrapData<Subject>(response);
     }
 
     // Dashboard endpoints

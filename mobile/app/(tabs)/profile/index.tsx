@@ -213,6 +213,14 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.menuItem}
+                        onPress={() => router.push("/(tabs)/profile/admin-subjects")}
+                    >
+                        <Ionicons name="library-outline" size={24} color="#666" />
+                        <Text style={styles.menuText}>Subjects</Text>
+                        <Ionicons name="chevron-forward" size={20} color="#999" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.menuItem}
                         onPress={() => router.push("/(tabs)/profile/admin-role-upgrades")}
                     >
                         <Ionicons name="shield-checkmark-outline" size={24} color="#666" />

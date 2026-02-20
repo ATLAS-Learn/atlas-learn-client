@@ -68,7 +68,11 @@ export default function LearnDashboardScreen() {
         apiClient.getChapters(),
         apiClient.getOverallProgress(),
       ]);
-      const allChapters = Array.isArray(allChaptersRaw) ? allChaptersRaw : [];
+      const allChapters = (Array.isArray(allChaptersRaw) ? allChaptersRaw : []).map((chapter) => ({
+        ...chapter,
+        content: Array.isArray(chapter.content) ? chapter.content : [],
+        estimatedTime: typeof chapter.estimatedTime === "number" ? chapter.estimatedTime : 0,
+      }));
 
       if (allChapters.length === 0) {
         Alert.alert("Info", "No chapters available yet.");

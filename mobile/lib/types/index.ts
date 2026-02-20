@@ -128,6 +128,37 @@ export interface AssessmentResult {
     message: string;
 }
 
+// Subject Types
+export interface Subject {
+    id: string;
+    name: string;
+    code: string;
+    description?: string;
+    chapters?: Record<string, unknown>[];
+    createdAt?: string;
+    updatedAt?: string;
+    [key: string]: unknown;
+}
+
+export interface SubjectQueryOptions {
+    includeChapters?: boolean;
+    includeChapterDetails?: boolean;
+}
+
+export interface CreateSubjectPayload {
+    name: string;
+    code: string;
+    description?: string;
+    [key: string]: unknown;
+}
+
+export interface UpdateSubjectPayload {
+    name?: string;
+    code?: string;
+    description?: string;
+    [key: string]: unknown;
+}
+
 // Chapter and Content Types
 export interface Chapter {
     id: string;
