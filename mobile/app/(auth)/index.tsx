@@ -113,7 +113,6 @@ export default function SignIn() {
               <Text style={styles.loginText}>Send OTP</Text>
             )}
           </TouchableOpacity>
-
           <Text style={styles.signupText}>
             Don't have an account?{" "}
             <Link href="/signup" style={styles.signupLink}>

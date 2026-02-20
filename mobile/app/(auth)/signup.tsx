@@ -140,6 +140,7 @@ export default function SignUpScreen() {
             <Text style={{ color: "red", marginBottom: 10 }}>{errors.fullName}</Text>
           )
           }
+
           <View style={styles.inputContainer}>
             <Ionicons name="at" size={24} color="#B3B3B3" style={styles.icon} />
             <TextInput
@@ -209,7 +210,7 @@ export default function SignUpScreen() {
           </TouchableOpacity>
           <Text style={styles.loginText}>
             Already have an account?{" "}
-            <Link href="/" style={styles.loginLink}>
+            <Link href="/(auth)" style={styles.loginLink}>
               Sign in
             </Link>
           </Text>
