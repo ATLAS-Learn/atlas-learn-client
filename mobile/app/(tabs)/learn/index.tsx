@@ -235,10 +235,10 @@ export default function LearnDashboardScreen() {
 
       <TouchableOpacity
         style={styles.chaptersButton}
-        onPress={() => router.push("/(tabs)/learn/chapters")}
+        onPress={() => router.push("/(tabs)/learn/subjects")}
       >
-        <Ionicons name="list" size={24} color="#F2B138" />
-        <Text style={styles.chaptersButtonText}>View All Chapters</Text>
+        <Ionicons name="albums" size={24} color="#F2B138" />
+        <Text style={styles.chaptersButtonText}>Browse Subjects</Text>
         <Ionicons name="chevron-forward" size={20} color="#999" />
       </TouchableOpacity>
     </ScrollView>
