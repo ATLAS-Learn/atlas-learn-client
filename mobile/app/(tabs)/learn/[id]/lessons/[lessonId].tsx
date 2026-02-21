@@ -52,6 +52,8 @@ export default function LessonDetailScreen() {
     const [updatingProgress, setUpdatingProgress] = useState(false);
     const [completingLesson, setCompletingLesson] = useState(false);
     const [watchTime, setWatchTime] = useState("300");
+    const [progressPercent, setProgressPercent] = useState("");
+    const [positionSeconds, setPositionSeconds] = useState("");
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
     const examples = useMemo(() => normalizeStringArray(lesson?.examples), [lesson]);
@@ -113,12 +115,21 @@ export default function LessonDetailScreen() {
         setStatusMessage(null);
         try {
             const watchTimeSeconds = safeNumber(watchTime);
+            const progressValue = safeNumber(progressPercent);
+            const positionValue = safeNumber(positionSeconds);
+            const computedPosition =
+                positionValue ??
+                (progressValue !== undefined && lesson?.durationSeconds
+                    ? Math.round((progressValue / 100) * lesson.durationSeconds)
+                    : undefined);
             const response = await apiClient.updateSubjectChapterLessonProgress(
                 subjectKey,
                 chapterId,
                 lessonKey,
                 {
                     watchTimeSeconds,
+                    progressPercent: progressValue,
+                    positionSeconds: computedPosition,
                 }
             );
             setStatusMessage(response.message || "Progress updated.");
@@ -231,7 +242,23 @@ export default function LessonDetailScreen() {
                             value={watchTime}
                             onChangeText={setWatchTime}
                             keyboardType="number-pad"
-                            placeholder="Seconds"
+                            placeholder="Watch time (sec)"
+                        />
+                        <TextInput
+                            style={styles.progressInput}
+                            value={progressPercent}
+                            onChangeText={setProgressPercent}
+                            keyboardType="number-pad"
+                            placeholder="Progress %"
+                        />
+                    </View>
+                    <View style={styles.progressRow}>
+                        <TextInput
+                            style={styles.progressInput}
+                            value={positionSeconds}
+                            onChangeText={setPositionSeconds}
+                            keyboardType="number-pad"
+                            placeholder="Position (sec)"
                         />
                         <TouchableOpacity
                             style={styles.progressButton}
@@ -244,6 +271,17 @@ export default function LessonDetailScreen() {
                                 <Text style={styles.progressButtonText}>Update</Text>
                             )}
                         </TouchableOpacity>
+                    </View>
+                    <View style={styles.quickRow}>
+                        {[25, 50, 75, 100].map((value) => (
+                            <TouchableOpacity
+                                key={value}
+                                style={styles.quickButton}
+                                onPress={() => setProgressPercent(String(value))}
+                            >
+                                <Text style={styles.quickButtonText}>{value}%</Text>
+                            </TouchableOpacity>
+                        ))}
                     </View>
                     <TouchableOpacity
                         style={styles.completeButton}
@@ -364,6 +402,25 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 12,
         marginBottom: 12,
+    },
+    quickRow: {
+        flexDirection: "row",
+        gap: 8,
+        marginBottom: 12,
+        flexWrap: "wrap",
+    },
+    quickButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        backgroundColor: "#F9FAFB",
+    },
+    quickButtonText: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "#374151",
     },
     progressInput: {
         flex: 1,

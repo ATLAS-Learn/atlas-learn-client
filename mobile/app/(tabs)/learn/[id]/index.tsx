@@ -161,6 +161,18 @@ export default function ChapterScreen() {
         } as any);
     };
 
+    const handleOpenLessonsList = () => {
+        if (!chapterId) return;
+        const subjectId = getSubjectIdFromChapter(chapter);
+        router.push({
+            pathname: "/(tabs)/learn/[id]/lessons",
+            params: {
+                id: chapterId,
+                subjectId: subjectId || "",
+            },
+        } as any);
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -194,8 +206,8 @@ export default function ChapterScreen() {
                     <TouchableOpacity style={styles.actionButton} onPress={handleViewPdf} disabled={loadingInsight}>
                         <Text style={styles.actionButtonText}>PDF</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton} onPress={loadLessons} disabled={lessonsLoading}>
-                        <Text style={styles.actionButtonText}>Refresh Lessons</Text>
+                    <TouchableOpacity style={styles.actionButton} onPress={handleOpenLessonsList}>
+                        <Text style={styles.actionButtonText}>All Lessons</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionButton} onPress={handleViewProgress} disabled={loadingInsight}>
                         <Text style={styles.actionButtonText}>Progress</Text>
@@ -209,8 +221,18 @@ export default function ChapterScreen() {
                 </View>
 
                 <View style={styles.lessonsHeader}>
-                    <Text style={styles.lessonsTitle}>Lessons</Text>
-                    <Text style={styles.lessonsCount}>{lessons.length} total</Text>
+                    <View>
+                        <Text style={styles.lessonsTitle}>Lessons</Text>
+                        <Text style={styles.lessonsCount}>{lessons.length} total</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.refreshButton}
+                        onPress={loadLessons}
+                        disabled={lessonsLoading}
+                    >
+                        <Ionicons name="refresh" size={16} color="#8A5D00" />
+                        <Text style={styles.refreshButtonText}>Refresh</Text>
+                    </TouchableOpacity>
                 </View>
 
                 {lessonsLoading ? (
@@ -365,6 +387,22 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: "#666",
         fontWeight: "600",
+    },
+    refreshButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: "#FFF8E8",
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "#F5E5BE",
+    },
+    refreshButtonText: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "#8A5D00",
     },
     lessonLoading: {
         flexDirection: "row",

@@ -2,17 +2,24 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { TeacherDashboardData } from "@/lib/types";
+import { useUserStore } from "@/lib/store/user";
 
 interface TeacherHeaderProps {
     dashboardData: TeacherDashboardData;
 }
 
 export default function TeacherHeader({ dashboardData }: TeacherHeaderProps) {
+    const { user } = useUserStore();
+    const teacherName = user?.name || user?.email?.split("@")[0] || "Teacher";
+
     return (
         <View style={styles.container}>
             <View style={styles.titleContainer}>
                 <Ionicons name="people" size={28} color="#F2B138" />
-                <Text style={styles.title}>My Class</Text>
+                <View>
+                    <Text style={styles.title}>My Class</Text>
+                    <Text style={styles.subtitle}>Welcome, {teacherName}</Text>
+                </View>
             </View>
 
             <View style={styles.statsContainer}>
@@ -73,6 +80,12 @@ const styles = StyleSheet.create({
         fontWeight: "800",
         color: "#282F2E",
     },
+    subtitle: {
+        marginTop: 4,
+        fontSize: 13,
+        color: "#666",
+        fontWeight: "600",
+    },
     statsContainer: {
         flexDirection: "row",
         justifyContent: "space-around",
@@ -116,4 +129,3 @@ const styles = StyleSheet.create({
         color: "#282F2E",
     },
 });
-

@@ -892,6 +892,28 @@ class APIClient {
             };
         });
 
+        const lessonTotals = Array.from(progressMap.values()).reduce(
+            (acc, progress) => {
+                if (!progress?.overall?.lessons) return acc;
+                acc.totalLessons += progress.overall.lessons.total || 0;
+                acc.totalCompleted += progress.overall.lessons.completed || 0;
+                acc.totalTimeSpent += progress.overall.totalTimeSpent || 0;
+                return acc;
+            },
+            { totalLessons: 0, totalCompleted: 0, totalTimeSpent: 0 }
+        );
+
+        const lessonCountStudents = Array.from(progressMap.values()).filter(
+            (progress) => progress?.overall?.lessons
+        ).length;
+
+        const averageCompletionPercent =
+            lessonTotals.totalLessons > 0
+                ? Math.round((lessonTotals.totalCompleted / lessonTotals.totalLessons) * 100)
+                : 0;
+        const averageTimeSpent =
+            lessonCountStudents > 0 ? Math.round(lessonTotals.totalTimeSpent / lessonCountStudents) : 0;
+
         const onTrackCount = mappedStudents.filter(
             (student) => student.status === StudentStatus.ON_TRACK
         ).length;
@@ -908,6 +930,12 @@ class APIClient {
             onTrackCount,
             behindCount,
             atRiskCount,
+            lessonSummary: {
+                totalLessons: lessonTotals.totalLessons,
+                totalCompleted: lessonTotals.totalCompleted,
+                averageCompletionPercent,
+                averageTimeSpent,
+            },
         };
     }
 

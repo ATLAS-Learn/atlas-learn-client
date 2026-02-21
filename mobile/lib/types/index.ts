@@ -513,6 +513,12 @@ export interface TeacherDashboardData {
     onTrackCount: number;
     behindCount: number;
     atRiskCount: number;
+    lessonSummary?: {
+        totalLessons: number;
+        totalCompleted: number;
+        averageCompletionPercent: number;
+        averageTimeSpent: number;
+    };
 }
 
 export interface TeacherStudentsQueryParams {

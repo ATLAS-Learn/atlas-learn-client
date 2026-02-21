@@ -115,6 +115,32 @@ export default function TeacherDashboardScreen() {
         >
             <TeacherHeader dashboardData={dashboardData} />
 
+            {dashboardData.lessonSummary && (
+                <View style={styles.lessonSummaryCard}>
+                    <Text style={styles.sectionTitle}>Lesson Insights</Text>
+                    <View style={styles.lessonSummaryRow}>
+                        <View style={styles.lessonSummaryItem}>
+                            <Text style={styles.lessonSummaryValue}>
+                                {dashboardData.lessonSummary.averageCompletionPercent}%
+                            </Text>
+                            <Text style={styles.lessonSummaryLabel}>Avg Completion</Text>
+                        </View>
+                        <View style={styles.lessonSummaryItem}>
+                            <Text style={styles.lessonSummaryValue}>
+                                {dashboardData.lessonSummary.totalCompleted}/{dashboardData.lessonSummary.totalLessons}
+                            </Text>
+                            <Text style={styles.lessonSummaryLabel}>Lessons Done</Text>
+                        </View>
+                        <View style={styles.lessonSummaryItem}>
+                            <Text style={styles.lessonSummaryValue}>
+                                {Math.round(dashboardData.lessonSummary.averageTimeSpent / 60)}m
+                            </Text>
+                            <Text style={styles.lessonSummaryLabel}>Avg Time</Text>
+                        </View>
+                    </View>
+                </View>
+            )}
+
             {dashboardData.students.length > 0 && (
                 <StudentProgressChart students={dashboardData.students} />
             )}
@@ -353,6 +379,39 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
         color: "#F44336",
+    },
+    lessonSummaryCard: {
+        backgroundColor: "#fff",
+        padding: 16,
+        borderRadius: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: "#F0F0F0",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    lessonSummaryRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginTop: 12,
+    },
+    lessonSummaryItem: {
+        alignItems: "center",
+        flex: 1,
+    },
+    lessonSummaryValue: {
+        fontSize: 18,
+        fontWeight: "800",
+        color: "#282F2E",
+    },
+    lessonSummaryLabel: {
+        marginTop: 4,
+        fontSize: 12,
+        color: "#666",
+        fontWeight: "600",
     },
     studentsSection: {
         marginTop: 8,
