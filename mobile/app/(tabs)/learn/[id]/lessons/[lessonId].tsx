@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { Lesson } from "@/lib/types";
+import { useProgressStore } from "@/lib/store/progress";
 
 const safeNumber = (value: string): number | undefined => {
     const trimmed = value.trim();
@@ -55,6 +56,7 @@ export default function LessonDetailScreen() {
     const [progressPercent, setProgressPercent] = useState("");
     const [positionSeconds, setPositionSeconds] = useState("");
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
+    const { setLastLesson, completeLesson } = useProgressStore();
 
     const examples = useMemo(() => normalizeStringArray(lesson?.examples), [lesson]);
     const keyPoints = useMemo(() => normalizeStringArray(lesson?.keyPoints), [lesson]);
@@ -69,6 +71,7 @@ export default function LessonDetailScreen() {
         try {
             const data = await apiClient.getSubjectChapterLesson(subjectKey, chapterId, lessonKey);
             setLesson(data);
+            setLastLesson(chapterId, lessonKey);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to load lesson.");
             router.back();
@@ -146,6 +149,7 @@ export default function LessonDetailScreen() {
         setStatusMessage(null);
         try {
             const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey);
+            completeLesson(lessonKey);
             setStatusMessage(response.message || "Lesson marked as completed.");
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to complete lesson.");
