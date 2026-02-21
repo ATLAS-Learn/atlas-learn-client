@@ -26,10 +26,8 @@ export default function SubjectDetailScreen() {
     const [refreshing, setRefreshing] = useState(false);
 
     const loadSubjectAndChapters = useCallback(async (targetSubjectId: string) => {
-        const [subjectResponse, chaptersResponse] = await Promise.all([
-            apiClient.getSubjectById(targetSubjectId, { includeChapters: false }),
-            apiClient.getSubjectChapters(targetSubjectId),
-        ]);
+        const subjectResponse = await apiClient.getSubjectById(targetSubjectId, { includeChapters: false });
+        const chaptersResponse = await apiClient.getSubjectChapters(targetSubjectId);
         setResolvedSubjectId(targetSubjectId);
         setSubject(subjectResponse);
         const sorted = Array.isArray(chaptersResponse)
@@ -53,10 +51,10 @@ export default function SubjectDetailScreen() {
                 if (fallbackSubjectId) {
                     await loadSubjectAndChapters(fallbackSubjectId);
                 } else {
-                    throw error;
+                    Alert.alert("Error", "Subject not found.");
                 }
             } catch (fallbackError: any) {
-                Alert.alert("Error", fallbackError.message || "Failed to load subject.");
+                Alert.alert("Error", fallbackError.message || "Subject not found.");
             }
         } finally {
             setLoading(false);
