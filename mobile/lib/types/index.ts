@@ -58,12 +58,15 @@ export interface User {
     username?: string;
     role: UserRole;
     roleUpgradeStatus?: RoleUpgradeStatus;
+    emailVerified?: boolean;
     image?: string;
     bio?: string;
     school?: string;
     examYear?: number;
     level?: Level;
     createdAt: string;
+    updatedAt?: string;
+    lastLoginAt?: string;
 }
 
 export interface UpdateProfilePayload {

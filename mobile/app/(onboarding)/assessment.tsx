@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import QuestionCard from "@/components/quizzes/question-card";
 import QuizProgress from "@/components/quizzes/quiz-progress";
 import { apiClient } from "@/lib/api";
+import { setItem } from "@/lib/utils/storage";
 import { AssessmentQuestion } from "@/lib/types";
 
 export default function AssessmentScreen() {
@@ -45,6 +46,12 @@ export default function AssessmentScreen() {
             
             // Provide more user-friendly error messages for common scenarios
             let userMessage = errorMessage;
+            if (errorMessage.toLowerCase().includes("already completed")) {
+                await setItem("assessmentComplete", "true");
+                router.replace("/(tabs)");
+                return;
+            }
+
             if (errorMessage.toLowerCase().includes("no active assessment") || 
                 errorMessage.toLowerCase().includes("not available")) {
                 userMessage = "Assessment is not available at this time. Please contact support or try again later.";

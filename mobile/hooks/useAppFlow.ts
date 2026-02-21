@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
 import { useProgressStore } from "@/lib/store/progress";
-import { getItem } from "@/lib/utils/storage";
+import { getItem, setItem } from "@/lib/utils/storage";
 import { apiClient } from "@/lib/api";
 
 export function useAppFlow() {
@@ -39,9 +39,22 @@ export function useAppFlow() {
           setUser(freshUser);
         }
 
-        // Check assessment completion
+        // Check assessment completion (prefer local, fallback to server once)
         const assessment = await getItem("assessmentComplete");
-        setAssessmentComplete(assessment === "true");
+        if (assessment === "true") {
+          setAssessmentComplete(true);
+        } else if (assessment === "false") {
+          setAssessmentComplete(false);
+        } else {
+          try {
+            const status = await apiClient.getAssessmentStatus();
+            const completed = Boolean(status?.completed);
+            setAssessmentComplete(completed);
+            await setItem("assessmentComplete", completed ? "true" : "false");
+          } catch {
+            setAssessmentComplete(false);
+          }
+        }
         setIsLoading(false);
       } catch (error: any) {
         // Token is invalid or expired (401/403)

@@ -218,8 +218,9 @@ class APIClient {
     }
 
     // Session management endpoints
-    async getSessions(): Promise<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }[]> {
-        return this.request<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }[]>("/auth/sessions");
+    async getSessions(): Promise<{ id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[]> {
+        const response = await this.request<{ sessions?: { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[] }>("/auth/sessions");
+        return response?.sessions ?? [];
     }
 
     async revokeSession(sessionId: string): Promise<{ message: string }> {
