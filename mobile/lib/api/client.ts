@@ -135,6 +135,15 @@ class APIClient {
         return response as T;
     }
 
+    private buildSubjectQueryParams(options: SubjectQueryOptions = {}) {
+        const includeChapters = options.includeChapters ?? false;
+        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
+        return {
+            includeChapters: includeChapters ? "true" : "false",
+            includeChapterDetails: includeChapterDetails ? "true" : "false",
+        };
+    }
+
     // Auth endpoints
     async signUpWithOTP(data: {
         name: string;
@@ -435,20 +444,19 @@ class APIClient {
 
     // Subject endpoints
     async getSubjects(options: SubjectQueryOptions = {}): Promise<Subject[]> {
-        const includeChapters = options.includeChapters ?? false;
-        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
-
         const response = await this.request<
             Subject[] | { success?: boolean; count?: number; data?: Subject[] }
         >("/subjects", {
-            params: { includeChapters, includeChapterDetails },
+            params: this.buildSubjectQueryParams(options),
         });
         const subjects = this.unwrapData<Subject[]>(response);
         return Array.isArray(subjects) ? subjects : [];
     }
 
     async createSubject(data: CreateSubjectPayload): Promise<Subject> {
-        const response = await this.request<Subject | { data?: Subject }>("/subjects", {
+        const response = await this.request<
+            Subject | { success?: boolean; message?: string; data?: Subject }
+        >("/subjects", {
             method: "POST",
             data,
         });
@@ -456,13 +464,10 @@ class APIClient {
     }
 
     async getSubjectById(subjectId: string, options: SubjectQueryOptions = {}): Promise<Subject> {
-        const includeChapters = options.includeChapters ?? false;
-        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
-
         const response = await this.request<Subject | { success?: boolean; data?: Subject }>(
             `/subjects/${subjectId}`,
             {
-                params: { includeChapters, includeChapterDetails },
+                params: this.buildSubjectQueryParams(options),
             }
         );
         return this.unwrapData<Subject>(response);
@@ -483,13 +488,10 @@ class APIClient {
     }
 
     async getSubjectByCode(code: string, options: SubjectQueryOptions = {}): Promise<Subject> {
-        const includeChapters = options.includeChapters ?? false;
-        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
-
         const response = await this.request<Subject | { success?: boolean; data?: Subject }>(
             `/subjects/code/${encodeURIComponent(code)}`,
             {
-                params: { includeChapters, includeChapterDetails },
+                params: this.buildSubjectQueryParams(options),
             }
         );
         return this.unwrapData<Subject>(response);

@@ -20,6 +20,8 @@ export function useSubjects(options: SubjectQueryOptions = {}) {
             normalizedOptions.includeChapterDetails ?? false,
         ],
         queryFn: () => apiClient.getSubjects(normalizedOptions),
+        staleTime: 1000 * 60 * 5,
+        refetchOnMount: false,
     });
 }
 
@@ -35,6 +37,8 @@ export function useSubject(subjectId: string | undefined, options: SubjectQueryO
         ],
         queryFn: () => apiClient.getSubjectById(subjectId!, normalizedOptions),
         enabled: !!subjectId,
+        staleTime: 1000 * 60 * 5,
+        refetchOnMount: false,
     });
 }
 
@@ -51,6 +55,8 @@ export function useSubjectByCode(code: string | undefined, options: SubjectQuery
         ],
         queryFn: () => apiClient.getSubjectByCode(code!, normalizedOptions),
         enabled: !!code,
+        staleTime: 1000 * 60 * 5,
+        refetchOnMount: false,
     });
 }
 

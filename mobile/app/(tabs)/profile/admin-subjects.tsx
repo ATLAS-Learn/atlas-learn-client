@@ -182,11 +182,18 @@ export default function AdminSubjectsScreen() {
   };
 
   const handleSaveSubject = async () => {
-    if (!subjectName.trim()) {
+    const normalizedName = subjectName.trim();
+    const normalizedCode = subjectCode.trim().toUpperCase();
+
+    if (!normalizedName) {
       Alert.alert("Missing Name", "Subject name is required.");
       return;
     }
-    if (!subjectCode.trim()) {
+    if (normalizedName.length < 3) {
+      Alert.alert("Invalid Name", "Subject name must be at least 3 characters.");
+      return;
+    }
+    if (!normalizedCode) {
       Alert.alert("Missing Code", "Subject code is required.");
       return;
     }
@@ -196,15 +203,15 @@ export default function AdminSubjectsScreen() {
         await updateSubjectMutation.mutateAsync({
           subjectId: editingSubject.id,
           data: {
-            name: subjectName.trim(),
-            code: subjectCode.trim(),
+            name: normalizedName,
+            code: normalizedCode,
             description: subjectDescription.trim() || undefined,
           },
         });
       } else {
         await createSubjectMutation.mutateAsync({
-          name: subjectName.trim(),
-          code: subjectCode.trim(),
+          name: normalizedName,
+          code: normalizedCode,
           description: subjectDescription.trim() || undefined,
         });
       }
