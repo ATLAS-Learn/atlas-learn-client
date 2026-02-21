@@ -30,6 +30,15 @@ export default function ChapterScreen() {
     const [insightBody, setInsightBody] = useState("");
     const [loadingInsight, setLoadingInsight] = useState(false);
 
+    useEffect(() => {
+        console.log("[ID_TRACE] ChapterScreen route params", {
+            rawId: id,
+            rawSubjectId: subjectId,
+            chapterId,
+            subjectKey,
+        });
+    }, [chapterId, id, subjectId, subjectKey]);
+
     const loadChapter = useCallback(async () => {
         try {
             if (!chapterId) {
@@ -95,6 +104,12 @@ export default function ChapterScreen() {
         setLessonsLoading(true);
         try {
             const resolvedSubjectId = subjectKey || getSubjectIdFromChapter(chapter);
+            console.log("[ID_TRACE] ChapterScreen loadLessons resolved IDs", {
+                chapterId,
+                subjectKey,
+                chapterSubjectId: getSubjectIdFromChapter(chapter),
+                resolvedSubjectId,
+            });
             const data = resolvedSubjectId
                 ? await apiClient.getSubjectChapterLessons(resolvedSubjectId, chapterId)
                 : await apiClient.getChapterLessons(chapterId);

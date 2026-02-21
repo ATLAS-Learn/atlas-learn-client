@@ -25,7 +25,16 @@ export default function SubjectDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
+    useEffect(() => {
+        console.log("[ID_TRACE] SubjectDetail route params", {
+            rawSubjectId: subjectId,
+            subjectKey,
+            resolvedSubjectId,
+        });
+    }, [resolvedSubjectId, subjectId, subjectKey]);
+
     const loadSubjectAndChapters = useCallback(async (targetSubjectId: string) => {
+        console.log("[ID_TRACE] loadSubjectAndChapters", { targetSubjectId });
         const subjectResponse = await apiClient.getSubjectById(targetSubjectId, { includeChapters: false });
         const chaptersResponse = await apiClient.getSubjectChapters(targetSubjectId);
         setResolvedSubjectId(targetSubjectId);
@@ -48,6 +57,11 @@ export default function SubjectDetailScreen() {
                 const chapter = await apiClient.getChapter(subjectKey);
                 const fallbackSubjectId =
                     chapter?.subjectId || (chapter as { subject_id?: string }).subject_id;
+                console.log("[ID_TRACE] subject fallback from chapter", {
+                    inputSubjectKey: subjectKey,
+                    fallbackSubjectId,
+                    chapterIdUsedForFallback: chapter?.id,
+                });
                 if (fallbackSubjectId) {
                     await loadSubjectAndChapters(fallbackSubjectId);
                 } else {
