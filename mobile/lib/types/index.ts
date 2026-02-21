@@ -165,6 +165,14 @@ export interface SubjectChaptersQueryOptions {
     includeProgress?: boolean;
 }
 
+export interface SubjectChapterQueryOptions {
+    includeSubject?: boolean;
+    includeLessons?: boolean;
+    includeQuizzes?: boolean;
+    includeProgress?: boolean;
+    includeExamHints?: boolean;
+}
+
 export interface CreateSubjectPayload {
     name: string;
     code: string;
@@ -214,6 +222,13 @@ export interface UpdateSubjectChapterPayload {
 
 export interface SubjectStats {
     subjectId?: string;
+    subjectName?: string;
+    totalChapters?: number;
+    totalLessons?: number;
+    totalQuizzes?: number;
+    totalExamHints?: number;
+    estimatedMinutes?: number;
+    // Backward compatibility aliases
     chaptersCount?: number;
     lessonsCount?: number;
     quizzesCount?: number;

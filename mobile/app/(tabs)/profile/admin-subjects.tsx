@@ -1168,9 +1168,12 @@ export default function AdminSubjectsScreen() {
             ) : subjectStats ? (
               <View>
                 <Text style={styles.detailLine}>Subject ID: {String(subjectStats.subjectId || statsSubject?.id || "-")}</Text>
-                <Text style={styles.detailLine}>Chapters: {String(subjectStats.chaptersCount ?? "-")}</Text>
-                <Text style={styles.detailLine}>Lessons: {String(subjectStats.lessonsCount ?? "-")}</Text>
-                <Text style={styles.detailLine}>Quizzes: {String(subjectStats.quizzesCount ?? "-")}</Text>
+                <Text style={styles.detailLine}>Subject Name: {String(subjectStats.subjectName || statsSubject?.name || "-")}</Text>
+                <Text style={styles.detailLine}>Chapters: {String(subjectStats.totalChapters ?? subjectStats.chaptersCount ?? "-")}</Text>
+                <Text style={styles.detailLine}>Lessons: {String(subjectStats.totalLessons ?? subjectStats.lessonsCount ?? "-")}</Text>
+                <Text style={styles.detailLine}>Quizzes: {String(subjectStats.totalQuizzes ?? subjectStats.quizzesCount ?? "-")}</Text>
+                <Text style={styles.detailLine}>Exam Hints: {String(subjectStats.totalExamHints ?? "-")}</Text>
+                <Text style={styles.detailLine}>Estimated Minutes: {String(subjectStats.estimatedMinutes ?? "-")}</Text>
               </View>
             ) : (
               <Text style={styles.metaText}>No statistics available.</Text>

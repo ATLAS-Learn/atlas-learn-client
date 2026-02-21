@@ -38,6 +38,7 @@ import {
     UpdateSubjectPayload,
     SubjectQueryOptions,
     SubjectChaptersQueryOptions,
+    SubjectChapterQueryOptions,
     SubjectChapter,
     CreateSubjectChapterPayload,
     UpdateSubjectChapterPayload,
@@ -149,6 +150,16 @@ class APIClient {
         return {
             includeDetails: options.includeDetails ? "true" : "false",
             includeProgress: options.includeProgress ? "true" : "false",
+        };
+    }
+
+    private buildSubjectChapterQueryParams(options: SubjectChapterQueryOptions = {}) {
+        return {
+            includeSubject: options.includeSubject ? "true" : "false",
+            includeLessons: options.includeLessons ? "true" : "false",
+            includeQuizzes: options.includeQuizzes ? "true" : "false",
+            includeProgress: options.includeProgress ? "true" : "false",
+            includeExamHints: options.includeExamHints ? "true" : "false",
         };
     }
 
@@ -547,9 +558,16 @@ class APIClient {
         return this.unwrapData<SubjectChapter>(response);
     }
 
-    async getSubjectChapter(subjectId: string, chapterId: string): Promise<SubjectChapter> {
+    async getSubjectChapter(
+        subjectId: string,
+        chapterId: string,
+        options: SubjectChapterQueryOptions = {}
+    ): Promise<SubjectChapter> {
         const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
-            `/subjects/${subjectId}/chapters/${chapterId}`
+            `/subjects/${subjectId}/chapters/${chapterId}`,
+            {
+                params: this.buildSubjectChapterQueryParams(options),
+            }
         );
         return this.unwrapData<SubjectChapter>(response);
     }
