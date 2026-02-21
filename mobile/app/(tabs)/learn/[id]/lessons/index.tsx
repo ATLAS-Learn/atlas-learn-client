@@ -13,7 +13,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { Chapter, Lesson } from "@/lib/types";
-import { useProgressStore } from "@/lib/store/progress";
 
 export default function LessonsListScreen() {
     const router = useRouter();
@@ -25,9 +24,6 @@ export default function LessonsListScreen() {
     const [lessons, setLessons] = useState<Lesson[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const { progress } = useProgressStore();
-    const completedLessonIds = progress?.completedLessons || [];
-    const lastLessonId = progress?.lastLessonByChapter?.[chapterId || ""] || null;
 
     const getSubjectIdFromChapter = (chapterValue: Chapter | null): string | undefined => {
         if (!chapterValue) return undefined;
@@ -123,16 +119,6 @@ export default function LessonsListScreen() {
                     </View>
                 )}
 
-                {lastLessonId && (
-                    <TouchableOpacity style={styles.resumeCard} onPress={() => handleOpenLesson(lastLessonId)}>
-                        <View>
-                            <Text style={styles.resumeTitle}>Resume Lesson</Text>
-                            <Text style={styles.resumeSubtitle}>Pick up where you left off.</Text>
-                        </View>
-                        <Ionicons name="play-circle" size={22} color="#F2B138" />
-                    </TouchableOpacity>
-                )}
-
                 {lessons.length === 0 ? (
                     <View style={styles.emptyLessons}>
                         <Ionicons name="book-outline" size={36} color="#CCC" />
@@ -160,14 +146,7 @@ export default function LessonsListScreen() {
                                     </Text>
                                 </View>
                             </View>
-                            {completedLessonIds.includes(lesson.id) ? (
-                                <View style={styles.completedBadge}>
-                                    <Ionicons name="checkmark-circle" size={16} color="#2E7D32" />
-                                    <Text style={styles.completedBadgeText}>Completed</Text>
-                                </View>
-                            ) : (
-                                <Ionicons name="chevron-forward" size={20} color="#999" />
-                            )}
+                            <Ionicons name="chevron-forward" size={20} color="#999" />
                         </TouchableOpacity>
                     ))
                 )}
@@ -237,27 +216,6 @@ const styles = StyleSheet.create({
         color: "#666",
         fontWeight: "600",
     },
-    resumeCard: {
-        backgroundColor: "#FFF8E8",
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: "#F5E5BE",
-        padding: 14,
-        marginBottom: 12,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-    },
-    resumeTitle: {
-        fontSize: 14,
-        fontWeight: "700",
-        color: "#8A5D00",
-    },
-    resumeSubtitle: {
-        marginTop: 4,
-        fontSize: 12,
-        color: "#8A5D00",
-    },
     emptyLessons: {
         alignItems: "center",
         justifyContent: "center",
@@ -314,19 +272,5 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: "#777",
         fontWeight: "600",
-    },
-    completedBadge: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        backgroundColor: "#E8F5E9",
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        borderRadius: 12,
-    },
-    completedBadgeText: {
-        fontSize: 11,
-        fontWeight: "700",
-        color: "#2E7D32",
     },
 });

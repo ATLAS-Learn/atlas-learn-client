@@ -10,7 +10,6 @@ interface ProgressState {
     completeChapter: (chapterId: string) => void;
     completeLesson: (lessonId: string) => void;
     completeQuiz: (quizId: string) => void;
-    setLastLesson: (chapterId: string, lessonId: string) => void;
     updateStreak: (streak: number) => void;
     updateOverallProgress: (percentage: number) => void;
     calculateOverallProgress: (allChapters: any[], allQuizzes: any[]) => Promise<number>;
@@ -69,19 +68,6 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
                 return { progress: updated };
             }
             return state;
-        }),
-    setLastLesson: (chapterId, lessonId) =>
-        set((state) => {
-            if (!state.progress) return state;
-            const updated = {
-                ...state.progress,
-                lastLessonByChapter: {
-                    ...(state.progress.lastLessonByChapter || {}),
-                    [chapterId]: lessonId,
-                },
-            };
-            setItem("progress", JSON.stringify(updated));
-            return { progress: updated };
         }),
     updateStreak: (streak) =>
         set((state) => {
@@ -147,7 +133,6 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
                     ...parsed,
                     completedLessons: parsed.completedLessons || [],
                     completedQuizzes: parsed.completedQuizzes || [],
-                    lastLessonByChapter: parsed.lastLessonByChapter || {},
                 };
                 set({ progress });
             }

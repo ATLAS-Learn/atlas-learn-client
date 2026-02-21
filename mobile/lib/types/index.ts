@@ -404,7 +404,6 @@ export interface Progress {
     overallProgress: number; // percentage
     streak: number;
     lastActiveDate: string;
-    lastLessonByChapter?: Record<string, string>;
 }
 
 export interface OverallProgressSummary {
