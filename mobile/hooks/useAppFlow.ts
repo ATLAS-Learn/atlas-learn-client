@@ -11,13 +11,13 @@ export function useAppFlow() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, loadAuth, token, logout } = useAuthStore();
-  const { user, setUser } = useUserStore();
+  const { user, setUser, loadUser } = useUserStore();
   const { loadProgress } = useProgressStore();
 
   useEffect(() => {
     async function initialize() {
       setIsLoading(true);
-      await loadAuth();
+      await Promise.all([loadAuth(), loadUser(), loadProgress()]);
     }
     initialize();
   }, []); // Only run once on mount
@@ -33,14 +33,11 @@ export function useAppFlow() {
         // Token sessions use Authorization header, cookie sessions rely on HTTP-only cookie.
         apiClient.setToken(token || null);
 
-        // Fetch fresh user data from API to validate token and restore session
-        const freshUser = await apiClient.getCurrentUser();
-        
-        // Update user store with fresh data from server
-        setUser(freshUser);
-        
-        // Load progress data
-        await loadProgress();
+        // Fetch user only if we don't already have cached user data.
+        if (!user) {
+          const freshUser = await apiClient.getCurrentUser();
+          setUser(freshUser);
+        }
 
         // Check assessment completion
         const assessment = await getItem("assessmentComplete");

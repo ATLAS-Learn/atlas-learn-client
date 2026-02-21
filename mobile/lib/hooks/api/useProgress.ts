@@ -5,5 +5,7 @@ export function useOverallProgress() {
     return useQuery({
         queryKey: ["progress", "overall"],
         queryFn: () => apiClient.getOverallProgress(),
+        staleTime: 1000 * 60 * 5,
+        refetchOnMount: false,
     });
 }

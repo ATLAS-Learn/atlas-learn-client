@@ -18,8 +18,9 @@ import ContentSection from "@/components/lessons/content-section";
 
 export default function ChapterScreen() {
     const router = useRouter();
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { id, subjectId } = useLocalSearchParams<{ id: string; subjectId?: string }>();
     const chapterId = Array.isArray(id) ? id[0] : id;
+    const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
     const [chapter, setChapter] = useState<Chapter | null>(null);
     const [loading, setLoading] = useState(true);
     const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -93,9 +94,9 @@ export default function ChapterScreen() {
         if (!chapterId) return;
         setLessonsLoading(true);
         try {
-            const subjectId = getSubjectIdFromChapter(chapter);
-            const data = subjectId
-                ? await apiClient.getSubjectChapterLessons(subjectId, chapterId)
+            const resolvedSubjectId = subjectKey || getSubjectIdFromChapter(chapter);
+            const data = resolvedSubjectId
+                ? await apiClient.getSubjectChapterLessons(resolvedSubjectId, chapterId)
                 : await apiClient.getChapterLessons(chapterId);
             setLessons(Array.isArray(data) ? data : []);
         } catch (error: any) {
@@ -146,8 +147,8 @@ export default function ChapterScreen() {
 
     const handleOpenLesson = (lessonId: string) => {
         if (!chapterId) return;
-        const subjectId = getSubjectIdFromChapter(chapter);
-        if (!subjectId) {
+        const resolvedSubjectId = subjectKey || getSubjectIdFromChapter(chapter);
+        if (!resolvedSubjectId) {
             Alert.alert("Missing Subject", "This chapter is missing its subject ID.");
             return;
         }
@@ -156,14 +157,14 @@ export default function ChapterScreen() {
             params: {
                 id: chapterId,
                 lessonId,
-                subjectId: subjectId || "",
+                subjectId: resolvedSubjectId || "",
             },
         } as any);
     };
 
     const handleOpenLessonsList = () => {
         if (!chapterId) return;
-        const subjectId = getSubjectIdFromChapter(chapter);
+        const subjectId = subjectKey || getSubjectIdFromChapter(chapter);
         router.push({
             pathname: "/(tabs)/learn/[id]/lessons",
             params: {
