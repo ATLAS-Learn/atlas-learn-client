@@ -645,7 +645,17 @@ export default function AdminSubjectsScreen() {
     if (!chaptersSubject?.id) return;
     try {
       const progress = await apiClient.getSubjectChapterProgress(chaptersSubject.id, chapter.id);
-      openChapterDataModal(`Progress: ${chapter.title}`, progress);
+      const progressSummary = {
+        id: progress.id ?? "-",
+        isUnlocked: progress.isUnlocked ?? progress.unlocked ?? "-",
+        isCompleted: progress.isCompleted ?? progress.completed ?? "-",
+        bestScore: progress.bestScore ?? "-",
+        currentScore: progress.currentScore ?? "-",
+        attemptsCount: progress.attemptsCount ?? "-",
+        timeSpent: progress.timeSpent ?? "-",
+        lastAttemptedAt: progress.lastAttemptedAt ?? "-",
+      };
+      openChapterDataModal(`Progress: ${chapter.title}`, progressSummary);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to load chapter progress.");
     }

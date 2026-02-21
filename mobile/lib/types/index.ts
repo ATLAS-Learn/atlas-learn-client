@@ -241,8 +241,17 @@ export interface SubjectStats {
 }
 
 export interface SubjectChapterProgress {
+    id?: string;
     subjectId?: string;
     chapterId?: string;
+    isCompleted?: boolean;
+    isUnlocked?: boolean;
+    bestScore?: number;
+    currentScore?: number;
+    attemptsCount?: number;
+    timeSpent?: number;
+    lastAttemptedAt?: string;
+    // Backward compatibility aliases
     completed?: boolean;
     unlocked?: boolean;
     completionPercentage?: number;
@@ -252,7 +261,13 @@ export interface SubjectChapterProgress {
 export interface SubjectChapterUnlockResponse {
     success?: boolean;
     message?: string;
-    data?: Record<string, unknown>;
+    data?: {
+        id?: string;
+        isUnlocked?: boolean;
+        userId?: string;
+        chapterId?: string;
+        [key: string]: unknown;
+    };
     [key: string]: unknown;
 }
 

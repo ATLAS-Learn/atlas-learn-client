@@ -627,7 +627,7 @@ class APIClient {
 
     async getSubjectChapterProgress(subjectId: string, chapterId: string): Promise<SubjectChapterProgress> {
         const response = await this.request<
-            SubjectChapterProgress | { success?: boolean; data?: SubjectChapterProgress }
+            SubjectChapterProgress | { success?: boolean; message?: string; data?: SubjectChapterProgress }
         >(`/subjects/${subjectId}/chapters/${chapterId}/progress`);
         return this.unwrapData<SubjectChapterProgress>(response);
     }
