@@ -272,7 +272,7 @@ export default function ChapterScreen() {
                     ))
                 )}
 
-                {chapter.content.map((section) => (
+                {(chapter.content || []).map((section) => (
                     <ContentSection key={section.id} section={section} />
                 ))}
             </ScrollView>

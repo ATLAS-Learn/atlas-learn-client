@@ -19,7 +19,7 @@ export default function ChapterHeader({ chapter }: ChapterHeaderProps) {
                 </View>
                 <View style={styles.metaItem}>
                     <Ionicons name="layers-outline" size={16} color="#666" />
-                    <Text style={styles.metaText}>{chapter.content.length} sections</Text>
+                    <Text style={styles.metaText}>{(chapter.content || []).length} sections</Text>
                 </View>
             </View>
         </View>

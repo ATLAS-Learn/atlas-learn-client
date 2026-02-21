@@ -84,6 +84,16 @@ export default function AdminSubjectsScreen() {
   const [lessonExamples, setLessonExamples] = useState("");
   const [lessonKeyPoints, setLessonKeyPoints] = useState("");
 
+  const [quizzesModalOpen, setQuizzesModalOpen] = useState(false);
+  const [quizzesChapter, setQuizzesChapter] = useState<SubjectChapter | null>(null);
+  const [chapterQuizzes, setChapterQuizzes] = useState<any[]>([]);
+  const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+  const [savingQuiz, setSavingQuiz] = useState(false);
+  const [deletingQuizId, setDeletingQuizId] = useState<string | null>(null);
+  const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
+  const [quizPayloadJson, setQuizPayloadJson] = useState("{\n  \"title\": \"\",\n  \"description\": \"\",\n  \"passingScore\": 70,\n  \"questions\": []\n}");
+  const [questionPayloadJson, setQuestionPayloadJson] = useState("{\n  \"question\": \"\",\n  \"options\": [\"\"],\n  \"correctAnswer\": 0,\n  \"explanation\": \"\"\n}");
+
   const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [statsSubject, setStatsSubject] = useState<Subject | null>(null);
   const [subjectStats, setSubjectStats] = useState<SubjectStats | null>(null);
@@ -144,6 +154,12 @@ export default function AdminSubjectsScreen() {
     setLessonPdfUrl("");
     setLessonExamples("");
     setLessonKeyPoints("");
+  };
+
+  const resetQuizForm = () => {
+    setEditingQuizId(null);
+    setQuizPayloadJson("{\n  \"title\": \"\",\n  \"description\": \"\",\n  \"passingScore\": 70,\n  \"questions\": []\n}");
+    setQuestionPayloadJson("{\n  \"question\": \"\",\n  \"options\": [\"\"],\n  \"correctAnswer\": 0,\n  \"explanation\": \"\"\n}");
   };
 
   const openCreateSubject = () => {
@@ -271,6 +287,18 @@ export default function AdminSubjectsScreen() {
     }
   };
 
+  const loadChapterQuizzes = async (chapterId: string) => {
+    setLoadingQuizzes(true);
+    try {
+      const quizzes = await apiClient.getChapterQuizzes(chapterId);
+      setChapterQuizzes(Array.isArray(quizzes) ? quizzes : []);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load chapter quizzes.");
+    } finally {
+      setLoadingQuizzes(false);
+    }
+  };
+
   const handleOpenChaptersManager = async (subject: Subject) => {
     setChaptersSubject(subject);
     resetChapterForm();
@@ -284,6 +312,13 @@ export default function AdminSubjectsScreen() {
     resetLessonForm();
     setLessonsModalOpen(true);
     await loadSubjectLessons(chaptersSubject.id, chapter.id);
+  };
+
+  const handleOpenQuizzesManager = async (chapter: SubjectChapter) => {
+    setQuizzesChapter(chapter);
+    resetQuizForm();
+    setQuizzesModalOpen(true);
+    await loadChapterQuizzes(chapter.id);
   };
 
   const openEditLesson = (lesson: Lesson) => {
@@ -466,6 +501,88 @@ export default function AdminSubjectsScreen() {
     ]);
   };
 
+  const handleSaveQuiz = async () => {
+    if (!quizzesChapter?.id) return;
+    let payload: any;
+    try {
+      payload = JSON.parse(quizPayloadJson);
+    } catch {
+      Alert.alert("Invalid JSON", "Quiz payload must be valid JSON.");
+      return;
+    }
+
+    setSavingQuiz(true);
+    try {
+      if (editingQuizId) {
+        await apiClient.updateQuiz(editingQuizId, payload);
+      } else {
+        await apiClient.createChapterQuiz(quizzesChapter.id, payload);
+      }
+      resetQuizForm();
+      await loadChapterQuizzes(quizzesChapter.id);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to save quiz.");
+    } finally {
+      setSavingQuiz(false);
+    }
+  };
+
+  const handleEditQuiz = async (quizId: string) => {
+    setEditingQuizId(quizId);
+    try {
+      const quiz = await apiClient.getQuiz(quizId);
+      setQuizPayloadJson(JSON.stringify(quiz, null, 2));
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load quiz.");
+    }
+  };
+
+  const handleDeleteQuiz = (quizId: string) => {
+    Alert.alert("Delete Quiz", "Delete this quiz permanently?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          setDeletingQuizId(quizId);
+          try {
+            await apiClient.deleteQuiz(quizId);
+            if (quizzesChapter?.id) {
+              await loadChapterQuizzes(quizzesChapter.id);
+            }
+          } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to delete quiz.");
+          } finally {
+            setDeletingQuizId(null);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleAddQuizQuestion = async (quizId: string) => {
+    let payload: any;
+    try {
+      payload = JSON.parse(questionPayloadJson);
+    } catch {
+      Alert.alert("Invalid JSON", "Question payload must be valid JSON.");
+      return;
+    }
+
+    setSavingQuiz(true);
+    try {
+      await apiClient.addQuizQuestion(quizId, payload);
+      Alert.alert("Success", "Question added.");
+      if (quizzesChapter?.id) {
+        await loadChapterQuizzes(quizzesChapter.id);
+      }
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to add question.");
+    } finally {
+      setSavingQuiz(false);
+    }
+  };
+
   const handleViewChapterDetails = async (chapterId: string) => {
     if (!chaptersSubject?.id) return;
 
@@ -502,13 +619,7 @@ export default function AdminSubjectsScreen() {
   };
 
   const handleViewChapterQuizzes = async (chapter: SubjectChapter) => {
-    if (!chaptersSubject?.id) return;
-    try {
-      const quizzes = await apiClient.getSubjectChapterQuizzes(chaptersSubject.id, chapter.id);
-      openChapterDataModal(`Quizzes: ${chapter.title}`, quizzes);
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to load chapter quizzes.");
-    }
+    await handleOpenQuizzesManager(chapter);
   };
 
   const handleViewChapterProgress = async (chapter: SubjectChapter) => {
@@ -962,6 +1073,80 @@ export default function AdminSubjectsScreen() {
         </View>
       </Modal>
 
+      <Modal visible={quizzesModalOpen} transparent animationType="slide" onRequestClose={() => setQuizzesModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, styles.largeModalCard]}>
+            <Text style={styles.modalTitle}>Quizzes{quizzesChapter ? `: ${quizzesChapter.title}` : ""}</Text>
+
+            <Text style={styles.sectionLabel}>Quiz Payload (JSON)</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={quizPayloadJson}
+              onChangeText={setQuizPayloadJson}
+              multiline
+              autoCapitalize="none"
+            />
+
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSaveQuiz} disabled={savingQuiz}>
+              {savingQuiz ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.submitText}>{editingQuizId ? "Update Quiz" : "Create Quiz"}</Text>
+              )}
+            </TouchableOpacity>
+
+            <Text style={styles.sectionLabel}>Question Payload (JSON)</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={questionPayloadJson}
+              onChangeText={setQuestionPayloadJson}
+              multiline
+              autoCapitalize="none"
+            />
+
+            <ScrollView style={styles.modalList} contentContainerStyle={styles.modalListContent}>
+              {loadingQuizzes ? (
+                <ActivityIndicator size="small" color="#F2B138" />
+              ) : chapterQuizzes.length === 0 ? (
+                <Text style={styles.metaText}>No quizzes found for this chapter.</Text>
+              ) : (
+                chapterQuizzes.map((quiz) => (
+                  <View key={quiz.id} style={styles.chapterCard}>
+                    <Text style={styles.cardTitle}>{quiz.title || "Untitled Quiz"}</Text>
+                    <Text style={styles.metaText}>ID: {quiz.id}</Text>
+                    <Text style={styles.metaText}>Questions: {quiz.questions?.length ?? "-"}</Text>
+
+                    <View style={styles.cardActions}>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleEditQuiz(quiz.id)}>
+                        <Text style={styles.smallButtonText}>Edit</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleAddQuizQuestion(quiz.id)}>
+                        <Text style={styles.smallButtonText}>Add Question</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.smallButton, styles.deleteButton]}
+                        onPress={() => handleDeleteQuiz(quiz.id)}
+                        disabled={deletingQuizId === quiz.id}
+                      >
+                        {deletingQuizId === quiz.id ? (
+                          <ActivityIndicator size="small" color="#F44336" />
+                        ) : (
+                          <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setQuizzesModalOpen(false)}>
+              <Text style={styles.cancelText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={statsModalOpen} transparent animationType="slide" onRequestClose={() => setStatsModalOpen(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -1091,6 +1276,7 @@ const styles = StyleSheet.create({
   modalCard: { backgroundColor: "#fff", borderRadius: 16, padding: 16 },
   largeModalCard: { maxHeight: "90%" },
   modalTitle: { fontSize: 18, fontWeight: "700", color: "#1A1A1A", marginBottom: 12 },
+  sectionLabel: { fontSize: 13, fontWeight: "700", color: "#666", marginBottom: 6 },
   input: {
     borderWidth: 1,
     borderColor: "#E8E8E8",
