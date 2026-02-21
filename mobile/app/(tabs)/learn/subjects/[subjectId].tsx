@@ -21,38 +21,47 @@ export default function SubjectDetailScreen() {
 
     const [subject, setSubject] = useState<Subject | null>(null);
     const [chapters, setChapters] = useState<SubjectChapter[]>([]);
+    const [resolvedSubjectId, setResolvedSubjectId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    const loadSubject = useCallback(async () => {
-        if (!subjectKey) return;
-        try {
-            const data = await apiClient.getSubjectById(subjectKey, { includeChapters: false });
-            setSubject(data);
-        } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to load subject.");
-        }
-    }, [subjectKey]);
-
-    const loadChapters = useCallback(async () => {
-        if (!subjectKey) return;
-        try {
-            const data = await apiClient.getSubjectChapters(subjectKey);
-            const sorted = Array.isArray(data)
-                ? [...data].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-                : [];
-            setChapters(sorted);
-        } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to load chapters.");
-        }
-    }, [subjectKey]);
+    const loadSubjectAndChapters = useCallback(async (targetSubjectId: string) => {
+        const [subjectResponse, chaptersResponse] = await Promise.all([
+            apiClient.getSubjectById(targetSubjectId, { includeChapters: false }),
+            apiClient.getSubjectChapters(targetSubjectId),
+        ]);
+        setResolvedSubjectId(targetSubjectId);
+        setSubject(subjectResponse);
+        const sorted = Array.isArray(chaptersResponse)
+            ? [...chaptersResponse].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
+            : [];
+        setChapters(sorted);
+    }, []);
 
     const initialize = useCallback(async () => {
+        if (!subjectKey) return;
         setLoading(true);
-        await Promise.all([loadSubject(), loadChapters()]);
-        setLoading(false);
         setRefreshing(false);
-    }, [loadChapters, loadSubject]);
+        try {
+            await loadSubjectAndChapters(subjectKey);
+        } catch (error: any) {
+            // Fallback: if a chapterId is passed as subjectId, resolve its subjectId from chapter data.
+            try {
+                const chapter = await apiClient.getChapter(subjectKey);
+                const fallbackSubjectId =
+                    chapter?.subjectId || (chapter as { subject_id?: string }).subject_id;
+                if (fallbackSubjectId) {
+                    await loadSubjectAndChapters(fallbackSubjectId);
+                } else {
+                    throw error;
+                }
+            } catch (fallbackError: any) {
+                Alert.alert("Error", fallbackError.message || "Failed to load subject.");
+            }
+        } finally {
+            setLoading(false);
+        }
+    }, [loadSubjectAndChapters, subjectKey]);
 
     useEffect(() => {
         initialize();
@@ -66,7 +75,7 @@ export default function SubjectDetailScreen() {
     const handleOpenChapter = (chapterId: string) => {
         router.push({
             pathname: "/(tabs)/learn/[id]",
-            params: { id: chapterId, subjectId: subjectKey || "" },
+            params: { id: chapterId, subjectId: resolvedSubjectId || subjectKey || "" },
         } as any);
     };
 
