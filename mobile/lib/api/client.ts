@@ -37,6 +37,7 @@ import {
     CreateSubjectPayload,
     UpdateSubjectPayload,
     SubjectQueryOptions,
+    SubjectChaptersQueryOptions,
     SubjectChapter,
     CreateSubjectChapterPayload,
     UpdateSubjectChapterPayload,
@@ -141,6 +142,13 @@ class APIClient {
         return {
             includeChapters: includeChapters ? "true" : "false",
             includeChapterDetails: includeChapterDetails ? "true" : "false",
+        };
+    }
+
+    private buildSubjectChaptersQueryParams(options: SubjectChaptersQueryOptions = {}) {
+        return {
+            includeDetails: options.includeDetails ? "true" : "false",
+            includeProgress: options.includeProgress ? "true" : "false",
         };
     }
 
@@ -464,7 +472,9 @@ class APIClient {
     }
 
     async getSubjectById(subjectId: string, options: SubjectQueryOptions = {}): Promise<Subject> {
-        const response = await this.request<Subject | { success?: boolean; data?: Subject }>(
+        const response = await this.request<
+            Subject | { success?: boolean; message?: string; data?: Subject }
+        >(
             `/subjects/${subjectId}`,
             {
                 params: this.buildSubjectQueryParams(options),
@@ -474,7 +484,9 @@ class APIClient {
     }
 
     async updateSubject(subjectId: string, data: UpdateSubjectPayload): Promise<Subject> {
-        const response = await this.request<Subject | { data?: Subject }>(`/subjects/${subjectId}`, {
+        const response = await this.request<
+            Subject | { success?: boolean; message?: string; data?: Subject }
+        >(`/subjects/${subjectId}`, {
             method: "PUT",
             data,
         });
@@ -482,14 +494,26 @@ class APIClient {
     }
 
     async deleteSubject(subjectId: string): Promise<void> {
-        await this.request<void>(`/subjects/${subjectId}`, {
+        await this.request<
+            void | {
+                success?: boolean;
+                message?: string;
+                data?: {
+                    deletedSubject?: { id?: string; name?: string; code?: string };
+                    cascadeCount?: { chapters?: number; lessons?: number; quizzes?: number };
+                };
+            }
+        >(`/subjects/${subjectId}`, {
             method: "DELETE",
         });
     }
 
     async getSubjectByCode(code: string, options: SubjectQueryOptions = {}): Promise<Subject> {
-        const response = await this.request<Subject | { success?: boolean; data?: Subject }>(
-            `/subjects/code/${encodeURIComponent(code)}`,
+        const normalizedCode = code.trim().toUpperCase();
+        const response = await this.request<
+            Subject | { success?: boolean; message?: string; data?: Subject }
+        >(
+            `/subjects/code/${encodeURIComponent(normalizedCode)}`,
             {
                 params: this.buildSubjectQueryParams(options),
             }
@@ -497,16 +521,23 @@ class APIClient {
         return this.unwrapData<Subject>(response);
     }
 
-    async getSubjectChapters(subjectId: string): Promise<SubjectChapter[]> {
+    async getSubjectChapters(
+        subjectId: string,
+        options: SubjectChaptersQueryOptions = {}
+    ): Promise<SubjectChapter[]> {
         const response = await this.request<
             SubjectChapter[] | { success?: boolean; count?: number; data?: SubjectChapter[] }
-        >(`/subjects/${subjectId}/chapters`);
+        >(`/subjects/${subjectId}/chapters`, {
+            params: this.buildSubjectChaptersQueryParams(options),
+        });
         const chapters = this.unwrapData<SubjectChapter[]>(response);
         return Array.isArray(chapters) ? chapters : [];
     }
 
     async createSubjectChapter(subjectId: string, data: CreateSubjectChapterPayload): Promise<SubjectChapter> {
-        const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
+        const response = await this.request<
+            SubjectChapter | { success?: boolean; message?: string; data?: SubjectChapter }
+        >(
             `/subjects/${subjectId}/chapters`,
             {
                 method: "POST",

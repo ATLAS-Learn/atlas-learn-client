@@ -224,10 +224,10 @@ export default function AdminSubjectsScreen() {
   };
 
   const handleDeleteSubject = (subject: Subject) => {
-    Alert.alert("Delete Subject", `Delete "${subject.name}" (${subject.code})?`, [
+    Alert.alert("Delete Subject", `Delete "${subject.name}" (${subject.code})?\n\nThis permanently deletes all related chapters, lessons, quizzes, and progress data.`, [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Delete",
+        text: "Delete Permanently",
         style: "destructive",
         onPress: async () => {
           try {
@@ -254,13 +254,18 @@ export default function AdminSubjectsScreen() {
   };
 
   const handleSearchByCode = async () => {
-    if (!searchCode.trim()) {
+    const normalizedCode = searchCode.trim().toUpperCase();
+    if (!normalizedCode) {
       Alert.alert("Missing Code", "Enter a subject code to search.");
+      return;
+    }
+    if (!/^[A-Z0-9-]+$/.test(normalizedCode)) {
+      Alert.alert("Invalid Code", "Code must be uppercase alphanumeric and hyphens only.");
       return;
     }
     setSearchingByCode(true);
     try {
-      const data = await apiClient.getSubjectByCode(searchCode.trim(), queryOptions);
+      const data = await apiClient.getSubjectByCode(normalizedCode, queryOptions);
       setSubjectByCode(data);
     } catch (error: any) {
       setSubjectByCode(null);

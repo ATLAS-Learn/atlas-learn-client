@@ -160,6 +160,11 @@ export interface SubjectQueryOptions {
     includeChapterDetails?: boolean;
 }
 
+export interface SubjectChaptersQueryOptions {
+    includeDetails?: boolean;
+    includeProgress?: boolean;
+}
+
 export interface CreateSubjectPayload {
     name: string;
     code: string;
