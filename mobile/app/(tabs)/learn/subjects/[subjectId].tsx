@@ -52,28 +52,16 @@ export default function SubjectDetailScreen() {
         try {
             await loadSubjectAndChapters(subjectKey);
         } catch (error: any) {
-            // Fallback: if a chapterId is passed as subjectId, resolve its subjectId from chapter data.
-            try {
-                const chapter = await apiClient.getChapter(subjectKey);
-                const fallbackSubjectId =
-                    chapter?.subjectId || (chapter as { subject_id?: string }).subject_id;
-                console.log("[ID_TRACE] subject fallback from chapter", {
-                    inputSubjectKey: subjectKey,
-                    fallbackSubjectId,
-                    chapterIdUsedForFallback: chapter?.id,
-                });
-                if (fallbackSubjectId) {
-                    await loadSubjectAndChapters(fallbackSubjectId);
-                } else {
-                    Alert.alert("Error", "Subject not found.");
-                }
-            } catch (fallbackError: any) {
-                Alert.alert("Error", fallbackError.message || "Subject not found.");
-            }
+            console.log("[ID_TRACE] SubjectDetail invalid subjectId", {
+                subjectKey,
+                errorMessage: error?.message,
+            });
+            Alert.alert("Error", error?.message || "Subject not found.");
+            router.back();
         } finally {
             setLoading(false);
         }
-    }, [loadSubjectAndChapters, subjectKey]);
+    }, [loadSubjectAndChapters, router, subjectKey]);
 
     useEffect(() => {
         initialize();
