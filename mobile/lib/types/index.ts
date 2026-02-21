@@ -173,6 +173,11 @@ export interface SubjectChapterQueryOptions {
     includeExamHints?: boolean;
 }
 
+export interface SubjectChapterQuizzesQueryOptions {
+    includeQuestions?: boolean;
+    includeAttempts?: boolean;
+}
+
 export interface CreateSubjectPayload {
     name: string;
     code: string;

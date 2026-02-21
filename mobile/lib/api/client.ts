@@ -39,6 +39,7 @@ import {
     SubjectQueryOptions,
     SubjectChaptersQueryOptions,
     SubjectChapterQueryOptions,
+    SubjectChapterQuizzesQueryOptions,
     SubjectChapter,
     CreateSubjectChapterPayload,
     UpdateSubjectChapterPayload,
@@ -160,6 +161,13 @@ class APIClient {
             includeQuizzes: options.includeQuizzes ? "true" : "false",
             includeProgress: options.includeProgress ? "true" : "false",
             includeExamHints: options.includeExamHints ? "true" : "false",
+        };
+    }
+
+    private buildSubjectChapterQuizzesQueryParams(options: SubjectChapterQuizzesQueryOptions = {}) {
+        return {
+            includeQuestions: options.includeQuestions ? "true" : "false",
+            includeAttempts: options.includeAttempts ? "true" : "false",
         };
     }
 
@@ -577,7 +585,9 @@ class APIClient {
         chapterId: string,
         data: UpdateSubjectChapterPayload
     ): Promise<SubjectChapter> {
-        const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
+        const response = await this.request<
+            SubjectChapter | { success?: boolean; message?: string; data?: SubjectChapter }
+        >(
             `/subjects/${subjectId}/chapters/${chapterId}`,
             {
                 method: "PUT",
@@ -588,7 +598,7 @@ class APIClient {
     }
 
     async deleteSubjectChapter(subjectId: string, chapterId: string): Promise<void> {
-        await this.request<void>(`/subjects/${subjectId}/chapters/${chapterId}`, {
+        await this.request<void | { message?: string }>(`/subjects/${subjectId}/chapters/${chapterId}`, {
             method: "DELETE",
         });
     }
@@ -600,9 +610,16 @@ class APIClient {
         return this.unwrapData<SubjectStats>(response);
     }
 
-    async getSubjectChapterQuizzes(subjectId: string, chapterId: string): Promise<Quiz[]> {
+    async getSubjectChapterQuizzes(
+        subjectId: string,
+        chapterId: string,
+        options: SubjectChapterQuizzesQueryOptions = {}
+    ): Promise<Quiz[]> {
         const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
-            `/subjects/${subjectId}/chapters/${chapterId}/quizzes`
+            `/subjects/${subjectId}/chapters/${chapterId}/quizzes`,
+            {
+                params: this.buildSubjectChapterQuizzesQueryParams(options),
+            }
         );
         const quizzes = this.unwrapData<Quiz[]>(response);
         return Array.isArray(quizzes) ? quizzes : [];

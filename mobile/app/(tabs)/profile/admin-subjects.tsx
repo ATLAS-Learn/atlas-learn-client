@@ -299,10 +299,13 @@ export default function AdminSubjectsScreen() {
     }
   };
 
-  const loadChapterQuizzes = async (chapterId: string) => {
+  const loadChapterQuizzes = async (subjectId: string, chapterId: string) => {
     setLoadingQuizzes(true);
     try {
-      const quizzes = await apiClient.getChapterQuizzes(chapterId);
+      const quizzes = await apiClient.getSubjectChapterQuizzes(subjectId, chapterId, {
+        includeQuestions: true,
+        includeAttempts: false,
+      });
       setChapterQuizzes(Array.isArray(quizzes) ? quizzes : []);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to load chapter quizzes.");
@@ -327,10 +330,11 @@ export default function AdminSubjectsScreen() {
   };
 
   const handleOpenQuizzesManager = async (chapter: SubjectChapter) => {
+    if (!chaptersSubject?.id) return;
     setQuizzesChapter(chapter);
     resetQuizForm();
     setQuizzesModalOpen(true);
-    await loadChapterQuizzes(chapter.id);
+    await loadChapterQuizzes(chaptersSubject.id, chapter.id);
   };
 
   const openEditLesson = (lesson: Lesson) => {
@@ -397,7 +401,7 @@ export default function AdminSubjectsScreen() {
     setSavingChapter(true);
     try {
       if (editingChapterId) {
-        await apiClient.updateChapter(editingChapterId, payload);
+        await apiClient.updateSubjectChapter(chaptersSubject.id, editingChapterId, payload);
       } else {
         await apiClient.createSubjectChapter(chaptersSubject.id, payload);
       }
@@ -421,7 +425,7 @@ export default function AdminSubjectsScreen() {
         onPress: async () => {
           setDeletingChapterId(chapter.id);
           try {
-            await apiClient.deleteChapter(chapter.id);
+            await apiClient.deleteSubjectChapter(chaptersSubject.id, chapter.id);
             await loadSubjectChapters(chaptersSubject.id);
           } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to delete chapter.");
@@ -531,7 +535,8 @@ export default function AdminSubjectsScreen() {
         await apiClient.createChapterQuiz(quizzesChapter.id, payload);
       }
       resetQuizForm();
-      await loadChapterQuizzes(quizzesChapter.id);
+      if (!chaptersSubject?.id) return;
+      await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to save quiz.");
     } finally {
@@ -560,7 +565,8 @@ export default function AdminSubjectsScreen() {
           try {
             await apiClient.deleteQuiz(quizId);
             if (quizzesChapter?.id) {
-              await loadChapterQuizzes(quizzesChapter.id);
+              if (!chaptersSubject?.id) return;
+              await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
             }
           } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to delete quiz.");
@@ -586,7 +592,8 @@ export default function AdminSubjectsScreen() {
       await apiClient.addQuizQuestion(quizId, payload);
       Alert.alert("Success", "Question added.");
       if (quizzesChapter?.id) {
-        await loadChapterQuizzes(quizzesChapter.id);
+        if (!chaptersSubject?.id) return;
+        await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
       }
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to add question.");
