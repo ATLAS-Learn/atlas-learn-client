@@ -36,20 +36,64 @@ export default function SubjectDetailScreen() {
         });
     }, [resolvedSubjectId, subjectId, subjectCode, subjectKey, subjectCodeKey]);
 
+    const toSubjectChapterArray = (value: unknown): SubjectChapter[] => {
+        if (!Array.isArray(value)) return [];
+        return value.filter((item): item is SubjectChapter => Boolean(item && typeof item === "object"));
+    };
+
+    const loadFromSubjectsFallback = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
+        const allSubjects = await apiClient.getSubjects({
+            includeChapters: true,
+            includeChapterDetails: true,
+        });
+        const code = targetSubjectCode?.trim().toUpperCase();
+        const matched = allSubjects.find((item) => {
+            if (code && typeof item.code === "string" && item.code.toUpperCase() === code) {
+                return true;
+            }
+            return item.id === targetSubjectId;
+        });
+
+        if (!matched) {
+            throw new Error("Subject not found");
+        }
+
+        setResolvedSubjectId(matched.id);
+        setSubject(matched);
+        const sorted = [...toSubjectChapterArray(matched.chapters)].sort(
+            (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)
+        );
+        setChapters(sorted);
+    }, []);
+
     const loadSubjectAndChapters = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
         console.log("[ID_TRACE] loadSubjectAndChapters", { targetSubjectId, targetSubjectCode });
 
         let subjectResponse: Subject;
         if (targetSubjectCode) {
-            subjectResponse = await apiClient.getSubjectByCode(targetSubjectCode, { includeChapters: false });
+            subjectResponse = await apiClient.getSubjectByCode(targetSubjectCode, {
+                includeChapters: true,
+                includeChapterDetails: true,
+            });
         } else {
-            subjectResponse = await apiClient.getSubjectById(targetSubjectId, { includeChapters: false });
+            subjectResponse = await apiClient.getSubjectById(targetSubjectId, {
+                includeChapters: true,
+                includeChapterDetails: true,
+            });
         }
 
         const canonicalSubjectId = subjectResponse.id || targetSubjectId;
-        const chaptersResponse = await apiClient.getSubjectChapters(canonicalSubjectId);
         setResolvedSubjectId(canonicalSubjectId);
         setSubject(subjectResponse);
+
+        const embeddedChapters = toSubjectChapterArray(subjectResponse.chapters);
+        if (embeddedChapters.length > 0) {
+            const sorted = [...embeddedChapters].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+            setChapters(sorted);
+            return;
+        }
+
+        const chaptersResponse = await apiClient.getSubjectChapters(canonicalSubjectId);
         const sorted = Array.isArray(chaptersResponse)
             ? [...chaptersResponse].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
             : [];
@@ -63,9 +107,8 @@ export default function SubjectDetailScreen() {
         try {
             try {
                 await loadSubjectAndChapters(subjectKey, subjectCodeKey);
-            } catch (primaryError: any) {
-                if (!subjectCodeKey) throw primaryError;
-                await loadSubjectAndChapters(subjectKey);
+            } catch {
+                await loadFromSubjectsFallback(subjectKey, subjectCodeKey);
             }
         } catch (error: any) {
             console.log("[ID_TRACE] SubjectDetail invalid subjectId", {
@@ -78,7 +121,7 @@ export default function SubjectDetailScreen() {
         } finally {
             setLoading(false);
         }
-    }, [loadSubjectAndChapters, router, subjectCodeKey, subjectKey]);
+    }, [loadFromSubjectsFallback, loadSubjectAndChapters, router, subjectCodeKey, subjectKey]);
 
     useEffect(() => {
         initialize();
