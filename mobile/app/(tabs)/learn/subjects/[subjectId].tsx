@@ -16,8 +16,9 @@ import { Subject, SubjectChapter } from "@/lib/types";
 
 export default function SubjectDetailScreen() {
     const router = useRouter();
-    const { subjectId } = useLocalSearchParams<{ subjectId: string }>();
+    const { subjectId, subjectCode } = useLocalSearchParams<{ subjectId: string; subjectCode?: string }>();
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
+    const subjectCodeKey = Array.isArray(subjectCode) ? subjectCode[0] : subjectCode;
 
     const [subject, setSubject] = useState<Subject | null>(null);
     const [chapters, setChapters] = useState<SubjectChapter[]>([]);
@@ -28,16 +29,26 @@ export default function SubjectDetailScreen() {
     useEffect(() => {
         console.log("[ID_TRACE] SubjectDetail route params", {
             rawSubjectId: subjectId,
+            rawSubjectCode: subjectCode,
             subjectKey,
+            subjectCodeKey,
             resolvedSubjectId,
         });
-    }, [resolvedSubjectId, subjectId, subjectKey]);
+    }, [resolvedSubjectId, subjectId, subjectCode, subjectKey, subjectCodeKey]);
 
-    const loadSubjectAndChapters = useCallback(async (targetSubjectId: string) => {
-        console.log("[ID_TRACE] loadSubjectAndChapters", { targetSubjectId });
-        const subjectResponse = await apiClient.getSubjectById(targetSubjectId, { includeChapters: false });
-        const chaptersResponse = await apiClient.getSubjectChapters(targetSubjectId);
-        setResolvedSubjectId(targetSubjectId);
+    const loadSubjectAndChapters = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
+        console.log("[ID_TRACE] loadSubjectAndChapters", { targetSubjectId, targetSubjectCode });
+
+        let subjectResponse: Subject;
+        if (targetSubjectCode) {
+            subjectResponse = await apiClient.getSubjectByCode(targetSubjectCode, { includeChapters: false });
+        } else {
+            subjectResponse = await apiClient.getSubjectById(targetSubjectId, { includeChapters: false });
+        }
+
+        const canonicalSubjectId = subjectResponse.id || targetSubjectId;
+        const chaptersResponse = await apiClient.getSubjectChapters(canonicalSubjectId);
+        setResolvedSubjectId(canonicalSubjectId);
         setSubject(subjectResponse);
         const sorted = Array.isArray(chaptersResponse)
             ? [...chaptersResponse].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
@@ -50,10 +61,16 @@ export default function SubjectDetailScreen() {
         setLoading(true);
         setRefreshing(false);
         try {
-            await loadSubjectAndChapters(subjectKey);
+            try {
+                await loadSubjectAndChapters(subjectKey, subjectCodeKey);
+            } catch (primaryError: any) {
+                if (!subjectCodeKey) throw primaryError;
+                await loadSubjectAndChapters(subjectKey);
+            }
         } catch (error: any) {
             console.log("[ID_TRACE] SubjectDetail invalid subjectId", {
                 subjectKey,
+                subjectCodeKey,
                 errorMessage: error?.message,
             });
             Alert.alert("Error", error?.message || "Subject not found.");
@@ -61,7 +78,7 @@ export default function SubjectDetailScreen() {
         } finally {
             setLoading(false);
         }
-    }, [loadSubjectAndChapters, router, subjectKey]);
+    }, [loadSubjectAndChapters, router, subjectCodeKey, subjectKey]);
 
     useEffect(() => {
         initialize();

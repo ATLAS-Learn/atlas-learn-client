@@ -64,6 +64,7 @@ import {
 class APIClient {
     private axiosInstance: AxiosInstance;
     private token: string | null = null;
+    private inflightGetRequests = new Map<string, Promise<unknown>>();
 
     constructor(baseURL: string) {
         this.axiosInstance = axios.create({
@@ -113,6 +114,21 @@ class APIClient {
         this.token = token;
     }
 
+    private serializeParams(params: unknown): string {
+        if (!params || typeof params !== "object") return "";
+        const entries = Object.entries(params as Record<string, unknown>)
+            .filter(([, value]) => value !== undefined && value !== null)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, value]) => [key, String(value)]);
+        return new URLSearchParams(entries as [string, string][]).toString();
+    }
+
+    private buildGetRequestKey(endpoint: string, params?: unknown): string {
+        const authKey = this.token ? `token:${this.token.slice(0, 16)}` : "cookie-session";
+        const query = this.serializeParams(params);
+        return `${endpoint}?${query}::${authKey}`;
+    }
+
     private async request<T>(
         endpoint: string,
         options: {
@@ -122,6 +138,29 @@ class APIClient {
         } = {}
     ): Promise<T> {
         const { method = "GET", data, params } = options;
+        if (method === "GET") {
+            const requestKey = this.buildGetRequestKey(endpoint, params);
+            const inflight = this.inflightGetRequests.get(requestKey) as Promise<T> | undefined;
+            if (inflight) {
+                return inflight;
+            }
+
+            const requestPromise = this.axiosInstance
+                .request<T>({
+                    url: endpoint,
+                    method,
+                    data,
+                    params,
+                })
+                .then((response) => response.data)
+                .finally(() => {
+                    this.inflightGetRequests.delete(requestKey);
+                });
+
+            this.inflightGetRequests.set(requestKey, requestPromise as Promise<unknown>);
+            return requestPromise;
+        }
+
         const response = await this.axiosInstance.request<T>({
             url: endpoint,
             method,
@@ -176,36 +215,58 @@ class APIClient {
     }
 
     private buildSubjectQueryParams(options: SubjectQueryOptions = {}) {
-        const includeChapters = options.includeChapters ?? false;
-        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
-        return {
-            includeChapters: includeChapters ? "true" : "false",
-            includeChapterDetails: includeChapterDetails ? "true" : "false",
-        };
+        const includeChapters = options.includeChapters === true;
+        const includeChapterDetails = includeChapters && options.includeChapterDetails === true;
+        const params: Record<string, string> = {};
+        if (includeChapters) {
+            params.includeChapters = "true";
+        }
+        if (includeChapterDetails) {
+            params.includeChapterDetails = "true";
+        }
+        return Object.keys(params).length ? params : undefined;
     }
 
     private buildSubjectChaptersQueryParams(options: SubjectChaptersQueryOptions = {}) {
-        return {
-            includeDetails: options.includeDetails ? "true" : "false",
-            includeProgress: options.includeProgress ? "true" : "false",
-        };
+        const params: Record<string, string> = {};
+        if (options.includeDetails) {
+            params.includeDetails = "true";
+        }
+        if (options.includeProgress) {
+            params.includeProgress = "true";
+        }
+        return Object.keys(params).length ? params : undefined;
     }
 
     private buildSubjectChapterQueryParams(options: SubjectChapterQueryOptions = {}) {
-        return {
-            includeSubject: options.includeSubject ? "true" : "false",
-            includeLessons: options.includeLessons ? "true" : "false",
-            includeQuizzes: options.includeQuizzes ? "true" : "false",
-            includeProgress: options.includeProgress ? "true" : "false",
-            includeExamHints: options.includeExamHints ? "true" : "false",
-        };
+        const params: Record<string, string> = {};
+        if (options.includeSubject) {
+            params.includeSubject = "true";
+        }
+        if (options.includeLessons) {
+            params.includeLessons = "true";
+        }
+        if (options.includeQuizzes) {
+            params.includeQuizzes = "true";
+        }
+        if (options.includeProgress) {
+            params.includeProgress = "true";
+        }
+        if (options.includeExamHints) {
+            params.includeExamHints = "true";
+        }
+        return Object.keys(params).length ? params : undefined;
     }
 
     private buildSubjectChapterQuizzesQueryParams(options: SubjectChapterQuizzesQueryOptions = {}) {
-        return {
-            includeQuestions: options.includeQuestions ? "true" : "false",
-            includeAttempts: options.includeAttempts ? "true" : "false",
-        };
+        const params: Record<string, string> = {};
+        if (options.includeQuestions) {
+            params.includeQuestions = "true";
+        }
+        if (options.includeAttempts) {
+            params.includeAttempts = "true";
+        }
+        return Object.keys(params).length ? params : undefined;
     }
 
     private traceIdOrigin(context: string, payload: Record<string, unknown>) {

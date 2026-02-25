@@ -47,11 +47,14 @@ export default function SubjectsScreen() {
         loadSubjects();
     };
 
-    const handleOpenSubject = (subjectId: string) => {
-        console.log("[ID_TRACE] SubjectsScreen navigate subject detail", { subjectId });
+    const handleOpenSubject = (subject: Subject) => {
+        console.log("[ID_TRACE] SubjectsScreen navigate subject detail", {
+            subjectId: subject.id,
+            subjectCode: subject.code,
+        });
         router.push({
             pathname: "/(tabs)/learn/subjects/[subjectId]",
-            params: { subjectId },
+            params: { subjectId: subject.id, subjectCode: subject.code },
         } as any);
     };
 
@@ -89,7 +92,7 @@ export default function SubjectsScreen() {
                         <TouchableOpacity
                             key={subject.id}
                             style={styles.subjectCard}
-                            onPress={() => handleOpenSubject(subject.id)}
+                            onPress={() => handleOpenSubject(subject)}
                         >
                             <View style={styles.subjectInfo}>
                                 <Text style={styles.subjectTitle}>{subject.name}</Text>
