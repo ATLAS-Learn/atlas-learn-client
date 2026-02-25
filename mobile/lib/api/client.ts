@@ -138,6 +138,43 @@ class APIClient {
         return response as T;
     }
 
+    private normalizeUserPayload(response: unknown): User {
+        if (!response || typeof response !== "object") {
+            throw new Error("Invalid user response");
+        }
+
+        const payload = response as Record<string, unknown>;
+        const data =
+            payload.data && typeof payload.data === "object"
+                ? (payload.data as Record<string, unknown>)
+                : null;
+        const dataData =
+            data?.data && typeof data.data === "object"
+                ? (data.data as Record<string, unknown>)
+                : null;
+
+        const candidates: unknown[] = [
+            payload,
+            payload.user,
+            data,
+            data?.user,
+            dataData,
+            dataData?.user,
+        ];
+
+        for (const item of candidates) {
+            if (!item || typeof item !== "object") continue;
+            const user = item as Partial<User>;
+            if (user.id && user.email) {
+                return user as User;
+            }
+        }
+
+        const payloadKeys = Object.keys(payload).join(", ");
+        const dataKeys = data ? Object.keys(data).join(", ") : "none";
+        throw new Error(`Invalid user response (keys: ${payloadKeys}; data keys: ${dataKeys})`);
+    }
+
     private buildSubjectQueryParams(options: SubjectQueryOptions = {}) {
         const includeChapters = options.includeChapters ?? false;
         const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
@@ -200,7 +237,8 @@ class APIClient {
     }
 
     async getCurrentUser(): Promise<User> {
-        return this.request<User>("/auth/me");
+        const response = await this.request<User | { data?: User }>("/auth/me");
+        return this.normalizeUserPayload(response);
     }
 
     async updateCurrentUserProfile(data: UpdateProfilePayload): Promise<User> {

@@ -90,7 +90,8 @@ export default function VerifyOTPScreen() {
                 await setCookieAuth();
                 apiClient.setToken(null);
             }
-            setUser(response.user);
+            // Mark OTP payload as provisional; app flow will refresh /auth/me.
+            setUser(response.user, { markSynced: false });
 
             // Check if assessment is complete
             const assessmentComplete = await getItem("assessmentComplete");
