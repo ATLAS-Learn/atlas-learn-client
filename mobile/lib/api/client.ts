@@ -508,13 +508,59 @@ class APIClient {
     }
 
     async getAssessmentResult(): Promise<AssessmentResult> {
-        // Get assessment result after submission
-        return this.request<AssessmentResult>("/assessment/result");
+        const response = await this.request<
+            AssessmentResult |
+            {
+                success?: boolean;
+                message?: string;
+                data?: {
+                    score?: number;
+                    correctAnswers?: number;
+                    totalQuestions?: number;
+                    level?: Level;
+                    levelDescription?: string;
+                };
+            }
+        >("/assessment/result");
+
+        if (response && typeof response === "object" && "data" in response) {
+            const wrapped = response as {
+                message?: string;
+                data?: {
+                    score?: number;
+                    correctAnswers?: number;
+                    totalQuestions?: number;
+                    level?: Level;
+                    levelDescription?: string;
+                };
+            };
+            const data = wrapped.data;
+            if (data) {
+                return {
+                    score: Number(data.correctAnswers ?? data.score ?? 0),
+                    totalQuestions: Number(data.totalQuestions ?? 5),
+                    level: data.level || Level.FOUNDATIONAL,
+                    message: data.levelDescription || wrapped.message || "Assessment completed successfully",
+                };
+            }
+        }
+
+        return response as AssessmentResult;
     }
 
     async getAssessmentStatus(): Promise<{ completed: boolean; level?: Level }> {
-        // Check if assessment is completed
-        return this.request<{ completed: boolean; level?: Level }>("/assessment/status");
+        const response = await this.request<
+            { completed: boolean; level?: Level } |
+            { success?: boolean; data?: { completed?: boolean; level?: Level } }
+        >("/assessment/status");
+        if (response && typeof response === "object" && "data" in response) {
+            const wrapped = response as { data?: { completed?: boolean; level?: Level } };
+            return {
+                completed: Boolean(wrapped.data?.completed),
+                level: wrapped.data?.level,
+            };
+        }
+        return response as { completed: boolean; level?: Level };
     }
 
     async getOverallProgress(): Promise<OverallProgressData> {

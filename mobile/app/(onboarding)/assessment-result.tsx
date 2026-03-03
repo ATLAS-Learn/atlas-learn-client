@@ -1,5 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+    ActivityIndicator,
+    Alert,
     View,
     Text,
     TouchableOpacity,
@@ -13,6 +15,7 @@ import { Level } from "@/lib/types";
 import { LEVEL_INFO } from "@/lib/constants/levels";
 import { useUserStore } from "@/lib/store/user";
 import { setItem } from "@/lib/utils/storage";
+import { apiClient } from "@/lib/api";
 
 export default function AssessmentResultScreen() {
     const router = useRouter();
@@ -20,13 +23,54 @@ export default function AssessmentResultScreen() {
     const params = useLocalSearchParams();
     const { updateLevel } = useUserStore();
 
-    const score = parseInt(params.score as string) || 0;
-    const totalQuestions = parseInt(params.totalQuestions as string) || 5;
-    const level = (params.level as Level) || Level.FOUNDATIONAL;
-    const message = (params.message as string) || "";
+    const hasRouteResult = useMemo(
+        () =>
+            typeof params.score === "string" &&
+            typeof params.totalQuestions === "string" &&
+            typeof params.level === "string",
+        [params.level, params.score, params.totalQuestions]
+    );
+
+    const [score, setScore] = useState(parseInt(params.score as string) || 0);
+    const [totalQuestions, setTotalQuestions] = useState(parseInt(params.totalQuestions as string) || 5);
+    const [level, setLevel] = useState((params.level as Level) || Level.FOUNDATIONAL);
+    const [message, setMessage] = useState((params.message as string) || "");
+    const [loadingResult, setLoadingResult] = useState(!hasRouteResult);
 
     const levelInfo = LEVEL_INFO[level];
     const percentage = (score / totalQuestions) * 100;
+
+    useEffect(() => {
+        let mounted = true;
+
+        const loadResult = async () => {
+            if (hasRouteResult) {
+                setLoadingResult(false);
+                return;
+            }
+
+            try {
+                const result = await apiClient.getAssessmentResult();
+                if (!mounted) return;
+                setScore(Number(result.score || 0));
+                setTotalQuestions(Number(result.totalQuestions || 5));
+                setLevel((result.level as Level) || Level.FOUNDATIONAL);
+                setMessage(result.message || "");
+            } catch (error: any) {
+                if (!mounted) return;
+                Alert.alert("Result Unavailable", error.message || "Failed to load assessment result.");
+            } finally {
+                if (mounted) {
+                    setLoadingResult(false);
+                }
+            }
+        };
+
+        loadResult();
+        return () => {
+            mounted = false;
+        };
+    }, [hasRouteResult]);
 
     useEffect(() => {
         // Update user level in store
@@ -45,6 +89,13 @@ export default function AssessmentResultScreen() {
             style={styles.container}
             contentContainerStyle={[styles.content, { padding: width < 390 ? 16 : 24, paddingTop: Math.max(24, Math.floor(height * 0.06)) }]}
         >
+            {loadingResult ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#F2B138" />
+                    <Text style={styles.loadingText}>Loading your result...</Text>
+                </View>
+            ) : (
+                <>
             <View style={[styles.iconContainer, { marginTop: width < 390 ? 16 : 32 }]}>
                 <View style={[styles.iconCircle, { backgroundColor: `${levelInfo.color}20`, width: iconSize + 60, height: iconSize + 60, borderRadius: (iconSize + 60) / 2 }]}>
                     <Ionicons name="trophy" size={iconSize} color={levelInfo.color} />
@@ -93,6 +144,8 @@ export default function AssessmentResultScreen() {
                 <Text style={styles.continueButtonText}>Continue to Dashboard</Text>
                 <Ionicons name="arrow-forward" size={20} color="#fff" />
             </TouchableOpacity>
+                </>
+            )}
         </ScrollView>
     );
 }
@@ -106,6 +159,17 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         padding: 24,
         alignItems: "center",
+    },
+    loadingContainer: {
+        flex: 1,
+        minHeight: 320,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 15,
+        color: "#666",
     },
     iconContainer: {
         marginTop: 40,
