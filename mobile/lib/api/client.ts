@@ -147,6 +147,16 @@ class APIClient {
         return unique;
     }
 
+    private shouldFallbackFromSubjectScopedError(error: unknown): boolean {
+        if (!(error instanceof Error)) return false;
+        const message = error.message.toLowerCase();
+        return (
+            message.includes("invalid input data") ||
+            message.includes("invalid subject") ||
+            message.includes("subject not found")
+        );
+    }
+
     private async request<T>(
         endpoint: string,
         options: {
@@ -835,12 +845,25 @@ class APIClient {
         chapterId: string,
         lessonId: string
     ): Promise<LessonCompletionResponse> {
-        return this.request<LessonCompletionResponse>(
-            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/complete`,
-            {
-                method: "POST",
+        try {
+            return await this.request<LessonCompletionResponse>(
+                `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/complete`,
+                {
+                    method: "POST",
+                }
+            );
+        } catch (error) {
+            if (!this.shouldFallbackFromSubjectScopedError(error)) {
+                throw error;
             }
-        );
+            // Fallback for deployments where lesson completion is chapter-scoped only.
+            return this.request<LessonCompletionResponse>(
+                `/chapters/${chapterId}/lessons/${lessonId}/complete`,
+                {
+                    method: "POST",
+                }
+            );
+        }
     }
 
     async updateSubjectChapterLessonProgress(
@@ -849,13 +872,27 @@ class APIClient {
         lessonId: string,
         data: LessonProgressUpdatePayload
     ): Promise<LessonCompletionResponse> {
-        return this.request<LessonCompletionResponse>(
-            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/progress`,
-            {
-                method: "POST",
-                data,
+        try {
+            return await this.request<LessonCompletionResponse>(
+                `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/progress`,
+                {
+                    method: "POST",
+                    data,
+                }
+            );
+        } catch (error) {
+            if (!this.shouldFallbackFromSubjectScopedError(error)) {
+                throw error;
             }
-        );
+            // Fallback for deployments where lesson progress is chapter-scoped only.
+            return this.request<LessonCompletionResponse>(
+                `/chapters/${chapterId}/lessons/${lessonId}/progress`,
+                {
+                    method: "POST",
+                    data,
+                }
+            );
+        }
     }
 
     async getSubjectChapterLessonPdf(
