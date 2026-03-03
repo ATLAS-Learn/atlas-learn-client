@@ -14,10 +14,12 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { AssessmentAdminItem, AssessmentAdminQuestion } from "@/lib/types";
+import { AssessmentAdminItem, AssessmentAdminQuestion, UserRole } from "@/lib/types";
+import { useUserStore } from "@/lib/store/user";
 
 export default function AdminAssessmentsScreen() {
   const router = useRouter();
+  const { user } = useUserStore();
   const [assessments, setAssessments] = useState<AssessmentAdminItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -36,6 +38,14 @@ export default function AdminAssessmentsScreen() {
   const [questionText, setQuestionText] = useState("");
   const [questionOptions, setQuestionOptions] = useState("");
   const [questionOrder, setQuestionOrder] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== UserRole.ADMIN) {
+      Alert.alert("Access Denied", "This page is only available to admins.");
+      router.replace("/(tabs)/profile");
+    }
+  }, [router, user]);
 
   const loadAssessments = useCallback(async () => {
     try {

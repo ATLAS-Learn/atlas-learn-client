@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -11,22 +11,18 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { StudentDetail, StudentStatus } from "@/lib/types";
+import { StudentDetail, StudentStatus, UserRole } from "@/lib/types";
 import { LEVEL_INFO } from "@/lib/constants/levels";
+import { useUserStore } from "@/lib/store/user";
 
 export default function StudentDetailScreen() {
     const router = useRouter();
+    const { user } = useUserStore();
     const { id } = useLocalSearchParams<{ id: string }>();
     const [student, setStudent] = useState<StudentDetail | null>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (id) {
-            loadStudentDetail();
-        }
-    }, [id]);
-
-    const loadStudentDetail = async () => {
+    const loadStudentDetail = useCallback(async () => {
         try {
             const data = await apiClient.getStudentDetail(id!);
             setStudent(data);
@@ -36,7 +32,17 @@ export default function StudentDetailScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        if (user && user.role !== UserRole.TEACHER) {
+            router.replace("/(tabs)/profile");
+            return;
+        }
+        if (id) {
+            loadStudentDetail();
+        }
+    }, [id, loadStudentDetail, router, user]);
 
     const getStatusColor = (status: StudentStatus): string => {
         switch (status) {
