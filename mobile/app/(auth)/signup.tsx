@@ -19,10 +19,12 @@ import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ValidationErrors, validateFields } from "@/lib/utils/validate";
 import { apiClient } from "@/lib/api";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SignUpScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
@@ -81,7 +83,16 @@ export default function SignUpScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={[
+            styles.backArrow,
+            {
+              top: Math.max(insets.top + 8, 16),
+              left: width < 390 ? 12 : 16,
+            },
+          ]}
+          onPress={() => router.back()}
+        >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
 
@@ -89,7 +100,7 @@ export default function SignUpScreen() {
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingTop: Math.max(88, Math.floor(height * 0.11)),
+              paddingTop: Math.max(insets.top + 64, Math.floor(height * 0.11)),
               paddingHorizontal: width < 390 ? 16 : 24,
             },
           ]}
@@ -220,9 +231,15 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     position: "absolute",
-    top: 60,
-    left: 25,
     zIndex: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#EAEAEA",
   },
   logoContainer: {
     alignItems: "center",
