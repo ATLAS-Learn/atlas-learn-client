@@ -96,6 +96,7 @@ export default function AdminSubjectsScreen() {
   const [savingQuiz, setSavingQuiz] = useState(false);
   const [deletingQuizId, setDeletingQuizId] = useState<string | null>(null);
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
+  const [editingQuizQuestionId, setEditingQuizQuestionId] = useState<string | null>(null);
   const [quizPayloadJson, setQuizPayloadJson] = useState("{\n  \"title\": \"\",\n  \"description\": \"\",\n  \"passingScore\": 70,\n  \"questions\": []\n}");
   const [questionPayloadJson, setQuestionPayloadJson] = useState("{\n  \"question\": \"\",\n  \"options\": [\"\"],\n  \"correctAnswer\": 0,\n  \"explanation\": \"\"\n}");
 
@@ -163,6 +164,7 @@ export default function AdminSubjectsScreen() {
 
   const resetQuizForm = () => {
     setEditingQuizId(null);
+    setEditingQuizQuestionId(null);
     setQuizPayloadJson("{\n  \"title\": \"\",\n  \"description\": \"\",\n  \"passingScore\": 70,\n  \"questions\": []\n}");
     setQuestionPayloadJson("{\n  \"question\": \"\",\n  \"options\": [\"\"],\n  \"correctAnswer\": 0,\n  \"explanation\": \"\"\n}");
   };
@@ -595,6 +597,7 @@ export default function AdminSubjectsScreen() {
     setSavingQuiz(true);
     try {
       await apiClient.addQuizQuestion(quizId, payload);
+      setEditingQuizQuestionId(null);
       Alert.alert("Success", "Question added.");
       if (quizzesChapter?.id) {
         if (!chaptersSubject?.id) return;
@@ -604,6 +607,116 @@ export default function AdminSubjectsScreen() {
       Alert.alert("Error", error.message || "Failed to add question.");
     } finally {
       setSavingQuiz(false);
+    }
+  };
+
+  const handleEditQuizQuestion = (quizId: string, question: any) => {
+    const questionId =
+      typeof question?.id === "string" && question.id.trim()
+        ? question.id.trim()
+        : typeof question?.questionId === "string" && question.questionId.trim()
+          ? question.questionId.trim()
+          : null;
+
+    if (!questionId) {
+      Alert.alert("Missing Question ID", "This question has no ID and cannot be edited.");
+      return;
+    }
+
+    setEditingQuizId(quizId);
+    setEditingQuizQuestionId(questionId);
+    setQuestionPayloadJson(JSON.stringify(question, null, 2));
+  };
+
+  const handleUpdateQuizQuestion = async (quizId: string) => {
+    if (!editingQuizQuestionId) {
+      Alert.alert("Select Question", "Choose a question to edit first.");
+      return;
+    }
+
+    let payload: any;
+    try {
+      payload = JSON.parse(questionPayloadJson);
+    } catch {
+      Alert.alert("Invalid JSON", "Question payload must be valid JSON.");
+      return;
+    }
+
+    setSavingQuiz(true);
+    try {
+      await apiClient.updateQuizQuestion(quizId, editingQuizQuestionId, payload);
+      setEditingQuizQuestionId(null);
+      Alert.alert("Success", "Question updated.");
+      if (quizzesChapter?.id) {
+        if (!chaptersSubject?.id) return;
+        await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
+      }
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to update question.");
+    } finally {
+      setSavingQuiz(false);
+    }
+  };
+
+  const handleDeleteQuizQuestion = (quizId: string, question: any) => {
+    const questionId =
+      typeof question?.id === "string" && question.id.trim()
+        ? question.id.trim()
+        : typeof question?.questionId === "string" && question.questionId.trim()
+          ? question.questionId.trim()
+          : null;
+
+    if (!questionId) {
+      Alert.alert("Missing Question ID", "This question has no ID and cannot be deleted.");
+      return;
+    }
+
+    Alert.alert("Delete Question", "Delete this question permanently?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          setSavingQuiz(true);
+          try {
+            await apiClient.deleteQuizQuestion(quizId, questionId);
+            if (editingQuizQuestionId === questionId) {
+              setEditingQuizQuestionId(null);
+            }
+            if (quizzesChapter?.id) {
+              if (!chaptersSubject?.id) return;
+              await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
+            }
+          } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to delete question.");
+          } finally {
+            setSavingQuiz(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleViewQuizAttempts = async (quizId: string) => {
+    try {
+      const attemptsResponse = await apiClient.getQuizAttempts(quizId);
+      const attempts = Array.isArray(attemptsResponse)
+        ? attemptsResponse
+        : Array.isArray((attemptsResponse as any)?.data)
+          ? (attemptsResponse as any).data
+          : [];
+      openChapterDataModal(`Quiz Attempts (${quizId.slice(0, 8)})`, attempts);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load quiz attempts.");
+    }
+  };
+
+  const handleViewQuizStats = async (quizId: string) => {
+    try {
+      const stats = await apiClient.getQuizStats(quizId);
+      openChapterDataModal(`Quiz Stats (${quizId.slice(0, 8)})`, stats);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load quiz stats.");
     }
   };
 
@@ -1141,6 +1254,9 @@ export default function AdminSubjectsScreen() {
               multiline
               autoCapitalize="none"
             />
+            {!!editingQuizQuestionId && (
+              <Text style={styles.metaText}>Editing question ID: {editingQuizQuestionId}</Text>
+            )}
 
             <ScrollView style={styles.modalList} contentContainerStyle={styles.modalListContent}>
               {loadingQuizzes ? (
@@ -1162,6 +1278,19 @@ export default function AdminSubjectsScreen() {
                         <Text style={styles.smallButtonText}>Add Question</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
+                        style={styles.smallButton}
+                        onPress={() => handleUpdateQuizQuestion(quiz.id)}
+                        disabled={!editingQuizQuestionId}
+                      >
+                        <Text style={styles.smallButtonText}>Update Question</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleViewQuizAttempts(quiz.id)}>
+                        <Text style={styles.smallButtonText}>Attempts</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleViewQuizStats(quiz.id)}>
+                        <Text style={styles.smallButtonText}>Stats</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
                         style={[styles.smallButton, styles.deleteButton]}
                         onPress={() => handleDeleteQuiz(quiz.id)}
                         disabled={deletingQuizId === quiz.id}
@@ -1173,6 +1302,42 @@ export default function AdminSubjectsScreen() {
                         )}
                       </TouchableOpacity>
                     </View>
+
+                    <View style={styles.inlineActions}>
+                      <Text style={styles.metaText}>Questions</Text>
+                    </View>
+                    {Array.isArray(quiz.questions) && quiz.questions.length > 0 ? (
+                      quiz.questions.map((question: any, index: number) => {
+                        const questionId =
+                          typeof question?.id === "string" && question.id.trim()
+                            ? question.id.trim()
+                            : typeof question?.questionId === "string" && question.questionId.trim()
+                              ? question.questionId.trim()
+                              : `no-id-${index}`;
+                        return (
+                          <View key={questionId} style={styles.chapterCard}>
+                            <Text style={styles.metaText}>ID: {questionId}</Text>
+                            <Text style={styles.detailLine}>{String(question?.question || "Untitled question")}</Text>
+                            <View style={styles.cardActions}>
+                              <TouchableOpacity
+                                style={styles.smallButton}
+                                onPress={() => handleEditQuizQuestion(quiz.id, question)}
+                              >
+                                <Text style={styles.smallButtonText}>Edit Question</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[styles.smallButton, styles.deleteButton]}
+                                onPress={() => handleDeleteQuizQuestion(quiz.id, question)}
+                              >
+                                <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete Question</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        );
+                      })
+                    ) : (
+                      <Text style={styles.metaText}>No questions found.</Text>
+                    )}
                   </View>
                 ))
               )}

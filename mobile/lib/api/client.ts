@@ -1055,8 +1055,19 @@ class APIClient {
     }
 
     async getQuizAttempts(quizId: string): Promise<QuizAttempt[]> {
-        // Get all attempts for a quiz
-        return this.request<QuizAttempt[]>(`/quizzes/${quizId}/attempts`);
+        const response = await this.request<
+            QuizAttempt[] | { success?: boolean; data?: QuizAttempt[]; attempts?: QuizAttempt[] }
+        >(`/quizzes/${quizId}/attempts`);
+        if (Array.isArray(response)) {
+            return response;
+        }
+        if (Array.isArray(response?.data)) {
+            return response.data;
+        }
+        if (Array.isArray(response?.attempts)) {
+            return response.attempts;
+        }
+        return [];
     }
 
     async getUserQuizAttempts(userId: string): Promise<QuizAttempt[]> {
@@ -1076,8 +1087,10 @@ class APIClient {
     }
 
     async getQuizStats(quizId: string): Promise<QuizStats> {
-        // Get statistics for a quiz
-        return this.request<QuizStats>(`/quizzes/${quizId}/stats`);
+        const response = await this.request<QuizStats | { success?: boolean; data?: QuizStats }>(
+            `/quizzes/${quizId}/stats`
+        );
+        return this.unwrapData<QuizStats>(response);
     }
 
     // Teacher endpoints
