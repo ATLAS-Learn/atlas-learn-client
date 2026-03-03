@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import {
+  Lesson,
   Subject,
   SubjectChapter,
   SubjectQueryOptions,
@@ -65,6 +66,33 @@ export default function AdminSubjectsScreen() {
   const [chapterUnlockThreshold, setChapterUnlockThreshold] = useState("");
   const [chapterEstimatedMinutes, setChapterEstimatedMinutes] = useState("");
   const [chapterPdfUrl, setChapterPdfUrl] = useState("");
+
+  const [lessonsModalOpen, setLessonsModalOpen] = useState(false);
+  const [lessonsChapter, setLessonsChapter] = useState<SubjectChapter | null>(null);
+  const [subjectLessons, setSubjectLessons] = useState<Lesson[]>([]);
+  const [loadingLessons, setLoadingLessons] = useState(false);
+  const [savingLesson, setSavingLesson] = useState(false);
+  const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
+
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  const [lessonTitle, setLessonTitle] = useState("");
+  const [lessonContent, setLessonContent] = useState("");
+  const [lessonOrderIndex, setLessonOrderIndex] = useState("");
+  const [lessonEstimatedMinutes, setLessonEstimatedMinutes] = useState("");
+  const [lessonVideoUrl, setLessonVideoUrl] = useState("");
+  const [lessonPdfUrl, setLessonPdfUrl] = useState("");
+  const [lessonExamples, setLessonExamples] = useState("");
+  const [lessonKeyPoints, setLessonKeyPoints] = useState("");
+
+  const [quizzesModalOpen, setQuizzesModalOpen] = useState(false);
+  const [quizzesChapter, setQuizzesChapter] = useState<SubjectChapter | null>(null);
+  const [chapterQuizzes, setChapterQuizzes] = useState<any[]>([]);
+  const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+  const [savingQuiz, setSavingQuiz] = useState(false);
+  const [deletingQuizId, setDeletingQuizId] = useState<string | null>(null);
+  const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
+  const [quizPayloadJson, setQuizPayloadJson] = useState("{\n  \"title\": \"\",\n  \"description\": \"\",\n  \"passingScore\": 70,\n  \"questions\": []\n}");
+  const [questionPayloadJson, setQuestionPayloadJson] = useState("{\n  \"question\": \"\",\n  \"options\": [\"\"],\n  \"correctAnswer\": 0,\n  \"explanation\": \"\"\n}");
 
   const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [statsSubject, setStatsSubject] = useState<Subject | null>(null);
@@ -116,6 +144,24 @@ export default function AdminSubjectsScreen() {
     setChapterPdfUrl("");
   };
 
+  const resetLessonForm = () => {
+    setEditingLessonId(null);
+    setLessonTitle("");
+    setLessonContent("");
+    setLessonOrderIndex("");
+    setLessonEstimatedMinutes("");
+    setLessonVideoUrl("");
+    setLessonPdfUrl("");
+    setLessonExamples("");
+    setLessonKeyPoints("");
+  };
+
+  const resetQuizForm = () => {
+    setEditingQuizId(null);
+    setQuizPayloadJson("{\n  \"title\": \"\",\n  \"description\": \"\",\n  \"passingScore\": 70,\n  \"questions\": []\n}");
+    setQuestionPayloadJson("{\n  \"question\": \"\",\n  \"options\": [\"\"],\n  \"correctAnswer\": 0,\n  \"explanation\": \"\"\n}");
+  };
+
   const openCreateSubject = () => {
     resetSubjectForm();
     setSubjectModalOpen(true);
@@ -136,11 +182,18 @@ export default function AdminSubjectsScreen() {
   };
 
   const handleSaveSubject = async () => {
-    if (!subjectName.trim()) {
+    const normalizedName = subjectName.trim();
+    const normalizedCode = subjectCode.trim().toUpperCase();
+
+    if (!normalizedName) {
       Alert.alert("Missing Name", "Subject name is required.");
       return;
     }
-    if (!subjectCode.trim()) {
+    if (normalizedName.length < 3) {
+      Alert.alert("Invalid Name", "Subject name must be at least 3 characters.");
+      return;
+    }
+    if (!normalizedCode) {
       Alert.alert("Missing Code", "Subject code is required.");
       return;
     }
@@ -150,15 +203,15 @@ export default function AdminSubjectsScreen() {
         await updateSubjectMutation.mutateAsync({
           subjectId: editingSubject.id,
           data: {
-            name: subjectName.trim(),
-            code: subjectCode.trim(),
+            name: normalizedName,
+            code: normalizedCode,
             description: subjectDescription.trim() || undefined,
           },
         });
       } else {
         await createSubjectMutation.mutateAsync({
-          name: subjectName.trim(),
-          code: subjectCode.trim(),
+          name: normalizedName,
+          code: normalizedCode,
           description: subjectDescription.trim() || undefined,
         });
       }
@@ -171,10 +224,10 @@ export default function AdminSubjectsScreen() {
   };
 
   const handleDeleteSubject = (subject: Subject) => {
-    Alert.alert("Delete Subject", `Delete "${subject.name}" (${subject.code})?`, [
+    Alert.alert("Delete Subject", `Delete "${subject.name}" (${subject.code})?\n\nThis permanently deletes all related chapters, lessons, quizzes, and progress data.`, [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Delete",
+        text: "Delete Permanently",
         style: "destructive",
         onPress: async () => {
           try {
@@ -201,13 +254,18 @@ export default function AdminSubjectsScreen() {
   };
 
   const handleSearchByCode = async () => {
-    if (!searchCode.trim()) {
+    const normalizedCode = searchCode.trim().toUpperCase();
+    if (!normalizedCode) {
       Alert.alert("Missing Code", "Enter a subject code to search.");
+      return;
+    }
+    if (!/^[A-Z0-9-]+$/.test(normalizedCode)) {
+      Alert.alert("Invalid Code", "Code must be uppercase alphanumeric and hyphens only.");
       return;
     }
     setSearchingByCode(true);
     try {
-      const data = await apiClient.getSubjectByCode(searchCode.trim(), queryOptions);
+      const data = await apiClient.getSubjectByCode(normalizedCode, queryOptions);
       setSubjectByCode(data);
     } catch (error: any) {
       setSubjectByCode(null);
@@ -229,11 +287,66 @@ export default function AdminSubjectsScreen() {
     }
   };
 
+  const loadSubjectLessons = async (subjectId: string, chapterId: string) => {
+    setLoadingLessons(true);
+    try {
+      const lessons = await apiClient.getSubjectChapterLessons(subjectId, chapterId);
+      setSubjectLessons(Array.isArray(lessons) ? lessons : []);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load chapter lessons.");
+    } finally {
+      setLoadingLessons(false);
+    }
+  };
+
+  const loadChapterQuizzes = async (subjectId: string, chapterId: string) => {
+    setLoadingQuizzes(true);
+    try {
+      const quizzes = await apiClient.getSubjectChapterQuizzes(subjectId, chapterId, {
+        includeQuestions: true,
+        includeAttempts: false,
+      });
+      setChapterQuizzes(Array.isArray(quizzes) ? quizzes : []);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load chapter quizzes.");
+    } finally {
+      setLoadingQuizzes(false);
+    }
+  };
+
   const handleOpenChaptersManager = async (subject: Subject) => {
     setChaptersSubject(subject);
     resetChapterForm();
     setChaptersModalOpen(true);
     await loadSubjectChapters(subject.id);
+  };
+
+  const handleOpenLessonsManager = async (chapter: SubjectChapter) => {
+    if (!chaptersSubject?.id) return;
+    setLessonsChapter(chapter);
+    resetLessonForm();
+    setLessonsModalOpen(true);
+    await loadSubjectLessons(chaptersSubject.id, chapter.id);
+  };
+
+  const handleOpenQuizzesManager = async (chapter: SubjectChapter) => {
+    if (!chaptersSubject?.id) return;
+    setQuizzesChapter(chapter);
+    resetQuizForm();
+    setQuizzesModalOpen(true);
+    await loadChapterQuizzes(chaptersSubject.id, chapter.id);
+  };
+
+  const openEditLesson = (lesson: Lesson) => {
+    setEditingLessonId(lesson.id);
+    setLessonTitle(lesson.title || "");
+    setLessonContent(lesson.content || "");
+    setLessonOrderIndex(lesson.orderIndex !== undefined ? String(lesson.orderIndex) : "");
+    setLessonEstimatedMinutes(lesson.estimatedMinutes !== undefined ? String(lesson.estimatedMinutes) : "");
+    setLessonVideoUrl(lesson.videoUrl || "");
+    setLessonPdfUrl(lesson.pdfUrl || "");
+    setLessonExamples(lesson.examples ? JSON.stringify(lesson.examples, null, 2) : "");
+    setLessonKeyPoints(lesson.keyPoints ? JSON.stringify(lesson.keyPoints, null, 2) : "");
   };
 
   const openEditChapter = (chapter: SubjectChapter) => {
@@ -324,6 +437,171 @@ export default function AdminSubjectsScreen() {
     ]);
   };
 
+  const handleSaveLesson = async () => {
+    if (!chaptersSubject?.id || !lessonsChapter?.id) return;
+    if (!lessonTitle.trim()) {
+      Alert.alert("Missing Title", "Lesson title is required.");
+      return;
+    }
+
+    let parsedExamples: unknown | undefined;
+    let parsedKeyPoints: unknown | undefined;
+    try {
+      if (lessonExamples.trim()) {
+        parsedExamples = JSON.parse(lessonExamples);
+      }
+      if (lessonKeyPoints.trim()) {
+        parsedKeyPoints = JSON.parse(lessonKeyPoints);
+      }
+    } catch {
+      Alert.alert("Invalid JSON", "Examples/Key Points must be valid JSON.");
+      return;
+    }
+
+    setSavingLesson(true);
+    try {
+      const payload = {
+        title: lessonTitle.trim(),
+        content: lessonContent.trim() || undefined,
+        orderIndex: parseOptionalInteger(lessonOrderIndex),
+        estimatedMinutes: parseOptionalInteger(lessonEstimatedMinutes),
+        videoUrl: lessonVideoUrl.trim() || undefined,
+        pdfUrl: lessonPdfUrl.trim() || undefined,
+        examples: parsedExamples,
+        keyPoints: parsedKeyPoints,
+      };
+
+      if (editingLessonId) {
+        await apiClient.updateSubjectChapterLesson(
+          chaptersSubject.id,
+          lessonsChapter.id,
+          editingLessonId,
+          payload
+        );
+      } else {
+        await apiClient.createSubjectChapterLesson(chaptersSubject.id, lessonsChapter.id, payload);
+      }
+
+      resetLessonForm();
+      await loadSubjectLessons(chaptersSubject.id, lessonsChapter.id);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to save lesson.");
+    } finally {
+      setSavingLesson(false);
+    }
+  };
+
+  const handleDeleteLesson = (lesson: Lesson) => {
+    if (!chaptersSubject?.id || !lessonsChapter?.id) return;
+    Alert.alert("Delete Lesson", `Delete "${lesson.title || "Untitled"}"?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          setDeletingLessonId(lesson.id);
+          try {
+            await apiClient.deleteSubjectChapterLesson(
+              chaptersSubject.id,
+              lessonsChapter.id,
+              lesson.id
+            );
+            await loadSubjectLessons(chaptersSubject.id, lessonsChapter.id);
+          } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to delete lesson.");
+          } finally {
+            setDeletingLessonId(null);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleSaveQuiz = async () => {
+    if (!quizzesChapter?.id) return;
+    let payload: any;
+    try {
+      payload = JSON.parse(quizPayloadJson);
+    } catch {
+      Alert.alert("Invalid JSON", "Quiz payload must be valid JSON.");
+      return;
+    }
+
+    setSavingQuiz(true);
+    try {
+      if (editingQuizId) {
+        await apiClient.updateQuiz(editingQuizId, payload);
+      } else {
+        await apiClient.createChapterQuiz(quizzesChapter.id, payload);
+      }
+      resetQuizForm();
+      if (!chaptersSubject?.id) return;
+      await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to save quiz.");
+    } finally {
+      setSavingQuiz(false);
+    }
+  };
+
+  const handleEditQuiz = async (quizId: string) => {
+    setEditingQuizId(quizId);
+    try {
+      const quiz = await apiClient.getQuiz(quizId);
+      setQuizPayloadJson(JSON.stringify(quiz, null, 2));
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to load quiz.");
+    }
+  };
+
+  const handleDeleteQuiz = (quizId: string) => {
+    Alert.alert("Delete Quiz", "Delete this quiz permanently?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          setDeletingQuizId(quizId);
+          try {
+            await apiClient.deleteQuiz(quizId);
+            if (quizzesChapter?.id) {
+              if (!chaptersSubject?.id) return;
+              await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
+            }
+          } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to delete quiz.");
+          } finally {
+            setDeletingQuizId(null);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleAddQuizQuestion = async (quizId: string) => {
+    let payload: any;
+    try {
+      payload = JSON.parse(questionPayloadJson);
+    } catch {
+      Alert.alert("Invalid JSON", "Question payload must be valid JSON.");
+      return;
+    }
+
+    setSavingQuiz(true);
+    try {
+      await apiClient.addQuizQuestion(quizId, payload);
+      Alert.alert("Success", "Question added.");
+      if (quizzesChapter?.id) {
+        if (!chaptersSubject?.id) return;
+        await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
+      }
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to add question.");
+    } finally {
+      setSavingQuiz(false);
+    }
+  };
+
   const handleViewChapterDetails = async (chapterId: string) => {
     if (!chaptersSubject?.id) return;
 
@@ -360,20 +638,24 @@ export default function AdminSubjectsScreen() {
   };
 
   const handleViewChapterQuizzes = async (chapter: SubjectChapter) => {
-    if (!chaptersSubject?.id) return;
-    try {
-      const quizzes = await apiClient.getSubjectChapterQuizzes(chaptersSubject.id, chapter.id);
-      openChapterDataModal(`Quizzes: ${chapter.title}`, quizzes);
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to load chapter quizzes.");
-    }
+    await handleOpenQuizzesManager(chapter);
   };
 
   const handleViewChapterProgress = async (chapter: SubjectChapter) => {
     if (!chaptersSubject?.id) return;
     try {
       const progress = await apiClient.getSubjectChapterProgress(chaptersSubject.id, chapter.id);
-      openChapterDataModal(`Progress: ${chapter.title}`, progress);
+      const progressSummary = {
+        id: progress.id ?? "-",
+        isUnlocked: progress.isUnlocked ?? progress.unlocked ?? "-",
+        isCompleted: progress.isCompleted ?? progress.completed ?? "-",
+        bestScore: progress.bestScore ?? "-",
+        currentScore: progress.currentScore ?? "-",
+        attemptsCount: progress.attemptsCount ?? "-",
+        timeSpent: progress.timeSpent ?? "-",
+        lastAttemptedAt: progress.lastAttemptedAt ?? "-",
+      };
+      openChapterDataModal(`Progress: ${chapter.title}`, progressSummary);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to load chapter progress.");
     }
@@ -669,6 +951,9 @@ export default function AdminSubjectsScreen() {
                       <TouchableOpacity style={styles.smallButton} onPress={() => handleViewChapterProgress(chapter)}>
                         <Text style={styles.smallButtonText}>Progress</Text>
                       </TouchableOpacity>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleOpenLessonsManager(chapter)}>
+                        <Text style={styles.smallButtonText}>Lessons</Text>
+                      </TouchableOpacity>
                       <TouchableOpacity style={styles.smallButton} onPress={() => handleUnlockChapter(chapter)}>
                         <Text style={styles.smallButtonText}>Unlock</Text>
                       </TouchableOpacity>
@@ -702,6 +987,195 @@ export default function AdminSubjectsScreen() {
         </View>
       </Modal>
 
+      <Modal visible={lessonsModalOpen} transparent animationType="slide" onRequestClose={() => setLessonsModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, styles.largeModalCard]}>
+            <Text style={styles.modalTitle}>Lessons{lessonsChapter ? `: ${lessonsChapter.title}` : ""}</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Lesson Title"
+              value={lessonTitle}
+              onChangeText={setLessonTitle}
+            />
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Lesson Content (optional)"
+              value={lessonContent}
+              onChangeText={setLessonContent}
+              multiline
+            />
+
+            <View style={styles.twoColumnRow}>
+              <TextInput
+                style={[styles.input, styles.halfInput]}
+                placeholder="Order Index"
+                value={lessonOrderIndex}
+                onChangeText={setLessonOrderIndex}
+                keyboardType="number-pad"
+              />
+              <TextInput
+                style={[styles.input, styles.halfInput]}
+                placeholder="Estimated Minutes"
+                value={lessonEstimatedMinutes}
+                onChangeText={setLessonEstimatedMinutes}
+                keyboardType="number-pad"
+              />
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Video URL (optional)"
+              value={lessonVideoUrl}
+              onChangeText={setLessonVideoUrl}
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="PDF URL (optional)"
+              value={lessonPdfUrl}
+              onChangeText={setLessonPdfUrl}
+              autoCapitalize="none"
+            />
+
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Examples JSON (optional)"
+              value={lessonExamples}
+              onChangeText={setLessonExamples}
+              multiline
+            />
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Key Points JSON (optional)"
+              value={lessonKeyPoints}
+              onChangeText={setLessonKeyPoints}
+              multiline
+            />
+
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSaveLesson} disabled={savingLesson}>
+              {savingLesson ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.submitText}>{editingLessonId ? "Update Lesson" : "Create Lesson"}</Text>
+              )}
+            </TouchableOpacity>
+
+            <ScrollView style={styles.modalList} contentContainerStyle={styles.modalListContent}>
+              {loadingLessons ? (
+                <ActivityIndicator size="small" color="#F2B138" />
+              ) : subjectLessons.length === 0 ? (
+                <Text style={styles.metaText}>No lessons found for this chapter.</Text>
+              ) : (
+                subjectLessons.map((lesson) => (
+                  <View key={lesson.id} style={styles.chapterCard}>
+                    <Text style={styles.cardTitle}>{lesson.title || "Untitled Lesson"}</Text>
+                    <Text style={styles.metaText}>ID: {lesson.id}</Text>
+                    <Text style={styles.metaText}>Order: {lesson.orderIndex ?? "-"}</Text>
+                    <Text style={styles.metaText}>Minutes: {lesson.estimatedMinutes ?? "-"}</Text>
+
+                    <View style={styles.cardActions}>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => openEditLesson(lesson)}>
+                        <Text style={styles.smallButtonText}>Edit</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.smallButton, styles.deleteButton]}
+                        onPress={() => handleDeleteLesson(lesson)}
+                        disabled={deletingLessonId === lesson.id}
+                      >
+                        {deletingLessonId === lesson.id ? (
+                          <ActivityIndicator size="small" color="#F44336" />
+                        ) : (
+                          <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setLessonsModalOpen(false)}>
+              <Text style={styles.cancelText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={quizzesModalOpen} transparent animationType="slide" onRequestClose={() => setQuizzesModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, styles.largeModalCard]}>
+            <Text style={styles.modalTitle}>Quizzes{quizzesChapter ? `: ${quizzesChapter.title}` : ""}</Text>
+
+            <Text style={styles.sectionLabel}>Quiz Payload (JSON)</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={quizPayloadJson}
+              onChangeText={setQuizPayloadJson}
+              multiline
+              autoCapitalize="none"
+            />
+
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSaveQuiz} disabled={savingQuiz}>
+              {savingQuiz ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.submitText}>{editingQuizId ? "Update Quiz" : "Create Quiz"}</Text>
+              )}
+            </TouchableOpacity>
+
+            <Text style={styles.sectionLabel}>Question Payload (JSON)</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={questionPayloadJson}
+              onChangeText={setQuestionPayloadJson}
+              multiline
+              autoCapitalize="none"
+            />
+
+            <ScrollView style={styles.modalList} contentContainerStyle={styles.modalListContent}>
+              {loadingQuizzes ? (
+                <ActivityIndicator size="small" color="#F2B138" />
+              ) : chapterQuizzes.length === 0 ? (
+                <Text style={styles.metaText}>No quizzes found for this chapter.</Text>
+              ) : (
+                chapterQuizzes.map((quiz) => (
+                  <View key={quiz.id} style={styles.chapterCard}>
+                    <Text style={styles.cardTitle}>{quiz.title || "Untitled Quiz"}</Text>
+                    <Text style={styles.metaText}>ID: {quiz.id}</Text>
+                    <Text style={styles.metaText}>Questions: {quiz.questions?.length ?? "-"}</Text>
+
+                    <View style={styles.cardActions}>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleEditQuiz(quiz.id)}>
+                        <Text style={styles.smallButtonText}>Edit</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleAddQuizQuestion(quiz.id)}>
+                        <Text style={styles.smallButtonText}>Add Question</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.smallButton, styles.deleteButton]}
+                        onPress={() => handleDeleteQuiz(quiz.id)}
+                        disabled={deletingQuizId === quiz.id}
+                      >
+                        {deletingQuizId === quiz.id ? (
+                          <ActivityIndicator size="small" color="#F44336" />
+                        ) : (
+                          <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setQuizzesModalOpen(false)}>
+              <Text style={styles.cancelText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={statsModalOpen} transparent animationType="slide" onRequestClose={() => setStatsModalOpen(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -711,9 +1185,12 @@ export default function AdminSubjectsScreen() {
             ) : subjectStats ? (
               <View>
                 <Text style={styles.detailLine}>Subject ID: {String(subjectStats.subjectId || statsSubject?.id || "-")}</Text>
-                <Text style={styles.detailLine}>Chapters: {String(subjectStats.chaptersCount ?? "-")}</Text>
-                <Text style={styles.detailLine}>Lessons: {String(subjectStats.lessonsCount ?? "-")}</Text>
-                <Text style={styles.detailLine}>Quizzes: {String(subjectStats.quizzesCount ?? "-")}</Text>
+                <Text style={styles.detailLine}>Subject Name: {String(subjectStats.subjectName || statsSubject?.name || "-")}</Text>
+                <Text style={styles.detailLine}>Chapters: {String(subjectStats.totalChapters ?? subjectStats.chaptersCount ?? "-")}</Text>
+                <Text style={styles.detailLine}>Lessons: {String(subjectStats.totalLessons ?? subjectStats.lessonsCount ?? "-")}</Text>
+                <Text style={styles.detailLine}>Quizzes: {String(subjectStats.totalQuizzes ?? subjectStats.quizzesCount ?? "-")}</Text>
+                <Text style={styles.detailLine}>Exam Hints: {String(subjectStats.totalExamHints ?? "-")}</Text>
+                <Text style={styles.detailLine}>Estimated Minutes: {String(subjectStats.estimatedMinutes ?? "-")}</Text>
               </View>
             ) : (
               <Text style={styles.metaText}>No statistics available.</Text>
@@ -831,6 +1308,7 @@ const styles = StyleSheet.create({
   modalCard: { backgroundColor: "#fff", borderRadius: 16, padding: 16 },
   largeModalCard: { maxHeight: "90%" },
   modalTitle: { fontSize: 18, fontWeight: "700", color: "#1A1A1A", marginBottom: 12 },
+  sectionLabel: { fontSize: 13, fontWeight: "700", color: "#666", marginBottom: 6 },
   input: {
     borderWidth: 1,
     borderColor: "#E8E8E8",

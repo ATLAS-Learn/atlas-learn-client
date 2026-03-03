@@ -12,6 +12,7 @@ import {
     Keyboard,
     Alert,
     ScrollView,
+    useWindowDimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +23,7 @@ import { getItem } from "@/lib/utils/storage";
 
 export default function VerifyOTPScreen() {
     const router = useRouter();
+    const { width, height } = useWindowDimensions();
     const params = useLocalSearchParams<{ email?: string; mode?: string; fullName?: string }>();
     const { setAuth, setCookieAuth } = useAuthStore();
     const { setUser } = useUserStore();
@@ -88,7 +90,8 @@ export default function VerifyOTPScreen() {
                 await setCookieAuth();
                 apiClient.setToken(null);
             }
-            setUser(response.user);
+            // Mark OTP payload as provisional; app flow will refresh /auth/me.
+            setUser(response.user, { markSynced: false });
 
             // Check if assessment is complete
             const assessmentComplete = await getItem("assessmentComplete");
@@ -158,15 +161,24 @@ export default function VerifyOTPScreen() {
                 keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
             >
                 <ScrollView
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        {
+                            paddingTop: Math.max(64, Math.floor(height * 0.08)),
+                            paddingHorizontal: width < 390 ? 16 : 24,
+                        },
+                    ]}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
+                    <TouchableOpacity
+                        style={[styles.backArrow, { top: Math.max(32, Math.floor(height * 0.06)) }]}
+                        onPress={() => router.back()}
+                    >
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
 
-                    <View style={styles.logoContainer}>
+                    <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
                         <Ionicons name="keypad-outline" size={80} color="#F2B138" />
                     </View>
 
@@ -256,21 +268,18 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        paddingHorizontal: 25,
         justifyContent: "center",
-        paddingTop: 100,
         paddingBottom: 40,
     },
     backArrow: {
         position: "absolute",
-        top: 60,
-        left: 25,
+        left: 24,
         zIndex: 10,
     },
     logoContainer: {
         alignItems: "center",
         marginBottom: 30,
-        marginTop: 40,
+        marginTop: 32,
     },
     title: {
         fontSize: 32,

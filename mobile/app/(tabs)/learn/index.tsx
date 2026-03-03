@@ -151,8 +151,17 @@ export default function LearnDashboardScreen() {
     loadDashboard();
   };
 
-  const handleChapterPress = (chapterId: string) => {
-    router.push(`/(tabs)/learn/${chapterId}`);
+  const handleChapterPress = (chapter: Chapter) => {
+    const chapterSubjectId =
+      chapter.subjectId ||
+      ((chapter as Chapter & { subject_id?: string }).subject_id ?? "");
+    router.push({
+      pathname: "/(tabs)/learn/[id]",
+      params: {
+        id: chapter.id,
+        subjectId: chapterSubjectId,
+      },
+    } as any);
   };
 
   if (loading) {
@@ -194,9 +203,36 @@ export default function LearnDashboardScreen() {
 
       <ProgressBar progress={dashboardData.progress.overallProgress} />
 
+      {overallProgressData?.overall?.lessons && (
+        <View style={styles.lessonSummaryCard}>
+          <Text style={styles.sectionTitle}>Lesson Progress</Text>
+          <View style={styles.lessonSummaryRow}>
+            <View style={styles.lessonSummaryItem}>
+              <Text style={styles.lessonSummaryValue}>
+                {overallProgressData.overall.lessons.percentage ?? 0}%
+              </Text>
+              <Text style={styles.lessonSummaryLabel}>Completion</Text>
+            </View>
+            <View style={styles.lessonSummaryItem}>
+              <Text style={styles.lessonSummaryValue}>
+                {overallProgressData.overall.lessons.completed ?? 0}/
+                {overallProgressData.overall.lessons.total ?? 0}
+              </Text>
+              <Text style={styles.lessonSummaryLabel}>Lessons Done</Text>
+            </View>
+            <View style={styles.lessonSummaryItem}>
+              <Text style={styles.lessonSummaryValue}>
+                {Math.round((overallProgressData.overall.totalTimeSpent || 0) / 60)}m
+              </Text>
+              <Text style={styles.lessonSummaryLabel}>Time Spent</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
       <CurrentChapterCard
         chapter={dashboardData.currentChapter}
-        onPress={() => handleChapterPress(dashboardData.currentChapter.id)}
+        onPress={() => handleChapterPress(dashboardData.currentChapter)}
       />
 
       {dashboardData.nextChapter && (
@@ -208,10 +244,10 @@ export default function LearnDashboardScreen() {
 
       <TouchableOpacity
         style={styles.chaptersButton}
-        onPress={() => router.push("/(tabs)/learn/chapters")}
+        onPress={() => router.push("/(tabs)/learn/subjects")}
       >
-        <Ionicons name="list" size={24} color="#F2B138" />
-        <Text style={styles.chaptersButtonText}>View All Chapters</Text>
+        <Ionicons name="albums" size={24} color="#F2B138" />
+        <Text style={styles.chaptersButtonText}>Browse Subjects</Text>
         <Ionicons name="chevron-forward" size={20} color="#999" />
       </TouchableOpacity>
     </ScrollView>
@@ -240,6 +276,44 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: "#F44336",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#282F2E",
+  },
+  lessonSummaryCard: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  lessonSummaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 12,
+  },
+  lessonSummaryItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  lessonSummaryValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#282F2E",
+  },
+  lessonSummaryLabel: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "600",
   },
   chaptersButton: {
     flexDirection: "row",

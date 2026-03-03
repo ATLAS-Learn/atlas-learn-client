@@ -5,6 +5,7 @@ import {
     TouchableOpacity,
     StyleSheet,
     ScrollView,
+    useWindowDimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +16,7 @@ import { setItem } from "@/lib/utils/storage";
 
 export default function AssessmentResultScreen() {
     const router = useRouter();
+    const { width, height } = useWindowDimensions();
     const params = useLocalSearchParams();
     const { updateLevel } = useUserStore();
 
@@ -36,11 +38,16 @@ export default function AssessmentResultScreen() {
         router.replace("/(tabs)");
     };
 
+    const iconSize = width < 390 ? 48 : 60;
+
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <View style={styles.iconContainer}>
-                <View style={[styles.iconCircle, { backgroundColor: `${levelInfo.color}20` }]}>
-                    <Ionicons name="trophy" size={60} color={levelInfo.color} />
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={[styles.content, { padding: width < 390 ? 16 : 24, paddingTop: Math.max(24, Math.floor(height * 0.06)) }]}
+        >
+            <View style={[styles.iconContainer, { marginTop: width < 390 ? 16 : 32 }]}>
+                <View style={[styles.iconCircle, { backgroundColor: `${levelInfo.color}20`, width: iconSize + 60, height: iconSize + 60, borderRadius: (iconSize + 60) / 2 }]}>
+                    <Ionicons name="trophy" size={iconSize} color={levelInfo.color} />
                 </View>
             </View>
 
@@ -65,7 +72,7 @@ export default function AssessmentResultScreen() {
                 <View style={styles.infoItem}>
                     <Ionicons name="book-outline" size={24} color="#666" />
                     <Text style={styles.infoText}>
-                        You'll start with {levelInfo.label.toLowerCase()} content
+                        You&apos;ll start with {levelInfo.label.toLowerCase()} content
                     </Text>
                 </View>
                 <View style={styles.infoItem}>
@@ -186,4 +193,3 @@ const styles = StyleSheet.create({
         fontWeight: "700",
     },
 });
-

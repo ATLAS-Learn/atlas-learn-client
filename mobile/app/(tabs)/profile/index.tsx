@@ -17,7 +17,7 @@ export default function ProfileScreen() {
     const [requestingUpgrade, setRequestingUpgrade] = useState(false);
     const { data: overallProgressData, isLoading: loadingProgress } = useOverallProgress();
     const [sessionsModalVisible, setSessionsModalVisible] = useState(false);
-    const [sessions, setSessions] = useState<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }[]>([]);
+    const [sessions, setSessions] = useState<{ id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[]>([]);
     const [loadingSessions, setLoadingSessions] = useState(false);
     const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
     const [roleRequestModalVisible, setRoleRequestModalVisible] = useState(false);
@@ -187,7 +187,7 @@ export default function ProfileScreen() {
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     };
 
     return (
@@ -209,6 +209,7 @@ export default function ProfileScreen() {
                 {!!user?.school && <Text style={styles.metaText}>School: {user.school}</Text>}
                 {!!user?.examYear && <Text style={styles.metaText}>Exam Year: {user.examYear}</Text>}
                 {!!user?.username && <Text style={styles.metaText}>Username: @{user.username}</Text>}
+                {!!user?.lastLoginAt && <Text style={styles.metaText}>Last Login: {formatDate(user.lastLoginAt)}</Text>}
                 {!!user?.bio && <Text style={styles.metaText} numberOfLines={2}>{user.bio}</Text>}
             </View>
 
@@ -511,7 +512,7 @@ export default function ProfileScreen() {
                                             <Text style={styles.sessionIp}>IP: {session.ipAddress}</Text>
                                         )}
                                         <Text style={styles.sessionDate}>
-                                            Last active: {formatDate(session.lastActiveAt)}
+                                            Expires: {formatDate(session.expiresAt)}
                                         </Text>
                                         <Text style={styles.sessionDate}>
                                             Created: {formatDate(session.createdAt)}

@@ -28,7 +28,6 @@ export default function SignUpScreen() {
   const [username, setUsername] = useState("");
   const [school, setSchool] = useState("");
   const [examYear, setExamYear] = useState("");
-  const [bio, setBio] = useState("");
   const [image, setImage] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -50,7 +49,6 @@ export default function SignUpScreen() {
           username: username.trim() || undefined,
           role: "student",
           image: image.trim() || undefined,
-          bio: bio.trim() || undefined,
           school: school.trim() || undefined,
           examYear: examYear.trim() ? Number(examYear) : undefined,
         });
@@ -184,19 +182,6 @@ export default function SignUpScreen() {
               autoCapitalize="none"
             />
           </View>
-          <View style={[styles.inputContainer, styles.bioContainer]}>
-            <Ionicons name="document-text-outline" size={24} color="#B3B3B3" style={styles.icon} />
-            <TextInput
-              placeholder="Bio (optional)"
-              placeholderTextColor="#B3B3B3"
-              value={bio}
-              onChangeText={setBio}
-              style={[styles.input, styles.bioInput]}
-              multiline
-              numberOfLines={3}
-            />
-          </View>
-
           <TouchableOpacity
             style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
             onPress={handleSignUp}
@@ -275,15 +260,6 @@ const styles = StyleSheet.create({
     height: 64,
     fontSize: 16,
     color: "#333",
-  },
-  bioContainer: {
-    alignItems: "flex-start",
-  },
-  bioInput: {
-    minHeight: 88,
-    height: undefined,
-    textAlignVertical: "top",
-    paddingTop: 18,
   },
   countryCode: {
     fontSize: 16,

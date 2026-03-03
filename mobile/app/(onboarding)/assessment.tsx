@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import QuestionCard from "@/components/quizzes/question-card";
 import QuizProgress from "@/components/quizzes/quiz-progress";
 import { apiClient } from "@/lib/api";
+import { setItem } from "@/lib/utils/storage";
 import { AssessmentQuestion } from "@/lib/types";
 
 export default function AssessmentScreen() {
@@ -24,15 +25,11 @@ export default function AssessmentScreen() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        loadQuestions();
-    }, []);
-
     /**
      * Load assessment questions from the API
      * Handles errors gracefully and provides user-friendly error messages
      */
-    const loadQuestions = async () => {
+    const loadQuestions = useCallback(async () => {
         setError(null);
         setLoading(true);
         try {
@@ -42,13 +39,34 @@ export default function AssessmentScreen() {
         } catch (error: any) {
             console.error("Assessment load error:", error);
             const errorMessage = error?.message || "Failed to load assessment questions. Please try again.";
+            const normalizedErrorMessage = errorMessage.toLowerCase();
             
             // Provide more user-friendly error messages for common scenarios
             let userMessage = errorMessage;
-            if (errorMessage.toLowerCase().includes("no active assessment") || 
-                errorMessage.toLowerCase().includes("not available")) {
+            if (
+                normalizedErrorMessage.includes("already completed") ||
+                normalizedErrorMessage.includes("already taken") ||
+                normalizedErrorMessage.includes("completed this assessment") ||
+                normalizedErrorMessage.includes("assessment completed")
+            ) {
+                try {
+                    const status = await apiClient.getAssessmentStatus();
+                    if (status?.completed) {
+                        await setItem("assessmentComplete", "true");
+                        Alert.alert("Assessment Completed", "You have already completed the assessment.");
+                        router.replace("/(tabs)");
+                        return;
+                    }
+                } catch {
+                    // Continue to show friendly message below if status check fails.
+                }
+                userMessage = "You have already completed the assessment.";
+            }
+
+            if (normalizedErrorMessage.includes("no active assessment") || 
+                normalizedErrorMessage.includes("not available")) {
                 userMessage = "Assessment is not available at this time. Please contact support or try again later.";
-            } else if (errorMessage.toLowerCase().includes("exactly 5 questions")) {
+            } else if (normalizedErrorMessage.includes("exactly 5 questions")) {
                 userMessage =
                     "Assessment is temporarily misconfigured on the server (must contain exactly 5 questions). Please try again later or contact support.";
             }
@@ -57,7 +75,11 @@ export default function AssessmentScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [router]);
+
+    useEffect(() => {
+        loadQuestions();
+    }, [loadQuestions]);
 
     const handleSelectAnswer = (answerIndex: number) => {
         const currentQuestion = questions[currentQuestionIndex];
@@ -118,7 +140,7 @@ export default function AssessmentScreen() {
                     message: result.message,
                 },
             });
-        } catch (error: any) {
+        } catch {
             Alert.alert("Error", "Failed to submit assessment. Please try again.");
         } finally {
             setSubmitting(false);

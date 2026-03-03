@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Keyboard,
   Alert,
   ScrollView,
+  useWindowDimensions,
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +22,7 @@ import { apiClient } from "@/lib/api";
 
 export default function SignIn() {
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,18 +67,27 @@ export default function SignIn() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: Math.max(64, Math.floor(height * 0.08)),
+              paddingHorizontal: width < 390 ? 16 : 24,
+            },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={[styles.backArrow, { top: Math.max(32, Math.floor(height * 0.06)) }]}
+            onPress={() => router.back()}
+          >
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
 
-          <View style={styles.logoContainer}>
+          <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
             <Image
               source={require("@/assets/images/Blue atlas icon.png")}
-              style={styles.logo}
+              style={[styles.logo, { height: width < 390 ? 130 : 170, width: width < 390 ? 130 : 170 }]}
             />
           </View>
 
@@ -114,7 +125,7 @@ export default function SignIn() {
             )}
           </TouchableOpacity>
           <Text style={styles.signupText}>
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/signup" style={styles.signupLink}>
               Sign up
             </Link>
@@ -132,25 +143,22 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 25,
     justifyContent: "center",
-    paddingTop: 100,
     paddingBottom: 100, // Increased bottom padding for keyboard
   },
   backArrow: {
     position: "absolute",
-    top: 60,
-    left: 25,
+    left: 24,
   },
   logoContainer: {
     alignItems: "center",
     marginBottom: 10,
-    marginTop: 40,
+    marginTop: 32,
   },
   logo: {
     fontWeight: "bold",
-    height: 200,
-    width: 200,
+    height: 170,
+    width: 170,
   },
   title: {
     fontSize: 36,

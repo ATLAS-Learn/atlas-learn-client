@@ -58,12 +58,15 @@ export interface User {
     username?: string;
     role: UserRole;
     roleUpgradeStatus?: RoleUpgradeStatus;
+    emailVerified?: boolean;
     image?: string;
     bio?: string;
     school?: string;
     examYear?: number;
     level?: Level;
     createdAt: string;
+    updatedAt?: string;
+    lastLoginAt?: string;
 }
 
 export interface UpdateProfilePayload {
@@ -157,6 +160,24 @@ export interface SubjectQueryOptions {
     includeChapterDetails?: boolean;
 }
 
+export interface SubjectChaptersQueryOptions {
+    includeDetails?: boolean;
+    includeProgress?: boolean;
+}
+
+export interface SubjectChapterQueryOptions {
+    includeSubject?: boolean;
+    includeLessons?: boolean;
+    includeQuizzes?: boolean;
+    includeProgress?: boolean;
+    includeExamHints?: boolean;
+}
+
+export interface SubjectChapterQuizzesQueryOptions {
+    includeQuestions?: boolean;
+    includeAttempts?: boolean;
+}
+
 export interface CreateSubjectPayload {
     name: string;
     code: string;
@@ -206,6 +227,13 @@ export interface UpdateSubjectChapterPayload {
 
 export interface SubjectStats {
     subjectId?: string;
+    subjectName?: string;
+    totalChapters?: number;
+    totalLessons?: number;
+    totalQuizzes?: number;
+    totalExamHints?: number;
+    estimatedMinutes?: number;
+    // Backward compatibility aliases
     chaptersCount?: number;
     lessonsCount?: number;
     quizzesCount?: number;
@@ -213,8 +241,17 @@ export interface SubjectStats {
 }
 
 export interface SubjectChapterProgress {
+    id?: string;
     subjectId?: string;
     chapterId?: string;
+    isCompleted?: boolean;
+    isUnlocked?: boolean;
+    bestScore?: number;
+    currentScore?: number;
+    attemptsCount?: number;
+    timeSpent?: number;
+    lastAttemptedAt?: string;
+    // Backward compatibility aliases
     completed?: boolean;
     unlocked?: boolean;
     completionPercentage?: number;
@@ -224,11 +261,117 @@ export interface SubjectChapterProgress {
 export interface SubjectChapterUnlockResponse {
     success?: boolean;
     message?: string;
-    data?: Record<string, unknown>;
+    data?: {
+        id?: string;
+        isUnlocked?: boolean;
+        userId?: string;
+        chapterId?: string;
+        [key: string]: unknown;
+    };
     [key: string]: unknown;
 }
 
 export interface SubjectExamHint {
+    id: string;
+    title?: string;
+    hint?: string;
+    description?: string;
+    [key: string]: unknown;
+}
+
+export interface ChapterPdfMaterial {
+    url?: string;
+    title?: string;
+    [key: string]: unknown;
+}
+
+export interface ChapterLesson {
+    id: string;
+    title?: string;
+    content?: string;
+    orderIndex?: number;
+    [key: string]: unknown;
+}
+
+export interface Lesson {
+    id: string;
+    title?: string;
+    content?: string;
+    orderIndex?: number;
+    estimatedMinutes?: number;
+    videoUrl?: string;
+    durationSeconds?: number;
+    pdfUrl?: string;
+    examples?: unknown;
+    keyPoints?: unknown;
+    chapterId?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    [key: string]: unknown;
+}
+
+export interface CreateLessonPayload {
+    title: string;
+    content?: string;
+    orderIndex?: number;
+    estimatedMinutes?: number;
+    videoUrl?: string;
+    durationSeconds?: number;
+    pdfUrl?: string;
+    examples?: unknown;
+    keyPoints?: unknown;
+    [key: string]: unknown;
+}
+
+export interface UpdateLessonPayload {
+    title?: string;
+    content?: string;
+    orderIndex?: number;
+    estimatedMinutes?: number;
+    videoUrl?: string;
+    durationSeconds?: number;
+    pdfUrl?: string;
+    examples?: unknown;
+    keyPoints?: unknown;
+    [key: string]: unknown;
+}
+
+export interface LessonProgressUpdatePayload {
+    watchTimeSeconds?: number;
+    positionSeconds?: number;
+    progressPercent?: number;
+    [key: string]: unknown;
+}
+
+export interface LessonCompletionResponse {
+    success?: boolean;
+    message?: string;
+    data?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+export interface LessonPdfMaterial {
+    url?: string;
+    title?: string;
+    [key: string]: unknown;
+}
+
+export interface ChapterProgressData {
+    chapterId?: string;
+    completed?: boolean;
+    unlocked?: boolean;
+    completionPercentage?: number;
+    [key: string]: unknown;
+}
+
+export interface ChapterUnlockResponse {
+    success?: boolean;
+    message?: string;
+    data?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+export interface ChapterExamHint {
     id: string;
     title?: string;
     hint?: string;
@@ -245,6 +388,7 @@ export interface Chapter {
     order: number;
     content: ChapterSection[];
     subject: string;
+    subjectId?: string;
     estimatedTime: number; // in minutes
 }
 
@@ -412,6 +556,12 @@ export interface TeacherDashboardData {
     onTrackCount: number;
     behindCount: number;
     atRiskCount: number;
+    lessonSummary?: {
+        totalLessons: number;
+        totalCompleted: number;
+        averageCompletionPercent: number;
+        averageTimeSpent: number;
+    };
 }
 
 export interface TeacherStudentsQueryParams {

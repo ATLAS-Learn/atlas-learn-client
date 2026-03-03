@@ -37,6 +37,9 @@ import {
     CreateSubjectPayload,
     UpdateSubjectPayload,
     SubjectQueryOptions,
+    SubjectChaptersQueryOptions,
+    SubjectChapterQueryOptions,
+    SubjectChapterQuizzesQueryOptions,
     SubjectChapter,
     CreateSubjectChapterPayload,
     UpdateSubjectChapterPayload,
@@ -44,12 +47,24 @@ import {
     SubjectChapterProgress,
     SubjectChapterUnlockResponse,
     SubjectExamHint,
+    Lesson,
+    CreateLessonPayload,
+    UpdateLessonPayload,
+    LessonProgressUpdatePayload,
+    LessonCompletionResponse,
+    LessonPdfMaterial,
+    ChapterPdfMaterial,
+    ChapterLesson,
+    ChapterProgressData,
+    ChapterUnlockResponse,
+    ChapterExamHint,
 } from "@/lib/types";
 
 // API Client class using Axios
 class APIClient {
     private axiosInstance: AxiosInstance;
     private token: string | null = null;
+    private inflightGetRequests = new Map<string, Promise<unknown>>();
 
     constructor(baseURL: string) {
         this.axiosInstance = axios.create({
@@ -99,15 +114,81 @@ class APIClient {
         this.token = token;
     }
 
+    private serializeParams(params: unknown): string {
+        if (!params || typeof params !== "object") return "";
+        const entries = Object.entries(params as Record<string, unknown>)
+            .filter(([, value]) => value !== undefined && value !== null)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, value]) => [key, String(value)]);
+        return new URLSearchParams(entries as [string, string][]).toString();
+    }
+
+    private buildGetRequestKey(endpoint: string, params?: unknown): string {
+        const authKey = this.token ? `token:${this.token.slice(0, 16)}` : "cookie-session";
+        const query = this.serializeParams(params);
+        return `${endpoint}?${query}::${authKey}`;
+    }
+
+    private dedupeById<T extends { id?: string }>(items: T[]): T[] {
+        const seen = new Set<string>();
+        const unique: T[] = [];
+        for (const item of items) {
+            const key = item?.id;
+            if (!key) {
+                unique.push(item);
+                continue;
+            }
+            if (seen.has(key)) {
+                continue;
+            }
+            seen.add(key);
+            unique.push(item);
+        }
+        return unique;
+    }
+
+    private shouldFallbackFromSubjectScopedError(error: unknown): boolean {
+        if (!(error instanceof Error)) return false;
+        const message = error.message.toLowerCase();
+        return (
+            message.includes("invalid input data") ||
+            message.includes("invalid subject") ||
+            message.includes("subject not found")
+        );
+    }
+
     private async request<T>(
         endpoint: string,
         options: {
-            method?: "GET" | "POST" | "PUT" | "DELETE";
+            method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
             data?: any;
             params?: any;
         } = {}
     ): Promise<T> {
         const { method = "GET", data, params } = options;
+        if (method === "GET") {
+            const requestKey = this.buildGetRequestKey(endpoint, params);
+            const inflight = this.inflightGetRequests.get(requestKey) as Promise<T> | undefined;
+            if (inflight) {
+                return inflight;
+            }
+
+            const requestPromise = this.axiosInstance
+                .request<T>({
+                    url: endpoint,
+                    method,
+                    data,
+                    params,
+                })
+                .then((response) => response.data)
+                .finally(() => {
+                    this.inflightGetRequests.delete(requestKey);
+                });
+
+            this.inflightGetRequests.set(requestKey, requestPromise as Promise<unknown>);
+            return requestPromise;
+        }
+
         const response = await this.axiosInstance.request<T>({
             url: endpoint,
             method,
@@ -122,6 +203,102 @@ class APIClient {
             return (response as { data?: T }).data as T;
         }
         return response as T;
+    }
+
+    private normalizeUserPayload(response: unknown): User {
+        if (!response || typeof response !== "object") {
+            throw new Error("Invalid user response");
+        }
+
+        const payload = response as Record<string, unknown>;
+        const data =
+            payload.data && typeof payload.data === "object"
+                ? (payload.data as Record<string, unknown>)
+                : null;
+        const dataData =
+            data?.data && typeof data.data === "object"
+                ? (data.data as Record<string, unknown>)
+                : null;
+
+        const candidates: unknown[] = [
+            payload,
+            payload.user,
+            data,
+            data?.user,
+            dataData,
+            dataData?.user,
+        ];
+
+        for (const item of candidates) {
+            if (!item || typeof item !== "object") continue;
+            const user = item as Partial<User>;
+            if (user.id && user.email) {
+                return user as User;
+            }
+        }
+
+        const payloadKeys = Object.keys(payload).join(", ");
+        const dataKeys = data ? Object.keys(data).join(", ") : "none";
+        throw new Error(`Invalid user response (keys: ${payloadKeys}; data keys: ${dataKeys})`);
+    }
+
+    private buildSubjectQueryParams(options: SubjectQueryOptions = {}) {
+        const includeChapters = options.includeChapters === true;
+        const includeChapterDetails = includeChapters && options.includeChapterDetails === true;
+        const params: Record<string, string> = {};
+        if (includeChapters) {
+            params.includeChapters = "true";
+        }
+        if (includeChapterDetails) {
+            params.includeChapterDetails = "true";
+        }
+        return Object.keys(params).length ? params : undefined;
+    }
+
+    private buildSubjectChaptersQueryParams(options: SubjectChaptersQueryOptions = {}) {
+        const params: Record<string, string> = {};
+        if (options.includeDetails) {
+            params.includeDetails = "true";
+        }
+        if (options.includeProgress) {
+            params.includeProgress = "true";
+        }
+        return Object.keys(params).length ? params : undefined;
+    }
+
+    private buildSubjectChapterQueryParams(options: SubjectChapterQueryOptions = {}) {
+        const params: Record<string, string> = {};
+        if (options.includeSubject) {
+            params.includeSubject = "true";
+        }
+        if (options.includeLessons) {
+            params.includeLessons = "true";
+        }
+        if (options.includeQuizzes) {
+            params.includeQuizzes = "true";
+        }
+        if (options.includeProgress) {
+            params.includeProgress = "true";
+        }
+        if (options.includeExamHints) {
+            params.includeExamHints = "true";
+        }
+        return Object.keys(params).length ? params : undefined;
+    }
+
+    private buildSubjectChapterQuizzesQueryParams(options: SubjectChapterQuizzesQueryOptions = {}) {
+        const params: Record<string, string> = {};
+        if (options.includeQuestions) {
+            params.includeQuestions = "true";
+        }
+        if (options.includeAttempts) {
+            params.includeAttempts = "true";
+        }
+        return Object.keys(params).length ? params : undefined;
+    }
+
+    private traceIdOrigin(context: string, payload: Record<string, unknown>) {
+        console.log(`[ID_TRACE] ${context}`, payload);
     }
 
     // Auth endpoints
@@ -149,7 +326,8 @@ class APIClient {
     }
 
     async getCurrentUser(): Promise<User> {
-        return this.request<User>("/auth/me");
+        const response = await this.request<User | { data?: User }>("/auth/me");
+        return this.normalizeUserPayload(response);
     }
 
     async updateCurrentUserProfile(data: UpdateProfilePayload): Promise<User> {
@@ -207,8 +385,9 @@ class APIClient {
     }
 
     // Session management endpoints
-    async getSessions(): Promise<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }[]> {
-        return this.request<{ id: string; createdAt: string; lastActiveAt: string; userAgent?: string; ipAddress?: string }[]>("/auth/sessions");
+    async getSessions(): Promise<{ id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[]> {
+        const response = await this.request<{ sessions?: { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[] }>("/auth/sessions");
+        return response?.sessions ?? [];
     }
 
     async revokeSession(sessionId: string): Promise<{ message: string }> {
@@ -423,20 +602,19 @@ class APIClient {
 
     // Subject endpoints
     async getSubjects(options: SubjectQueryOptions = {}): Promise<Subject[]> {
-        const includeChapters = options.includeChapters ?? false;
-        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
-
         const response = await this.request<
             Subject[] | { success?: boolean; count?: number; data?: Subject[] }
         >("/subjects", {
-            params: { includeChapters, includeChapterDetails },
+            params: this.buildSubjectQueryParams(options),
         });
         const subjects = this.unwrapData<Subject[]>(response);
         return Array.isArray(subjects) ? subjects : [];
     }
 
     async createSubject(data: CreateSubjectPayload): Promise<Subject> {
-        const response = await this.request<Subject | { data?: Subject }>("/subjects", {
+        const response = await this.request<
+            Subject | { success?: boolean; message?: string; data?: Subject }
+        >("/subjects", {
             method: "POST",
             data,
         });
@@ -444,20 +622,22 @@ class APIClient {
     }
 
     async getSubjectById(subjectId: string, options: SubjectQueryOptions = {}): Promise<Subject> {
-        const includeChapters = options.includeChapters ?? false;
-        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
-
-        const response = await this.request<Subject | { success?: boolean; data?: Subject }>(
+        this.traceIdOrigin("getSubjectById", { subjectId, options });
+        const response = await this.request<
+            Subject | { success?: boolean; message?: string; data?: Subject }
+        >(
             `/subjects/${subjectId}`,
             {
-                params: { includeChapters, includeChapterDetails },
+                params: this.buildSubjectQueryParams(options),
             }
         );
         return this.unwrapData<Subject>(response);
     }
 
     async updateSubject(subjectId: string, data: UpdateSubjectPayload): Promise<Subject> {
-        const response = await this.request<Subject | { data?: Subject }>(`/subjects/${subjectId}`, {
+        const response = await this.request<
+            Subject | { success?: boolean; message?: string; data?: Subject }
+        >(`/subjects/${subjectId}`, {
             method: "PUT",
             data,
         });
@@ -465,34 +645,51 @@ class APIClient {
     }
 
     async deleteSubject(subjectId: string): Promise<void> {
-        await this.request<void>(`/subjects/${subjectId}`, {
+        await this.request<
+            void | {
+                success?: boolean;
+                message?: string;
+                data?: {
+                    deletedSubject?: { id?: string; name?: string; code?: string };
+                    cascadeCount?: { chapters?: number; lessons?: number; quizzes?: number };
+                };
+            }
+        >(`/subjects/${subjectId}`, {
             method: "DELETE",
         });
     }
 
     async getSubjectByCode(code: string, options: SubjectQueryOptions = {}): Promise<Subject> {
-        const includeChapters = options.includeChapters ?? false;
-        const includeChapterDetails = includeChapters ? options.includeChapterDetails ?? false : false;
-
-        const response = await this.request<Subject | { success?: boolean; data?: Subject }>(
-            `/subjects/code/${encodeURIComponent(code)}`,
+        const normalizedCode = code.trim().toUpperCase();
+        const response = await this.request<
+            Subject | { success?: boolean; message?: string; data?: Subject }
+        >(
+            `/subjects/code/${encodeURIComponent(normalizedCode)}`,
             {
-                params: { includeChapters, includeChapterDetails },
+                params: this.buildSubjectQueryParams(options),
             }
         );
         return this.unwrapData<Subject>(response);
     }
 
-    async getSubjectChapters(subjectId: string): Promise<SubjectChapter[]> {
+    async getSubjectChapters(
+        subjectId: string,
+        options: SubjectChaptersQueryOptions = {}
+    ): Promise<SubjectChapter[]> {
+        this.traceIdOrigin("getSubjectChapters", { subjectId, options });
         const response = await this.request<
             SubjectChapter[] | { success?: boolean; count?: number; data?: SubjectChapter[] }
-        >(`/subjects/${subjectId}/chapters`);
+        >(`/subjects/${subjectId}/chapters`, {
+            params: this.buildSubjectChaptersQueryParams(options),
+        });
         const chapters = this.unwrapData<SubjectChapter[]>(response);
         return Array.isArray(chapters) ? chapters : [];
     }
 
     async createSubjectChapter(subjectId: string, data: CreateSubjectChapterPayload): Promise<SubjectChapter> {
-        const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
+        const response = await this.request<
+            SubjectChapter | { success?: boolean; message?: string; data?: SubjectChapter }
+        >(
             `/subjects/${subjectId}/chapters`,
             {
                 method: "POST",
@@ -502,9 +699,17 @@ class APIClient {
         return this.unwrapData<SubjectChapter>(response);
     }
 
-    async getSubjectChapter(subjectId: string, chapterId: string): Promise<SubjectChapter> {
+    async getSubjectChapter(
+        subjectId: string,
+        chapterId: string,
+        options: SubjectChapterQueryOptions = {}
+    ): Promise<SubjectChapter> {
+        this.traceIdOrigin("getSubjectChapter", { subjectId, chapterId, options });
         const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
-            `/subjects/${subjectId}/chapters/${chapterId}`
+            `/subjects/${subjectId}/chapters/${chapterId}`,
+            {
+                params: this.buildSubjectChapterQueryParams(options),
+            }
         );
         return this.unwrapData<SubjectChapter>(response);
     }
@@ -514,7 +719,9 @@ class APIClient {
         chapterId: string,
         data: UpdateSubjectChapterPayload
     ): Promise<SubjectChapter> {
-        const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
+        const response = await this.request<
+            SubjectChapter | { success?: boolean; message?: string; data?: SubjectChapter }
+        >(
             `/subjects/${subjectId}/chapters/${chapterId}`,
             {
                 method: "PUT",
@@ -525,7 +732,7 @@ class APIClient {
     }
 
     async deleteSubjectChapter(subjectId: string, chapterId: string): Promise<void> {
-        await this.request<void>(`/subjects/${subjectId}/chapters/${chapterId}`, {
+        await this.request<void | { message?: string }>(`/subjects/${subjectId}/chapters/${chapterId}`, {
             method: "DELETE",
         });
     }
@@ -537,17 +744,26 @@ class APIClient {
         return this.unwrapData<SubjectStats>(response);
     }
 
-    async getSubjectChapterQuizzes(subjectId: string, chapterId: string): Promise<Quiz[]> {
+    async getSubjectChapterQuizzes(
+        subjectId: string,
+        chapterId: string,
+        options: SubjectChapterQuizzesQueryOptions = {}
+    ): Promise<Quiz[]> {
+        this.traceIdOrigin("getSubjectChapterQuizzes", { subjectId, chapterId, options });
         const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
-            `/subjects/${subjectId}/chapters/${chapterId}/quizzes`
+            `/subjects/${subjectId}/chapters/${chapterId}/quizzes`,
+            {
+                params: this.buildSubjectChapterQuizzesQueryParams(options),
+            }
         );
         const quizzes = this.unwrapData<Quiz[]>(response);
         return Array.isArray(quizzes) ? quizzes : [];
     }
 
     async getSubjectChapterProgress(subjectId: string, chapterId: string): Promise<SubjectChapterProgress> {
+        this.traceIdOrigin("getSubjectChapterProgress", { subjectId, chapterId });
         const response = await this.request<
-            SubjectChapterProgress | { success?: boolean; data?: SubjectChapterProgress }
+            SubjectChapterProgress | { success?: boolean; message?: string; data?: SubjectChapterProgress }
         >(`/subjects/${subjectId}/chapters/${chapterId}/progress`);
         return this.unwrapData<SubjectChapterProgress>(response);
     }
@@ -562,11 +778,132 @@ class APIClient {
     }
 
     async getSubjectChapterExamHints(subjectId: string, chapterId: string): Promise<SubjectExamHint[]> {
+        this.traceIdOrigin("getSubjectChapterExamHints", { subjectId, chapterId });
         const response = await this.request<SubjectExamHint[] | { success?: boolean; data?: SubjectExamHint[] }>(
             `/subjects/${subjectId}/chapters/${chapterId}/exam-hints`
         );
         const hints = this.unwrapData<SubjectExamHint[]>(response);
         return Array.isArray(hints) ? hints : [];
+    }
+
+    // Lesson endpoints (subject chapter)
+    async getSubjectChapterLessons(subjectId: string, chapterId: string): Promise<Lesson[]> {
+        this.traceIdOrigin("getSubjectChapterLessons", { subjectId, chapterId });
+        const response = await this.request<Lesson[] | { success?: boolean; data?: Lesson[] }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons`
+        );
+        const lessons = this.unwrapData<Lesson[]>(response);
+        return Array.isArray(lessons) ? this.dedupeById(lessons) : [];
+    }
+
+    async createSubjectChapterLesson(
+        subjectId: string,
+        chapterId: string,
+        data: CreateLessonPayload
+    ): Promise<Lesson> {
+        const response = await this.request<Lesson | { success?: boolean; data?: Lesson }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons`,
+            {
+                method: "POST",
+                data,
+            }
+        );
+        return this.unwrapData<Lesson>(response);
+    }
+
+    async getSubjectChapterLesson(subjectId: string, chapterId: string, lessonId: string): Promise<Lesson> {
+        const response = await this.request<Lesson | { success?: boolean; data?: Lesson }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}`
+        );
+        return this.unwrapData<Lesson>(response);
+    }
+
+    async updateSubjectChapterLesson(
+        subjectId: string,
+        chapterId: string,
+        lessonId: string,
+        data: UpdateLessonPayload
+    ): Promise<Lesson> {
+        const response = await this.request<Lesson | { success?: boolean; data?: Lesson }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}`,
+            {
+                method: "PATCH",
+                data,
+            }
+        );
+        return this.unwrapData<Lesson>(response);
+    }
+
+    async deleteSubjectChapterLesson(subjectId: string, chapterId: string, lessonId: string): Promise<void> {
+        await this.request<void>(`/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}`, {
+            method: "DELETE",
+        });
+    }
+
+    async completeSubjectChapterLesson(
+        subjectId: string,
+        chapterId: string,
+        lessonId: string
+    ): Promise<LessonCompletionResponse> {
+        try {
+            return await this.request<LessonCompletionResponse>(
+                `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/complete`,
+                {
+                    method: "POST",
+                }
+            );
+        } catch (error) {
+            if (!this.shouldFallbackFromSubjectScopedError(error)) {
+                throw error;
+            }
+            // Fallback for deployments where lesson completion is chapter-scoped only.
+            return this.request<LessonCompletionResponse>(
+                `/chapters/${chapterId}/lessons/${lessonId}/complete`,
+                {
+                    method: "POST",
+                }
+            );
+        }
+    }
+
+    async updateSubjectChapterLessonProgress(
+        subjectId: string,
+        chapterId: string,
+        lessonId: string,
+        data: LessonProgressUpdatePayload
+    ): Promise<LessonCompletionResponse> {
+        try {
+            return await this.request<LessonCompletionResponse>(
+                `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/progress`,
+                {
+                    method: "POST",
+                    data,
+                }
+            );
+        } catch (error) {
+            if (!this.shouldFallbackFromSubjectScopedError(error)) {
+                throw error;
+            }
+            // Fallback for deployments where lesson progress is chapter-scoped only.
+            return this.request<LessonCompletionResponse>(
+                `/chapters/${chapterId}/lessons/${lessonId}/progress`,
+                {
+                    method: "POST",
+                    data,
+                }
+            );
+        }
+    }
+
+    async getSubjectChapterLessonPdf(
+        subjectId: string,
+        chapterId: string,
+        lessonId: string
+    ): Promise<LessonPdfMaterial> {
+        const response = await this.request<LessonPdfMaterial | { success?: boolean; data?: LessonPdfMaterial }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/pdf`
+        );
+        return this.unwrapData<LessonPdfMaterial>(response);
     }
 
     // Dashboard endpoints
@@ -588,10 +925,60 @@ class APIClient {
         return this.request<Chapter>(`/chapters/${chapterId}`);
     }
 
+    async updateChapter(chapterId: string, data: Partial<Chapter>): Promise<Chapter> {
+        const response = await this.request<Chapter | { success?: boolean; data?: Chapter }>(`/chapters/${chapterId}`, {
+            method: "PUT",
+            data,
+        });
+        return this.unwrapData<Chapter>(response);
+    }
+
+    async deleteChapter(chapterId: string): Promise<void> {
+        await this.request<void>(`/chapters/${chapterId}`, {
+            method: "DELETE",
+        });
+    }
+
+    async getChapterPdf(chapterId: string): Promise<ChapterPdfMaterial> {
+        const response = await this.request<ChapterPdfMaterial | { success?: boolean; data?: ChapterPdfMaterial }>(
+            `/chapters/${chapterId}/pdf`
+        );
+        return this.unwrapData<ChapterPdfMaterial>(response);
+    }
+
+    async getChapterLessons(chapterId: string): Promise<ChapterLesson[]> {
+        const response = await this.request<ChapterLesson[] | { success?: boolean; data?: ChapterLesson[] }>(
+            `/chapters/${chapterId}/lessons`
+        );
+        const lessons = this.unwrapData<ChapterLesson[]>(response);
+        return Array.isArray(lessons) ? this.dedupeById(lessons) : [];
+    }
+
     // Chapter Quiz endpoints
     async getChapterQuizzes(chapterId: string): Promise<Quiz[]> {
         // Get all quizzes for a chapter
         return this.request<Quiz[]>(`/chapters/${chapterId}/quizzes`);
+    }
+
+    async getChapterProgress(chapterId: string): Promise<ChapterProgressData> {
+        const response = await this.request<ChapterProgressData | { success?: boolean; data?: ChapterProgressData }>(
+            `/chapters/${chapterId}/progress`
+        );
+        return this.unwrapData<ChapterProgressData>(response);
+    }
+
+    async unlockChapter(chapterId: string): Promise<ChapterUnlockResponse> {
+        return this.request<ChapterUnlockResponse>(`/chapters/${chapterId}/progress/unlock`, {
+            method: "POST",
+        });
+    }
+
+    async getChapterExamHints(chapterId: string): Promise<ChapterExamHint[]> {
+        const response = await this.request<ChapterExamHint[] | { success?: boolean; data?: ChapterExamHint[] }>(
+            `/chapters/${chapterId}/exam-hints`
+        );
+        const hints = this.unwrapData<ChapterExamHint[]>(response);
+        return Array.isArray(hints) ? hints : [];
     }
 
     async getChapterQuiz(chapterId: string): Promise<Quiz> {
@@ -739,6 +1126,28 @@ class APIClient {
             };
         });
 
+        const lessonTotals = Array.from(progressMap.values()).reduce(
+            (acc, progress) => {
+                if (!progress?.overall?.lessons) return acc;
+                acc.totalLessons += progress.overall.lessons.total || 0;
+                acc.totalCompleted += progress.overall.lessons.completed || 0;
+                acc.totalTimeSpent += progress.overall.totalTimeSpent || 0;
+                return acc;
+            },
+            { totalLessons: 0, totalCompleted: 0, totalTimeSpent: 0 }
+        );
+
+        const lessonCountStudents = Array.from(progressMap.values()).filter(
+            (progress) => progress?.overall?.lessons
+        ).length;
+
+        const averageCompletionPercent =
+            lessonTotals.totalLessons > 0
+                ? Math.round((lessonTotals.totalCompleted / lessonTotals.totalLessons) * 100)
+                : 0;
+        const averageTimeSpent =
+            lessonCountStudents > 0 ? Math.round(lessonTotals.totalTimeSpent / lessonCountStudents) : 0;
+
         const onTrackCount = mappedStudents.filter(
             (student) => student.status === StudentStatus.ON_TRACK
         ).length;
@@ -755,6 +1164,12 @@ class APIClient {
             onTrackCount,
             behindCount,
             atRiskCount,
+            lessonSummary: {
+                totalLessons: lessonTotals.totalLessons,
+                totalCompleted: lessonTotals.totalCompleted,
+                averageCompletionPercent,
+                averageTimeSpent,
+            },
         };
     }
 
