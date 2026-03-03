@@ -16,6 +16,29 @@ export default function RootLayout() {
   const router = useRouter();
   const { assessmentComplete, isAuthenticated, isLoading } = useAppFlow();
 
+  useEffect(() => {
+    const globalWithUnhandled = globalThis as typeof globalThis & {
+      onunhandledrejection?: ((event: { reason?: unknown; preventDefault?: () => void }) => void) | null;
+    };
+    const previousHandler = globalWithUnhandled.onunhandledrejection;
+
+    globalWithUnhandled.onunhandledrejection = (event) => {
+      const reason =
+        typeof event?.reason === "string"
+          ? event.reason
+          : (event?.reason as { message?: string } | undefined)?.message || "";
+      if (reason.includes("Unable to activate keep awake")) {
+        event?.preventDefault?.();
+        return;
+      }
+      previousHandler?.(event);
+    };
+
+    return () => {
+      globalWithUnhandled.onunhandledrejection = previousHandler || null;
+    };
+  }, []);
+
 
   useEffect(() => {
     // Wait for auth state to finish loading
@@ -47,7 +70,7 @@ export default function RootLayout() {
     }, minDisplayTime); // Show splash for at least 5 seconds
 
     return () => clearTimeout(timer);
-  }, [fadeAnim, isAuthenticated, assessmentComplete, isLoading]);
+  }, [fadeAnim, isAuthenticated, assessmentComplete, isLoading, router]);
 
 
   return (
@@ -89,4 +112,3 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
-

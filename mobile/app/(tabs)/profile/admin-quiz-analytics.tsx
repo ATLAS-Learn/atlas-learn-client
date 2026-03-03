@@ -26,8 +26,8 @@ function normalizeAttempts(attempts: QuizAttempt[]): QuizAttempt[] {
 
 export default function AdminQuizAnalyticsScreen() {
   const router = useRouter();
-  const { canAccess, roleKnown } = useRoleGuard([UserRole.ADMIN], {
-    denyMessage: "This page is only available to admins.",
+  const { canAccess, roleKnown } = useRoleGuard([UserRole.ADMIN, UserRole.TEACHER], {
+    denyMessage: "This page is only available to admins and teachers.",
   });
   const params = useLocalSearchParams<{ quizId?: string; quizTitle?: string; chapterTitle?: string }>();
 
