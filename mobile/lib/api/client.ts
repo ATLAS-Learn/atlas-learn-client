@@ -129,6 +129,24 @@ class APIClient {
         return `${endpoint}?${query}::${authKey}`;
     }
 
+    private dedupeById<T extends { id?: string }>(items: T[]): T[] {
+        const seen = new Set<string>();
+        const unique: T[] = [];
+        for (const item of items) {
+            const key = item?.id;
+            if (!key) {
+                unique.push(item);
+                continue;
+            }
+            if (seen.has(key)) {
+                continue;
+            }
+            seen.add(key);
+            unique.push(item);
+        }
+        return unique;
+    }
+
     private async request<T>(
         endpoint: string,
         options: {
@@ -765,7 +783,7 @@ class APIClient {
             `/subjects/${subjectId}/chapters/${chapterId}/lessons`
         );
         const lessons = this.unwrapData<Lesson[]>(response);
-        return Array.isArray(lessons) ? lessons : [];
+        return Array.isArray(lessons) ? this.dedupeById(lessons) : [];
     }
 
     async createSubjectChapterLesson(
@@ -896,7 +914,7 @@ class APIClient {
             `/chapters/${chapterId}/lessons`
         );
         const lessons = this.unwrapData<ChapterLesson[]>(response);
-        return Array.isArray(lessons) ? lessons : [];
+        return Array.isArray(lessons) ? this.dedupeById(lessons) : [];
     }
 
     // Chapter Quiz endpoints
