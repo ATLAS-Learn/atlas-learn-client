@@ -13,11 +13,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { StudentDetail, StudentStatus, UserRole } from "@/lib/types";
 import { LEVEL_INFO } from "@/lib/constants/levels";
-import { useUserStore } from "@/lib/store/user";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 export default function StudentDetailScreen() {
     const router = useRouter();
-    const { user } = useUserStore();
+    const { canAccess, roleKnown } = useRoleGuard([UserRole.TEACHER], {
+        denyMessage: "This page is only available to teachers.",
+    });
     const { id } = useLocalSearchParams<{ id: string }>();
     const [student, setStudent] = useState<StudentDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -35,14 +37,17 @@ export default function StudentDetailScreen() {
     }, [id]);
 
     useEffect(() => {
-        if (user && user.role !== UserRole.TEACHER) {
-            router.replace("/(tabs)/profile");
+        if (!roleKnown || !canAccess) {
             return;
         }
         if (id) {
             loadStudentDetail();
         }
-    }, [id, loadStudentDetail, router, user]);
+    }, [canAccess, id, loadStudentDetail, roleKnown]);
+
+    if (!roleKnown || !canAccess) {
+        return null;
+    }
 
     const getStatusColor = (status: StudentStatus): string => {
         switch (status) {

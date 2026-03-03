@@ -24,7 +24,7 @@ import {
   UserRole,
 } from "@/lib/types";
 import { useCreateSubject, useDeleteSubject, useSubjects, useUpdateSubject } from "@/lib/hooks/api";
-import { useUserStore } from "@/lib/store/user";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 function parseOptionalInteger(value: string): number | undefined {
   const trimmed = value.trim();
@@ -36,7 +36,9 @@ function parseOptionalInteger(value: string): number | undefined {
 
 export default function AdminSubjectsScreen() {
   const router = useRouter();
-  const { user } = useUserStore();
+  const { canAccess, roleKnown } = useRoleGuard([UserRole.ADMIN], {
+    denyMessage: "This page is only available to admins.",
+  });
   const [includeChapters, setIncludeChapters] = useState(false);
   const [includeChapterDetails, setIncludeChapterDetails] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -123,14 +125,6 @@ export default function AdminSubjectsScreen() {
   const createSubjectMutation = useCreateSubject();
   const updateSubjectMutation = useUpdateSubject();
   const deleteSubjectMutation = useDeleteSubject();
-
-  useEffect(() => {
-    if (!user) return;
-    if (user.role !== UserRole.ADMIN) {
-      Alert.alert("Access Denied", "This page is only available to admins.");
-      router.replace("/(tabs)/profile");
-    }
-  }, [router, user]);
 
   useEffect(() => {
     if (!includeChapters && includeChapterDetails) {
@@ -694,6 +688,10 @@ export default function AdminSubjectsScreen() {
   };
 
   const isSaving = createSubjectMutation.isPending || updateSubjectMutation.isPending;
+
+  if (!roleKnown || !canAccess) {
+    return null;
+  }
 
   if (isLoading) {
     return (

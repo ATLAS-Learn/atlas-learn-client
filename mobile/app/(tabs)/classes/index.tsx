@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
     View,
     Text,
@@ -10,31 +10,25 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { StudentListItem, StudentStatus, Level, UserRole } from "@/lib/types";
+import { StudentListItem, StudentStatus, UserRole } from "@/lib/types";
 import TeacherHeader from "@/components/teacher/teacher-header";
 import StudentListItemComponent from "@/components/teacher/student-list-item";
 import { useTeacherDashboard } from "@/lib/hooks/api";
 import StudentProgressChart from "@/components/charts/StudentProgressChart";
-import { useUserStore } from "@/lib/store/user";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 type ProgressFilter = "all" | "0-25" | "25-50" | "50-75" | "75-100";
-type LevelFilter = "all" | Level;
 type StatusFilter = "all" | StudentStatus;
 
 export default function TeacherDashboardScreen() {
     const router = useRouter();
-    const { user } = useUserStore();
+    const { canAccess, roleKnown } = useRoleGuard([UserRole.TEACHER], {
+        denyMessage: "This page is only available to teachers.",
+    });
     const { data: dashboardData, isLoading, refetch, isRefetching } = useTeacherDashboard();
     const [progressFilter, setProgressFilter] = useState<ProgressFilter>("all");
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
     const [showFilters, setShowFilters] = useState(false);
-
-    useEffect(() => {
-        if (!user) return;
-        if (user.role !== UserRole.TEACHER) {
-            router.replace("/(tabs)/profile");
-        }
-    }, [router, user]);
 
     const handleRefresh = () => {
         refetch();
@@ -96,6 +90,10 @@ export default function TeacherDashboardScreen() {
                 return "At Risk";
         }
     };
+
+    if (!roleKnown || !canAccess) {
+        return null;
+    }
 
     if (isLoading) {
         return (

@@ -7,7 +7,7 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
-    Modal,
+    Linking,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,9 +28,6 @@ export default function ChapterScreen() {
     const [loading, setLoading] = useState(true);
     const [lessons, setLessons] = useState<Lesson[]>([]);
     const [lessonsLoading, setLessonsLoading] = useState(false);
-    const [insightModalVisible, setInsightModalVisible] = useState(false);
-    const [insightTitle, setInsightTitle] = useState("");
-    const [insightBody, setInsightBody] = useState("");
     const [loadingInsight, setLoadingInsight] = useState(false);
     const canUnlockChapter = user?.role === UserRole.ADMIN || user?.role === UserRole.TEACHER;
 
@@ -77,18 +74,22 @@ export default function ChapterScreen() {
         router.push(`/(tabs)/learn/${chapterId}/quiz`);
     };
 
-    const showInsight = (title: string, data: unknown) => {
-        setInsightTitle(title);
-        setInsightBody(JSON.stringify(data, null, 2));
-        setInsightModalVisible(true);
-    };
-
     const handleViewPdf = async () => {
         if (!chapterId) return;
         setLoadingInsight(true);
         try {
             const pdf = await apiClient.getChapterPdf(chapterId);
-            showInsight("Chapter PDF", pdf);
+            const pdfUrl = typeof pdf?.url === "string" ? pdf.url : "";
+            if (!pdfUrl) {
+                Alert.alert("No PDF", "This chapter does not have a PDF yet.");
+                return;
+            }
+            const canOpen = await Linking.canOpenURL(pdfUrl);
+            if (!canOpen) {
+                Alert.alert("Unavailable", "Could not open chapter PDF.");
+                return;
+            }
+            await Linking.openURL(pdfUrl);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to fetch chapter PDF.");
         } finally {
@@ -153,7 +154,13 @@ export default function ChapterScreen() {
         setLoadingInsight(true);
         try {
             const progress = await apiClient.getChapterProgress(chapterId);
-            showInsight("Chapter Progress", progress);
+            const completion = Number(progress?.completionPercentage ?? 0);
+            const completed = progress?.completed ? "Yes" : "No";
+            const unlocked = progress?.unlocked ? "Yes" : "No";
+            Alert.alert(
+                "Chapter Progress",
+                `Completion: ${Math.round(completion)}%\nCompleted: ${completed}\nUnlocked: ${unlocked}`
+            );
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to fetch chapter progress.");
         } finally {
@@ -166,7 +173,23 @@ export default function ChapterScreen() {
         setLoadingInsight(true);
         try {
             const hints = await apiClient.getChapterExamHints(chapterId);
-            showInsight("Chapter Exam Hints", hints);
+            if (!Array.isArray(hints) || hints.length === 0) {
+                Alert.alert("Exam Hints", "No hints available yet for this chapter.");
+                return;
+            }
+            const preview = hints
+                .slice(0, 3)
+                .map((hint, index) => {
+                    const title = typeof hint.title === "string" && hint.title.trim() ? hint.title.trim() : `Hint ${index + 1}`;
+                    const body =
+                        (typeof hint.hint === "string" && hint.hint.trim()) ||
+                        (typeof hint.description === "string" && hint.description.trim()) ||
+                        "No details";
+                    return `${index + 1}. ${title}\n${body}`;
+                })
+                .join("\n\n");
+            const suffix = hints.length > 3 ? "\n\nOpen chapter lessons for more context." : "";
+            Alert.alert("Exam Hints", `${preview}${suffix}`);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to fetch chapter exam hints.");
         } finally {
@@ -179,7 +202,7 @@ export default function ChapterScreen() {
         setLoadingInsight(true);
         try {
             const result = await apiClient.unlockChapter(chapterId);
-            showInsight("Unlock Chapter", result);
+            Alert.alert("Unlock Chapter", result?.message || "Chapter unlock request completed.");
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to unlock chapter.");
         } finally {
@@ -337,24 +360,6 @@ export default function ChapterScreen() {
                 </TouchableOpacity>
             </View>
 
-            <Modal
-                visible={insightModalVisible}
-                animationType="slide"
-                transparent
-                onRequestClose={() => setInsightModalVisible(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalCard}>
-                        <Text style={styles.modalTitle}>{insightTitle}</Text>
-                        <ScrollView style={styles.modalScroll}>
-                            <Text style={styles.modalBody}>{insightBody || "No data."}</Text>
-                        </ScrollView>
-                        <TouchableOpacity style={styles.quizButton} onPress={() => setInsightModalVisible(false)}>
-                            <Text style={styles.quizButtonText}>Close</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
         </View>
     );
 }
@@ -545,32 +550,5 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 18,
         fontWeight: "700",
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(0,0,0,0.35)",
-        justifyContent: "center",
-        padding: 16,
-    },
-    modalCard: {
-        backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 16,
-        maxHeight: "85%",
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: "700",
-        color: "#282F2E",
-        marginBottom: 10,
-    },
-    modalScroll: {
-        maxHeight: 320,
-        marginBottom: 12,
-    },
-    modalBody: {
-        fontSize: 12,
-        color: "#444",
-        lineHeight: 18,
     },
 });

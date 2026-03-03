@@ -1060,8 +1060,19 @@ class APIClient {
     }
 
     async getUserQuizAttempts(userId: string): Promise<QuizAttempt[]> {
-        // Get all quiz attempts by a user
-        return this.request<QuizAttempt[]>(`/users/${userId}/quiz-attempts`);
+        const response = await this.request<
+            QuizAttempt[] | { data?: QuizAttempt[]; attempts?: QuizAttempt[] }
+        >(`/users/${userId}/quiz-attempts`);
+        if (Array.isArray(response)) {
+            return response;
+        }
+        if (Array.isArray(response?.data)) {
+            return response.data;
+        }
+        if (Array.isArray(response?.attempts)) {
+            return response.attempts;
+        }
+        return [];
     }
 
     async getQuizStats(quizId: string): Promise<QuizStats> {

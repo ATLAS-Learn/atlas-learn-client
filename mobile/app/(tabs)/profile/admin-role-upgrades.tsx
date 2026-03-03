@@ -13,23 +13,17 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { PendingRoleUpgradeRequest, UserRole } from "@/lib/types";
-import { useUserStore } from "@/lib/store/user";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 export default function AdminRoleUpgradesScreen() {
   const router = useRouter();
-  const { user } = useUserStore();
+  const { canAccess, roleKnown } = useRoleGuard([UserRole.ADMIN], {
+    denyMessage: "This page is only available to admins.",
+  });
   const [requests, setRequests] = useState<PendingRoleUpgradeRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    if (user.role !== UserRole.ADMIN) {
-      Alert.alert("Access Denied", "This page is only available to admins.");
-      router.replace("/(tabs)/profile");
-    }
-  }, [router, user]);
 
   const loadRequests = useCallback(async () => {
     try {
@@ -106,6 +100,10 @@ export default function AdminRoleUpgradesScreen() {
       },
     ]);
   };
+
+  if (!roleKnown || !canAccess) {
+    return null;
+  }
 
   if (loading) {
     return (
