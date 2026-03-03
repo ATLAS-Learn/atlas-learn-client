@@ -55,6 +55,8 @@ export default function LessonDetailScreen() {
     const [progressPercent, setProgressPercent] = useState("");
     const [positionSeconds, setPositionSeconds] = useState("");
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
+    const watchTimePresets = [300, 600, 1200, 1800];
+    const progressPresets = [25, 50, 75, 100];
 
     const examples = useMemo(() => normalizeStringArray(lesson?.examples), [lesson]);
     const keyPoints = useMemo(() => normalizeStringArray(lesson?.keyPoints), [lesson]);
@@ -232,57 +234,105 @@ export default function LessonDetailScreen() {
                 </View>
 
                 <View style={styles.sectionCard}>
-                    <Text style={styles.sectionTitle}>Progress</Text>
+                    <Text style={styles.sectionTitle}>Track Your Progress</Text>
                     <Text style={styles.sectionHelper}>
-                        Log your watch time to keep your progress updated.
+                        1) Add study time and optional progress, then tap Save Progress.
                     </Text>
-                    <View style={styles.progressRow}>
-                        <TextInput
-                            style={styles.progressInput}
-                            value={watchTime}
-                            onChangeText={setWatchTime}
-                            keyboardType="number-pad"
-                            placeholder="Watch time (sec)"
-                        />
-                        <TextInput
-                            style={styles.progressInput}
-                            value={progressPercent}
-                            onChangeText={setProgressPercent}
-                            keyboardType="number-pad"
-                            placeholder="Progress %"
-                        />
-                    </View>
-                    <View style={styles.progressRow}>
-                        <TextInput
-                            style={styles.progressInput}
-                            value={positionSeconds}
-                            onChangeText={setPositionSeconds}
-                            keyboardType="number-pad"
-                            placeholder="Position (sec)"
-                        />
-                        <TouchableOpacity
-                            style={styles.progressButton}
-                            onPress={handleUpdateProgress}
-                            disabled={updatingProgress}
-                        >
-                            {updatingProgress ? (
-                                <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                                <Text style={styles.progressButtonText}>Update</Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                    <Text style={styles.sectionHelper}>
+                        2) When you finish this lesson, tap Mark Lesson Complete.
+                    </Text>
+                    <Text style={styles.fieldLabel}>Quick Study Time</Text>
                     <View style={styles.quickRow}>
-                        {[25, 50, 75, 100].map((value) => (
+                        {watchTimePresets.map((value) => (
                             <TouchableOpacity
                                 key={value}
-                                style={styles.quickButton}
-                                onPress={() => setProgressPercent(String(value))}
+                                style={[
+                                    styles.quickButton,
+                                    watchTime === String(value) && styles.quickButtonActive,
+                                ]}
+                                onPress={() => setWatchTime(String(value))}
                             >
-                                <Text style={styles.quickButtonText}>{value}%</Text>
+                                <Text
+                                    style={[
+                                        styles.quickButtonText,
+                                        watchTime === String(value) && styles.quickButtonTextActive,
+                                    ]}
+                                >
+                                    {Math.round(value / 60)}m
+                                </Text>
                             </TouchableOpacity>
                         ))}
                     </View>
+                    <View style={styles.progressRow}>
+                        <View style={styles.inputWrap}>
+                            <Text style={styles.fieldLabel}>Study Time (seconds)</Text>
+                            <TextInput
+                                style={styles.progressInput}
+                                value={watchTime}
+                                onChangeText={setWatchTime}
+                                keyboardType="number-pad"
+                                placeholder="e.g. 300"
+                            />
+                        </View>
+                        <View style={styles.inputWrap}>
+                            <Text style={styles.fieldLabel}>Lesson Progress (%)</Text>
+                            <TextInput
+                                style={styles.progressInput}
+                                value={progressPercent}
+                                onChangeText={setProgressPercent}
+                                keyboardType="number-pad"
+                                placeholder="e.g. 50"
+                            />
+                        </View>
+                    </View>
+                    <Text style={styles.fieldLabel}>Quick Progress</Text>
+                    <View style={styles.quickRow}>
+                        {progressPresets.map((value) => (
+                            <TouchableOpacity
+                                key={value}
+                                style={[
+                                    styles.quickButton,
+                                    progressPercent === String(value) && styles.quickButtonActive,
+                                ]}
+                                onPress={() => setProgressPercent(String(value))}
+                            >
+                                <Text
+                                    style={[
+                                        styles.quickButtonText,
+                                        progressPercent === String(value) && styles.quickButtonTextActive,
+                                    ]}
+                                >
+                                    {value}%
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                    <View style={styles.progressRow}>
+                        <View style={styles.inputWrap}>
+                            <Text style={styles.fieldLabel}>Current Position (sec, optional)</Text>
+                            <TextInput
+                                style={styles.progressInput}
+                                value={positionSeconds}
+                                onChangeText={setPositionSeconds}
+                                keyboardType="number-pad"
+                                placeholder="Optional"
+                            />
+                        </View>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.progressButton}
+                        onPress={handleUpdateProgress}
+                        disabled={updatingProgress}
+                    >
+                        {updatingProgress ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                            <Text style={styles.progressButtonText}>Save Progress</Text>
+                        )}
+                    </TouchableOpacity>
+                    <Text style={styles.sectionHelper}>
+                        Your dashboard progress updates after this is saved by the server.
+                    </Text>
                     <TouchableOpacity
                         style={styles.completeButton}
                         onPress={handleCompleteLesson}
@@ -291,7 +341,7 @@ export default function LessonDetailScreen() {
                         {completingLesson ? (
                             <ActivityIndicator size="small" color="#fff" />
                         ) : (
-                            <Text style={styles.completeButtonText}>Mark Completed</Text>
+                            <Text style={styles.completeButtonText}>Mark Lesson Complete</Text>
                         )}
                     </TouchableOpacity>
                     {statusMessage ? <Text style={styles.statusMessage}>{statusMessage}</Text> : null}
@@ -375,6 +425,12 @@ const styles = StyleSheet.create({
         color: "#666",
         marginBottom: 12,
     },
+    fieldLabel: {
+        fontSize: 12,
+        color: "#4B5563",
+        fontWeight: "700",
+        marginBottom: 6,
+    },
     actionRow: {
         flexDirection: "row",
         flexWrap: "wrap",
@@ -399,9 +455,11 @@ const styles = StyleSheet.create({
     },
     progressRow: {
         flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
+        gap: 10,
         marginBottom: 12,
+    },
+    inputWrap: {
+        flex: 1,
     },
     quickRow: {
         flexDirection: "row",
@@ -417,10 +475,17 @@ const styles = StyleSheet.create({
         borderColor: "#E5E7EB",
         backgroundColor: "#F9FAFB",
     },
+    quickButtonActive: {
+        backgroundColor: "#FFF2CC",
+        borderColor: "#F2B138",
+    },
     quickButtonText: {
         fontSize: 12,
         fontWeight: "700",
         color: "#374151",
+    },
+    quickButtonTextActive: {
+        color: "#8A5D00",
     },
     progressInput: {
         flex: 1,
@@ -435,8 +500,9 @@ const styles = StyleSheet.create({
     progressButton: {
         backgroundColor: "#F2B138",
         paddingVertical: 10,
-        paddingHorizontal: 16,
         borderRadius: 10,
+        alignItems: "center",
+        marginBottom: 12,
     },
     progressButtonText: {
         color: "#fff",
