@@ -74,12 +74,30 @@ export default function ChapterScreen() {
         router.push(`/(tabs)/learn/${chapterId}/quiz`);
     };
 
+    const getChapterPdfUrl = (chapterValue: Chapter | null): string | undefined => {
+        if (!chapterValue) return undefined;
+        const withPdf = chapterValue as Chapter & { pdfUrl?: string };
+        return typeof withPdf.pdfUrl === "string" ? withPdf.pdfUrl : undefined;
+    };
+
     const handleViewPdf = async () => {
         if (!chapterId) return;
         setLoadingInsight(true);
         try {
-            const pdf = await apiClient.getChapterPdf(chapterId);
-            const pdfUrl = typeof pdf?.url === "string" ? pdf.url : "";
+            let pdfUrl = getChapterPdfUrl(chapter) || "";
+            if (!pdfUrl && resolvedSubjectId) {
+                try {
+                    const subjectChapter = await apiClient.getSubjectChapter(resolvedSubjectId, chapterId);
+                    pdfUrl =
+                        (typeof subjectChapter?.pdfUrl === "string" && subjectChapter.pdfUrl) || "";
+                } catch {
+                    // Fallback to chapter endpoint below.
+                }
+            }
+            if (!pdfUrl) {
+                const pdf = await apiClient.getChapterPdf(chapterId);
+                pdfUrl = typeof pdf?.url === "string" ? pdf.url : "";
+            }
             if (!pdfUrl) {
                 Alert.alert("No PDF", "This chapter does not have a PDF yet.");
                 return;
