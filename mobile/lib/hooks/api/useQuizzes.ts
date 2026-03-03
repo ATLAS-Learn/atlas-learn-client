@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import { Quiz, QuizSubmission, QuizResult, QuizAttempt } from "@/lib/types";
+import { QuizSubmission } from "@/lib/types";
 
 export function useQuizzes(limit: number = 5) {
     return useQuery({
@@ -29,5 +29,21 @@ export function useUserQuizAttempts(userId: string | undefined) {
         queryKey: ["users", userId, "quiz-attempts"],
         queryFn: () => apiClient.getUserQuizAttempts(userId!),
         enabled: !!userId,
+    });
+}
+
+export function useQuizAttempts(quizId: string | undefined) {
+    return useQuery({
+        queryKey: ["quizzes", quizId, "attempts"],
+        queryFn: () => apiClient.getQuizAttempts(quizId!),
+        enabled: !!quizId,
+    });
+}
+
+export function useQuizStats(quizId: string | undefined) {
+    return useQuery({
+        queryKey: ["quizzes", quizId, "stats"],
+        queryFn: () => apiClient.getQuizStats(quizId!),
+        enabled: !!quizId,
     });
 }

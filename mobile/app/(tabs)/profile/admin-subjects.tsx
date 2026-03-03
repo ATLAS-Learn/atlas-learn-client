@@ -720,6 +720,17 @@ export default function AdminSubjectsScreen() {
     }
   };
 
+  const handleOpenQuizAnalytics = (quiz: any) => {
+    router.push({
+      pathname: "/(tabs)/profile/admin-quiz-analytics",
+      params: {
+        quizId: String(quiz?.id || ""),
+        quizTitle: String(quiz?.title || "Untitled Quiz"),
+        chapterTitle: String(quizzesChapter?.title || ""),
+      },
+    } as any);
+  };
+
   const handleViewChapterDetails = async (chapterId: string) => {
     if (!chaptersSubject?.id) return;
 
@@ -1289,6 +1300,9 @@ export default function AdminSubjectsScreen() {
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.smallButton} onPress={() => handleViewQuizStats(quiz.id)}>
                         <Text style={styles.smallButtonText}>Stats</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => handleOpenQuizAnalytics(quiz)}>
+                        <Text style={styles.smallButtonText}>Analytics</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.smallButton, styles.deleteButton]}
