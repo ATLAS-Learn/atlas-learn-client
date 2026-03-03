@@ -29,7 +29,7 @@ export default function ChapterScreen() {
     const [lessons, setLessons] = useState<Lesson[]>([]);
     const [lessonsLoading, setLessonsLoading] = useState(false);
     const [loadingInsight, setLoadingInsight] = useState(false);
-    const canUnlockChapter = user?.role === UserRole.ADMIN || user?.role === UserRole.TEACHER;
+    const canUnlockChapter = Boolean(resolvedSubjectId) || user?.role === UserRole.ADMIN || user?.role === UserRole.TEACHER;
 
     useEffect(() => {
         console.log("[ID_TRACE] ChapterScreen route params", {
@@ -171,7 +171,9 @@ export default function ChapterScreen() {
         if (!chapterId) return;
         setLoadingInsight(true);
         try {
-            const progress = await apiClient.getChapterProgress(chapterId);
+            const progress = resolvedSubjectId
+                ? await apiClient.getSubjectChapterProgress(resolvedSubjectId, chapterId)
+                : await apiClient.getChapterProgress(chapterId);
             const completion = Number(progress?.completionPercentage ?? 0);
             const completed = progress?.completed ? "Yes" : "No";
             const unlocked = progress?.unlocked ? "Yes" : "No";
@@ -190,7 +192,9 @@ export default function ChapterScreen() {
         if (!chapterId) return;
         setLoadingInsight(true);
         try {
-            const hints = await apiClient.getChapterExamHints(chapterId);
+            const hints = resolvedSubjectId
+                ? await apiClient.getSubjectChapterExamHints(resolvedSubjectId, chapterId)
+                : await apiClient.getChapterExamHints(chapterId);
             if (!Array.isArray(hints) || hints.length === 0) {
                 Alert.alert("Exam Hints", "No hints available yet for this chapter.");
                 return;
@@ -219,7 +223,9 @@ export default function ChapterScreen() {
         if (!chapterId) return;
         setLoadingInsight(true);
         try {
-            const result = await apiClient.unlockChapter(chapterId);
+            const result = resolvedSubjectId
+                ? await apiClient.unlockSubjectChapter(resolvedSubjectId, chapterId)
+                : await apiClient.unlockChapter(chapterId);
             Alert.alert("Unlock Chapter", result?.message || "Chapter unlock request completed.");
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to unlock chapter.");
