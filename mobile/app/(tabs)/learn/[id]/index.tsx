@@ -22,6 +22,7 @@ export default function ChapterScreen() {
     const chapterId = Array.isArray(id) ? id[0] : id;
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
     const [chapter, setChapter] = useState<Chapter | null>(null);
+    const [resolvedSubjectId, setResolvedSubjectId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [lessons, setLessons] = useState<Lesson[]>([]);
     const [lessonsLoading, setLessonsLoading] = useState(false);
@@ -99,19 +100,42 @@ export default function ChapterScreen() {
         return legacy.subject_id;
     };
 
+    const resolveSubjectIdFromSubjects = useCallback(async (targetChapterId: string): Promise<string | undefined> => {
+        const subjects = await apiClient.getSubjects({ includeChapters: true });
+        for (const subject of subjects) {
+            if (!Array.isArray(subject?.chapters)) continue;
+            const matched = subject.chapters.some((entry) => {
+                if (!entry || typeof entry !== "object") return false;
+                const chapterEntry = entry as { id?: string };
+                return chapterEntry.id === targetChapterId;
+            });
+            if (matched) {
+                return subject.id;
+            }
+        }
+        return undefined;
+    }, []);
+
     const loadLessons = useCallback(async () => {
         if (!chapterId) return;
         setLessonsLoading(true);
         try {
-            const resolvedSubjectId = subjectKey || getSubjectIdFromChapter(chapter);
+            let subjectIdForRequest =
+                resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
+            if (!subjectIdForRequest) {
+                subjectIdForRequest = await resolveSubjectIdFromSubjects(chapterId);
+                if (subjectIdForRequest) {
+                    setResolvedSubjectId(subjectIdForRequest);
+                }
+            }
             console.log("[ID_TRACE] ChapterScreen loadLessons resolved IDs", {
                 chapterId,
                 subjectKey,
                 chapterSubjectId: getSubjectIdFromChapter(chapter),
-                resolvedSubjectId,
+                resolvedSubjectId: subjectIdForRequest,
             });
-            const data = resolvedSubjectId
-                ? await apiClient.getSubjectChapterLessons(resolvedSubjectId, chapterId)
+            const data = subjectIdForRequest
+                ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId)
                 : await apiClient.getChapterLessons(chapterId);
             setLessons(Array.isArray(data) ? data : []);
         } catch (error: any) {
@@ -119,7 +143,7 @@ export default function ChapterScreen() {
         } finally {
             setLessonsLoading(false);
         }
-    }, [chapter, chapterId]);
+    }, [chapter, chapterId, resolvedSubjectId, resolveSubjectIdFromSubjects, subjectKey]);
 
     const handleViewProgress = async () => {
         if (!chapterId) return;
@@ -162,8 +186,8 @@ export default function ChapterScreen() {
 
     const handleOpenLesson = (lessonId: string) => {
         if (!chapterId) return;
-        const resolvedSubjectId = subjectKey || getSubjectIdFromChapter(chapter);
-        if (!resolvedSubjectId) {
+        const subjectIdForRoute = resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
+        if (!subjectIdForRoute) {
             Alert.alert("Missing Subject", "This chapter is missing its subject ID.");
             return;
         }
@@ -172,14 +196,14 @@ export default function ChapterScreen() {
             params: {
                 id: chapterId,
                 lessonId,
-                subjectId: resolvedSubjectId || "",
+                subjectId: subjectIdForRoute,
             },
         } as any);
     };
 
     const handleOpenLessonsList = () => {
         if (!chapterId) return;
-        const subjectId = subjectKey || getSubjectIdFromChapter(chapter);
+        const subjectId = resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
         router.push({
             pathname: "/(tabs)/learn/[id]/lessons",
             params: {
@@ -188,6 +212,14 @@ export default function ChapterScreen() {
             },
         } as any);
     };
+
+    useEffect(() => {
+        if (resolvedSubjectId) return;
+        const fromRouteOrChapter = subjectKey || getSubjectIdFromChapter(chapter);
+        if (fromRouteOrChapter) {
+            setResolvedSubjectId(fromRouteOrChapter);
+        }
+    }, [chapter, resolvedSubjectId, subjectKey]);
 
     if (loading) {
         return (

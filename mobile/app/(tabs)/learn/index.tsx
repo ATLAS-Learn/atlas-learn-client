@@ -151,8 +151,17 @@ export default function LearnDashboardScreen() {
     loadDashboard();
   };
 
-  const handleChapterPress = (chapterId: string) => {
-    router.push(`/(tabs)/learn/${chapterId}`);
+  const handleChapterPress = (chapter: Chapter) => {
+    const chapterSubjectId =
+      chapter.subjectId ||
+      ((chapter as Chapter & { subject_id?: string }).subject_id ?? "");
+    router.push({
+      pathname: "/(tabs)/learn/[id]",
+      params: {
+        id: chapter.id,
+        subjectId: chapterSubjectId,
+      },
+    } as any);
   };
 
   if (loading) {
@@ -223,7 +232,7 @@ export default function LearnDashboardScreen() {
 
       <CurrentChapterCard
         chapter={dashboardData.currentChapter}
-        onPress={() => handleChapterPress(dashboardData.currentChapter.id)}
+        onPress={() => handleChapterPress(dashboardData.currentChapter)}
       />
 
       {dashboardData.nextChapter && (
