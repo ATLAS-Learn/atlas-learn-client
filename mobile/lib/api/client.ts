@@ -922,12 +922,15 @@ class APIClient {
         lessonId: string,
         data: LessonProgressUpdatePayload
     ): Promise<LessonCompletionResponse> {
+        const payload: LessonProgressUpdatePayload = {
+            timeSpent: data?.timeSpent,
+        };
         try {
             return await this.request<LessonCompletionResponse>(
                 `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/progress`,
                 {
                     method: "POST",
-                    data,
+                    data: payload,
                 }
             );
         } catch (error) {
@@ -939,7 +942,7 @@ class APIClient {
                 `/chapters/${chapterId}/lessons/${lessonId}/progress`,
                 {
                     method: "POST",
-                    data,
+                    data: payload,
                 }
             );
         }

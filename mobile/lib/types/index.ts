@@ -337,9 +337,7 @@ export interface UpdateLessonPayload {
 }
 
 export interface LessonProgressUpdatePayload {
-    watchTimeSeconds?: number;
-    positionSeconds?: number;
-    progressPercent?: number;
+    timeSpent?: number;
     [key: string]: unknown;
 }
 

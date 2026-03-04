@@ -116,22 +116,13 @@ export default function LessonDetailScreen() {
         setUpdatingProgress(true);
         setStatusMessage(null);
         try {
-            const watchTimeSeconds = safeNumber(watchTime);
-            const progressValue = safeNumber(progressPercent);
-            const positionValue = safeNumber(positionSeconds);
-            const computedPosition =
-                positionValue ??
-                (progressValue !== undefined && lesson?.durationSeconds
-                    ? Math.round((progressValue / 100) * lesson.durationSeconds)
-                    : undefined);
+            const timeSpent = safeNumber(watchTime) ?? 0;
             const response = await apiClient.updateSubjectChapterLessonProgress(
                 subjectKey,
                 chapterId,
                 lessonKey,
                 {
-                    watchTimeSeconds,
-                    progressPercent: progressValue,
-                    positionSeconds: computedPosition,
+                    timeSpent,
                 }
             );
             setStatusMessage(response.message || "Progress updated.");
