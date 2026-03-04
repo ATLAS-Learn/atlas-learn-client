@@ -51,6 +51,7 @@ import {
     CreateLessonPayload,
     UpdateLessonPayload,
     LessonProgressUpdatePayload,
+    LessonCompletionPayload,
     LessonCompletionResponse,
     LessonPdfMaterial,
     ChapterPdfMaterial,
@@ -889,13 +890,15 @@ class APIClient {
     async completeSubjectChapterLesson(
         subjectId: string,
         chapterId: string,
-        lessonId: string
+        lessonId: string,
+        data: LessonCompletionPayload = {}
     ): Promise<LessonCompletionResponse> {
         try {
             return await this.request<LessonCompletionResponse>(
                 `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/complete`,
                 {
                     method: "POST",
+                    data,
                 }
             );
         } catch (error) {
@@ -907,6 +910,7 @@ class APIClient {
                 `/chapters/${chapterId}/lessons/${lessonId}/complete`,
                 {
                     method: "POST",
+                    data,
                 }
             );
         }

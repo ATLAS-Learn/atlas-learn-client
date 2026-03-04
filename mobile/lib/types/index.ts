@@ -343,6 +343,11 @@ export interface LessonProgressUpdatePayload {
     [key: string]: unknown;
 }
 
+export interface LessonCompletionPayload {
+    timeSpent?: number;
+    [key: string]: unknown;
+}
+
 export interface LessonCompletionResponse {
     success?: boolean;
     message?: string;

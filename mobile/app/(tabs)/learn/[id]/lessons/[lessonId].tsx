@@ -13,8 +13,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { Lesson, UserRole } from "@/lib/types";
-import { useUserStore } from "@/lib/store/user";
+import { Lesson } from "@/lib/types";
 
 const safeNumber = (value: string): number | undefined => {
     const trimmed = value.trim();
@@ -39,7 +38,6 @@ const normalizeStringArray = (value: unknown): string[] => {
 
 export default function LessonDetailScreen() {
     const router = useRouter();
-    const { user } = useUserStore();
     const { id, lessonId, subjectId } = useLocalSearchParams<{
         id: string;
         lessonId: string;
@@ -62,7 +60,6 @@ export default function LessonDetailScreen() {
 
     const examples = useMemo(() => normalizeStringArray(lesson?.examples), [lesson]);
     const keyPoints = useMemo(() => normalizeStringArray(lesson?.keyPoints), [lesson]);
-    const canManageLessonTracking = user?.role === UserRole.ADMIN || user?.role === UserRole.TEACHER;
 
     const loadLesson = useCallback(async () => {
         if (!chapterId || !lessonKey || !subjectKey) {
@@ -150,7 +147,10 @@ export default function LessonDetailScreen() {
         setCompletingLesson(true);
         setStatusMessage(null);
         try {
-            const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey);
+            const timeSpent = safeNumber(watchTime) ?? 0;
+            const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey, {
+                timeSpent,
+            });
             setStatusMessage(response.message || "Lesson marked as completed.");
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to complete lesson.");
@@ -236,7 +236,6 @@ export default function LessonDetailScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {canManageLessonTracking && (
                 <View style={styles.sectionCard}>
                     <Text style={styles.sectionTitle}>Track Your Progress</Text>
                     <Text style={styles.sectionHelper}>
@@ -350,7 +349,6 @@ export default function LessonDetailScreen() {
                     </TouchableOpacity>
                     {statusMessage ? <Text style={styles.statusMessage}>{statusMessage}</Text> : null}
                 </View>
-                )}
             </ScrollView>
         </View>
     );
