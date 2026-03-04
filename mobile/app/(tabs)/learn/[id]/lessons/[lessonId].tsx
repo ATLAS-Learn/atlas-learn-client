@@ -52,11 +52,8 @@ export default function LessonDetailScreen() {
     const [updatingProgress, setUpdatingProgress] = useState(false);
     const [completingLesson, setCompletingLesson] = useState(false);
     const [watchTime, setWatchTime] = useState("300");
-    const [progressPercent, setProgressPercent] = useState("");
-    const [positionSeconds, setPositionSeconds] = useState("");
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const watchTimePresets = [300, 600, 1200, 1800];
-    const progressPresets = [25, 50, 75, 100];
 
     const examples = useMemo(() => normalizeStringArray(lesson?.examples), [lesson]);
     const keyPoints = useMemo(() => normalizeStringArray(lesson?.keyPoints), [lesson]);
@@ -230,7 +227,7 @@ export default function LessonDetailScreen() {
                 <View style={styles.sectionCard}>
                     <Text style={styles.sectionTitle}>Track Your Progress</Text>
                     <Text style={styles.sectionHelper}>
-                        1) Add study time and optional progress, then tap Save Progress.
+                        1) Add study time, then tap Save Progress.
                     </Text>
                     <Text style={styles.sectionHelper}>
                         2) When you finish this lesson, tap Mark Lesson Complete.
@@ -266,50 +263,6 @@ export default function LessonDetailScreen() {
                                 onChangeText={setWatchTime}
                                 keyboardType="number-pad"
                                 placeholder="e.g. 300"
-                            />
-                        </View>
-                        <View style={styles.inputWrap}>
-                            <Text style={styles.fieldLabel}>Lesson Progress (%)</Text>
-                            <TextInput
-                                style={styles.progressInput}
-                                value={progressPercent}
-                                onChangeText={setProgressPercent}
-                                keyboardType="number-pad"
-                                placeholder="e.g. 50"
-                            />
-                        </View>
-                    </View>
-                    <Text style={styles.fieldLabel}>Quick Progress</Text>
-                    <View style={styles.quickRow}>
-                        {progressPresets.map((value) => (
-                            <TouchableOpacity
-                                key={value}
-                                style={[
-                                    styles.quickButton,
-                                    progressPercent === String(value) && styles.quickButtonActive,
-                                ]}
-                                onPress={() => setProgressPercent(String(value))}
-                            >
-                                <Text
-                                    style={[
-                                        styles.quickButtonText,
-                                        progressPercent === String(value) && styles.quickButtonTextActive,
-                                    ]}
-                                >
-                                    {value}%
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                    <View style={styles.progressRow}>
-                        <View style={styles.inputWrap}>
-                            <Text style={styles.fieldLabel}>Current Position (sec, optional)</Text>
-                            <TextInput
-                                style={styles.progressInput}
-                                value={positionSeconds}
-                                onChangeText={setPositionSeconds}
-                                keyboardType="number-pad"
-                                placeholder="Optional"
                             />
                         </View>
                     </View>
