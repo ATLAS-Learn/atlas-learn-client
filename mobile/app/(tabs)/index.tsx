@@ -1,15 +1,17 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import React, { useCallback } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { useUserStore } from "@/lib/store/user";
 import { UserRole } from "@/lib/types";
 import { useOverallProgress } from "@/lib/hooks/api";
+import ProgressBar from "@/components/progress/progress-bar";
 
 export default function HomeTab() {
     const router = useRouter();
     const { user } = useUserStore();
-    const { data: overallProgress } = useOverallProgress();
+    const { data: overallProgress, refetch, isRefetching } = useOverallProgress();
 
     const displayName =
         user?.name || user?.email?.split("@")[0] || (user?.role === UserRole.TEACHER ? "Teacher" : "Student");
@@ -19,9 +21,24 @@ export default function HomeTab() {
     const lessonsTotal = overallProgress?.overall?.lessons?.total ?? 0;
     const quizzesPassed = overallProgress?.overall?.quizzes?.passed ?? 0;
     const quizzesTotal = overallProgress?.overall?.quizzes?.total ?? 0;
+    const normalizedCompletion = Math.max(0, Math.min(completion, 100));
+
+    useFocusEffect(
+        useCallback(() => {
+            void refetch();
+        }, [refetch])
+    );
+
+    const handleRefresh = useCallback(() => {
+        void refetch();
+    }, [refetch]);
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.content}
+            refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
+        >
             <View style={styles.hero}>
                 <Text style={styles.welcome}>Welcome back,</Text>
                 <Text style={styles.name}>{displayName}</Text>
@@ -32,6 +49,7 @@ export default function HomeTab() {
 
             <View style={styles.summaryCard}>
                 <Text style={styles.sectionTitle}>Progress Snapshot</Text>
+                <ProgressBar progress={normalizedCompletion} />
                 <View style={styles.summaryRow}>
                     <View style={styles.summaryItem}>
                         <Text style={styles.summaryValue}>{completion}%</Text>
