@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserStore } from "@/lib/store/user";
 import { useAuthStore } from "@/lib/store/auth";
@@ -33,7 +32,6 @@ export default function ProfileScreen() {
     const [editSchool, setEditSchool] = useState("");
     const [editExamYear, setEditExamYear] = useState("");
     const isStudentRole = (user?.role || "").toLowerCase() === UserRole.STUDENT;
-    const insets = useSafeAreaInsets();
 
     const refreshUser = useCallback(async () => {
         try {
@@ -200,7 +198,7 @@ export default function ProfileScreen() {
                 style={[
                     styles.header,
                     { paddingHorizontal: width < 390 ? 16 : 24 },
-                    { paddingTop: 28 + insets.top * 0.4 },
+                    { paddingTop: 22 },
                 ]}
             >
                 <View style={styles.avatarContainer}>
