@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
     View,
     Text,
@@ -24,6 +24,41 @@ export default function AssessmentScreen() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showAlreadyCompleted, setShowAlreadyCompleted] = useState(false);
+    const [countdown, setCountdown] = useState(3);
+    const redirectIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const clearRedirectTimers = useCallback(() => {
+        if (redirectIntervalRef.current) {
+            clearInterval(redirectIntervalRef.current);
+            redirectIntervalRef.current = null;
+        }
+        if (redirectTimeoutRef.current) {
+            clearTimeout(redirectTimeoutRef.current);
+            redirectTimeoutRef.current = null;
+        }
+    }, []);
+
+    const startAlreadyCompletedRedirect = useCallback(async () => {
+        clearRedirectTimers();
+        setShowAlreadyCompleted(true);
+        setError("You have already completed the assessment. Redirecting to your dashboard soon.");
+        setCountdown(3);
+        await setItem("assessmentComplete", "true");
+
+        redirectIntervalRef.current = setInterval(() => {
+            setCountdown((prev) => {
+                const next = prev - 1;
+                return next < 0 ? 0 : next;
+            });
+        }, 1000);
+
+        redirectTimeoutRef.current = setTimeout(() => {
+            clearRedirectTimers();
+            router.replace("/(tabs)");
+        }, 3000);
+    }, [clearRedirectTimers, router]);
 
     /**
      * Load assessment questions from the API
@@ -52,15 +87,15 @@ export default function AssessmentScreen() {
                 try {
                     const status = await apiClient.getAssessmentStatus();
                     if (status?.completed) {
-                        await setItem("assessmentComplete", "true");
-                        Alert.alert("Assessment Completed", "You have already completed the assessment.");
-                        router.replace("/(tabs)");
+                        await startAlreadyCompletedRedirect();
                         return;
                     }
                 } catch {
                     // Continue to show friendly message below if status check fails.
                 }
-                userMessage = "You have already completed the assessment.";
+
+                await startAlreadyCompletedRedirect();
+                return;
             }
 
             if (normalizedErrorMessage.includes("no active assessment") || 
@@ -75,11 +110,15 @@ export default function AssessmentScreen() {
         } finally {
             setLoading(false);
         }
-    }, [router]);
+    }, [startAlreadyCompletedRedirect]);
 
     useEffect(() => {
         loadQuestions();
     }, [loadQuestions]);
+
+    useEffect(() => {
+        return () => clearRedirectTimers();
+    }, [clearRedirectTimers]);
 
     const handleSelectAnswer = (answerIndex: number) => {
         const currentQuestion = questions[currentQuestionIndex];
@@ -140,8 +179,19 @@ export default function AssessmentScreen() {
                     message: result.message,
                 },
             });
-        } catch {
-            Alert.alert("Error", "Failed to submit assessment. Please try again.");
+        } catch (error: any) {
+            const errorMessage = error?.message || "Failed to submit assessment. Please try again.";
+            const normalizedErrorMessage = errorMessage.toLowerCase();
+            if (
+                normalizedErrorMessage.includes("already completed") ||
+                normalizedErrorMessage.includes("already taken") ||
+                normalizedErrorMessage.includes("completed this assessment") ||
+                normalizedErrorMessage.includes("assessment completed")
+            ) {
+                await startAlreadyCompletedRedirect();
+                return;
+            }
+            Alert.alert("Error", errorMessage);
         } finally {
             setSubmitting(false);
         }
@@ -168,22 +218,34 @@ export default function AssessmentScreen() {
                 </View>
                 <View style={styles.errorContainer}>
                     <Ionicons name="alert-circle-outline" size={64} color="#F44336" />
-                    <Text style={styles.errorTitle}>Assessment Unavailable</Text>
+                    <Text style={styles.errorTitle}>
+                        {showAlreadyCompleted ? "Assessment Already Completed" : "Assessment Unavailable"}
+                    </Text>
                     <Text style={styles.errorMessage}>{error}</Text>
+                    {showAlreadyCompleted ? (
+                        <Text style={styles.redirectMessage}>
+                            Redirecting to dashboard in {Math.max(countdown, 0)} second
+                            {countdown === 1 ? "" : "s"}...
+                        </Text>
+                    ) : null}
                     <View style={styles.errorActions}>
-                        <TouchableOpacity
-                            style={styles.retryButton}
-                            onPress={loadQuestions}
-                        >
-                            <Ionicons name="refresh" size={20} color="#F2B138" />
-                            <Text style={styles.retryButtonText}>Try Again</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.backButtonError}
-                            onPress={() => router.back()}
-                        >
-                            <Text style={styles.backButtonErrorText}>Go Back</Text>
-                        </TouchableOpacity>
+                        {!showAlreadyCompleted ? (
+                            <TouchableOpacity
+                                style={styles.retryButton}
+                                onPress={loadQuestions}
+                            >
+                                <Ionicons name="refresh" size={20} color="#F2B138" />
+                                <Text style={styles.retryButtonText}>Try Again</Text>
+                            </TouchableOpacity>
+                        ) : null}
+                        {!showAlreadyCompleted ? (
+                            <TouchableOpacity
+                                style={styles.backButtonError}
+                                onPress={() => router.back()}
+                            >
+                                <Text style={styles.backButtonErrorText}>Go Back</Text>
+                            </TouchableOpacity>
+                        ) : null}
                     </View>
                 </View>
             </View>
@@ -303,6 +365,14 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginBottom: 32,
         lineHeight: 24,
+    },
+    redirectMessage: {
+        fontSize: 14,
+        color: "#E65100",
+        textAlign: "center",
+        marginBottom: 20,
+        lineHeight: 20,
+        fontWeight: "600",
     },
     errorActions: {
         flexDirection: "row",
