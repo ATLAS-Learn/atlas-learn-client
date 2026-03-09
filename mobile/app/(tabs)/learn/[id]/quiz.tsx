@@ -26,6 +26,17 @@ export default function QuizScreen() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
+    const getQuestionKey = (question: Quiz["questions"][number], index: number): string => {
+        const rawQuestion = question as Quiz["questions"][number] & { questionId?: unknown; _id?: unknown };
+        return typeof question.id === "string" && question.id.trim()
+            ? question.id.trim()
+            : typeof rawQuestion.questionId === "string" && rawQuestion.questionId.trim()
+                ? rawQuestion.questionId.trim()
+                : typeof rawQuestion._id === "string" && rawQuestion._id.trim()
+                    ? rawQuestion._id.trim()
+                    : `index-${index}`;
+    };
+
     const loadQuiz = useCallback(async () => {
         try {
             if (!chapterId) {
@@ -52,9 +63,10 @@ export default function QuizScreen() {
     const handleSelectAnswer = (answerIndex: number) => {
         if (!quiz) return;
         const currentQuestion = quiz.questions[currentQuestionIndex];
+        const questionKey = getQuestionKey(currentQuestion, currentQuestionIndex);
         setAnswers({
             ...answers,
-            [currentQuestion.id]: answerIndex,
+            [questionKey]: answerIndex,
         });
     };
 
@@ -77,7 +89,7 @@ export default function QuizScreen() {
         if (!quiz) return;
 
         const unansweredQuestions = quiz.questions.filter(
-            (q) => answers[q.id] === undefined
+            (q, index) => answers[getQuestionKey(q, index)] === undefined
         );
 
         if (unansweredQuestions.length > 0) {
@@ -91,10 +103,7 @@ export default function QuizScreen() {
         setSubmitting(true);
         try {
             const submission = {
-                answers: quiz.questions.map((q) => ({
-                    questionId: q.id,
-                    answerIndex: answers[q.id],
-                })),
+                answers: quiz.questions.map((q, index) => answers[getQuestionKey(q, index)]),
             };
 
             const result = await apiClient.submitQuiz(quiz.id, submission);
@@ -139,7 +148,8 @@ export default function QuizScreen() {
 
     const currentQuestion = quiz.questions[currentQuestionIndex];
     const isLastQuestion = currentQuestionIndex === quiz.questions.length - 1;
-    const isAnswered = answers[currentQuestion.id] !== undefined;
+    const currentQuestionKey = getQuestionKey(currentQuestion, currentQuestionIndex);
+    const isAnswered = answers[currentQuestionKey] !== undefined;
 
     return (
         <View style={styles.container}>
@@ -159,7 +169,7 @@ export default function QuizScreen() {
 
                 <QuestionCard
                     question={currentQuestion}
-                    selectedAnswer={answers[currentQuestion.id] ?? null}
+                    selectedAnswer={answers[currentQuestionKey] ?? null}
                     onSelectAnswer={handleSelectAnswer}
                 />
             </ScrollView>

@@ -435,7 +435,7 @@ export interface Quiz {
 }
 
 export interface QuizSubmission {
-    answers: { questionId: string; answerIndex: number }[];
+    answers: number[];
 }
 
 export interface QuizResult {

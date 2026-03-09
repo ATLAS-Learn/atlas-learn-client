@@ -2,9 +2,9 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { QuizSubmission } from "@/lib/types";
 
-export function useQuizzes(limit: number = 5) {
+export function useQuizzes(limit?: number) {
     return useQuery({
-        queryKey: ["quizzes", limit],
+        queryKey: ["quizzes", limit ?? "all"],
         queryFn: () => apiClient.getQuizzes(limit),
     });
 }

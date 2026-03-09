@@ -208,7 +208,18 @@ class APIClient {
     }
 
     private normalizeQuestion(question: Partial<QuizQuestion>): QuizQuestion {
-        const id = typeof question.id === "string" ? question.id : "";
+        const rawQuestion = question as Partial<QuizQuestion> & {
+            questionId?: unknown;
+            _id?: unknown;
+        };
+        const id =
+            typeof rawQuestion.id === "string" && rawQuestion.id.trim()
+                ? rawQuestion.id.trim()
+                : typeof rawQuestion.questionId === "string" && rawQuestion.questionId.trim()
+                    ? rawQuestion.questionId.trim()
+                    : typeof rawQuestion._id === "string" && rawQuestion._id.trim()
+                        ? rawQuestion._id.trim()
+                        : "";
         const options = Array.isArray(question.options) ? question.options : [];
         const questionText =
             typeof question.questionText === "string"
@@ -237,8 +248,20 @@ class APIClient {
     }
 
     private normalizeQuiz(quiz: Partial<Quiz>): Quiz {
-        const id = typeof quiz.id === "string" ? quiz.id : "";
-        const chapterId = typeof quiz.chapterId === "string" ? quiz.chapterId : "";
+        const rawQuiz = quiz as Partial<Quiz> & {
+            chapterId?: unknown;
+            _id?: unknown;
+        };
+        const id =
+            typeof rawQuiz.id === "string" && rawQuiz.id.trim()
+                ? rawQuiz.id.trim()
+                : typeof rawQuiz._id === "string" && rawQuiz._id.trim()
+                    ? rawQuiz._id.trim()
+                    : "";
+        const chapterId =
+            typeof rawQuiz.chapterId === "string" && rawQuiz.chapterId.trim()
+                ? rawQuiz.chapterId.trim()
+                : "";
         const rawQuestions = Array.isArray(quiz.questions) ? quiz.questions : [];
         const normalizedQuestions = rawQuestions.map((question) =>
             this.normalizeQuestion((question || {}) as Partial<QuizQuestion>)
@@ -1125,24 +1148,21 @@ class APIClient {
     }
 
     // Quiz endpoints
-    async getQuizzes(limit: number = 5): Promise<Quiz[]> {
-        // Try with limit parameter first, fallback to no parameter
-        try {
-            const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
-                `/quizzes?limit=${limit}`
-            );
-            const quizzes = this.unwrapData<Quiz[]>(response);
-            if (Array.isArray(quizzes)) {
-                return this.normalizeQuizzes(this.dedupeById(quizzes)).slice(0, limit);
-            }
+    async getQuizzes(limit?: number): Promise<Quiz[]> {
+        const limitValue = typeof limit === "number" && Number.isInteger(limit) && limit > 0 ? limit : 0;
+        const endpoint = limitValue > 0 ? `/quizzes?limit=${limitValue}` : `/quizzes`;
+
+        const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(endpoint);
+        const quizzes = this.unwrapData<Quiz[]>(
+            response as Quiz[] | { data?: Quiz[] }
+        );
+
+        if (!Array.isArray(quizzes)) {
             throw new Error("Quizzes response is not an array");
-        } catch {
-            // If query parameter fails, try without it
-            const allQuizzes = this.unwrapData<Quiz[]>(
-                await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(`/quizzes`)
-            );
-            return Array.isArray(allQuizzes) ? this.normalizeQuizzes(this.dedupeById(allQuizzes)).slice(0, limit) : [];
         }
+
+        const normalized = this.normalizeQuizzes(this.dedupeById(quizzes));
+        return limitValue > 0 ? normalized.slice(0, limitValue) : normalized;
     }
 
     async getQuiz(quizId: string): Promise<Quiz> {
@@ -1183,10 +1203,75 @@ class APIClient {
     }
 
     async submitQuiz(quizId: string, submission: QuizSubmission): Promise<QuizResult> {
-        return this.request<QuizResult>(`/quizzes/${quizId}/submit`, {
+        const response = await this.request<{
+            success?: boolean;
+            message?: string;
+            data?: {
+                score?: number;
+                correctAnswers?: number;
+                totalQuestions?: number;
+                earnedPoints?: number;
+                totalPoints?: number;
+                percentage?: number;
+                passed?: boolean;
+                pastPaperReference?: string;
+                unlockedNextChapter?: unknown;
+            };
+        } | QuizResult>(`/quizzes/${quizId}/submit`, {
             method: "POST",
             data: submission,
         });
+
+        const payload = this.unwrapData(response);
+        if (!payload || typeof payload !== "object") {
+            throw new Error("Invalid quiz submission response");
+        }
+
+        const result = payload as Record<string, unknown>;
+        const scoreValue =
+            typeof result.score === "number" && Number.isFinite(result.score) ? result.score : 0;
+        const correctAnswers =
+            typeof result.correctAnswers === "number" && Number.isFinite(result.correctAnswers)
+                ? result.correctAnswers
+                : null;
+        const earnedPoints =
+            typeof result.earnedPoints === "number" && Number.isFinite(result.earnedPoints)
+                ? result.earnedPoints
+                : null;
+        const totalQuestions =
+            typeof result.totalQuestions === "number" ? result.totalQuestions : 0;
+        const totalPoints =
+            typeof result.totalPoints === "number" && Number.isFinite(result.totalPoints)
+                ? result.totalPoints
+                : null;
+        const percentageRaw = typeof result.percentage === "number" ? result.percentage : undefined;
+        const percentage = typeof percentageRaw === "number"
+                ? percentageRaw
+                : correctAnswers !== null && totalQuestions > 0
+                    ? (correctAnswers / totalQuestions) * 100
+                    : totalPoints && totalPoints > 0
+                        ? (earnedPoints ?? scoreValue) / totalPoints * 100
+                        : totalQuestions > 0
+                            ? (scoreValue / totalQuestions) * 100
+                            : 0;
+        const score =
+            correctAnswers !== null
+                ? correctAnswers
+                : earnedPoints !== null
+                    ? earnedPoints
+                    : 0;
+
+        return {
+            score,
+            totalQuestions,
+            percentage,
+            passed: result.passed === true,
+            pastPaperReference:
+                typeof result.pastPaperReference === "string" ? result.pastPaperReference : undefined,
+            unlockedNextChapter:
+                result.unlockedNextChapter !== null &&
+                result.unlockedNextChapter !== undefined,
+        };
     }
 
     async getQuizAttempts(quizId: string): Promise<QuizAttempt[]> {
