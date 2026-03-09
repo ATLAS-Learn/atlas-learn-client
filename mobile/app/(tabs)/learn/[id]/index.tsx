@@ -71,7 +71,16 @@ export default function ChapterScreen() {
 
     const handleStartQuiz = () => {
         if (!chapterId) return;
-        router.push(`/(tabs)/learn/${chapterId}/quiz`);
+        const subjectIdForQuiz =
+            resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
+        const params: { id: string; subjectId?: string } = { id: chapterId };
+        if (subjectIdForQuiz) {
+            params.subjectId = subjectIdForQuiz;
+        }
+        router.push({
+            pathname: "/(tabs)/learn/[id]/quiz",
+            params,
+        } as any);
     };
 
     const getChapterPdfUrl = (chapterValue: Chapter | null): string | undefined => {

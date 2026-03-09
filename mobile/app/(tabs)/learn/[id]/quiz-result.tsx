@@ -1,9 +1,12 @@
+import React, { useEffect, useRef } from "react";
 import {
     View,
     Text,
     TouchableOpacity,
     StyleSheet,
     ScrollView,
+    Animated,
+    Easing,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,7 +14,17 @@ import QuizCelebration from "@/components/quizzes/quiz-celebration";
 
 export default function QuizResultScreen() {
     const router = useRouter();
-    const params = useLocalSearchParams<{ id: string; score: string; totalQuestions: string; percentage: string; passed: string; pastPaperReference?: string; unlockedNextChapter: string; quizId?: string }>();
+    const params = useLocalSearchParams<{
+        id: string;
+        subjectId?: string;
+        score: string;
+        totalQuestions: string;
+        percentage: string;
+        passed: string;
+        pastPaperReference?: string;
+        unlockedNextChapter: string;
+        quizId?: string;
+    }>();
 
     const score = parseInt(params.score as string) || 0;
     const totalQuestions = parseInt(params.totalQuestions as string) || 0;
@@ -19,6 +32,55 @@ export default function QuizResultScreen() {
     const passed = params.passed === "true";
     const pastPaperReference = params.pastPaperReference as string | undefined;
     const unlockedNextChapter = params.unlockedNextChapter === "true";
+    const subjectId = Array.isArray(params.subjectId) ? params.subjectId[0] : params.subjectId;
+    const headerAnimation = useRef(new Animated.Value(0)).current;
+    const scoreAnimation = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(headerAnimation, {
+                toValue: 1,
+                duration: 500,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: true,
+            }),
+            Animated.spring(scoreAnimation, {
+                toValue: 1,
+                tension: 80,
+                friction: 7,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [headerAnimation, scoreAnimation]);
+
+    const headerStyle = {
+        opacity: headerAnimation,
+        transform: [
+            {
+                translateY: headerAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [24, 0],
+                }),
+            },
+            {
+                scale: headerAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.98, 1],
+                }),
+            },
+        ],
+    };
+
+    const scoreStyle = {
+        transform: [
+            {
+                scale: scoreAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.6, 1],
+                }),
+            },
+        ],
+    };
 
     const handleContinue = () => {
         if (unlockedNextChapter && passed && params.id) {
@@ -39,32 +101,29 @@ export default function QuizResultScreen() {
     };
 
     const handleTryAgain = () => {
-        if (params.id) {
-            router.push(`/(tabs)/learn/${params.id}/quiz`);
+        if (!params.id) {
+            return router.back();
+        }
+        if (subjectId) {
+            router.push({
+                pathname: "/(tabs)/learn/[id]/quiz",
+                params: { id: params.id, subjectId },
+            } as any);
         } else {
-            router.back();
+            router.push(`/(tabs)/learn/${params.id}/quiz`);
         }
     };
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            {passed ? (
-                <>
+            <Animated.View style={headerStyle}>
+                {passed ? (
                     <QuizCelebration
                         score={score}
                         totalQuestions={totalQuestions}
                         pastPaperReference={pastPaperReference}
                     />
-
-                    <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-                        <Text style={styles.continueButtonText}>
-                            {unlockedNextChapter ? "Continue to Next Chapter" : "Back to Dashboard"}
-                        </Text>
-                        <Ionicons name="arrow-forward" size={20} color="#fff" />
-                    </TouchableOpacity>
-                </>
-            ) : (
-                <>
+                ) : (
                     <View style={styles.failureContainer}>
                         <View style={styles.iconContainer}>
                             <View style={styles.iconCircle}>
@@ -74,12 +133,14 @@ export default function QuizResultScreen() {
 
                         <Text style={styles.failureTitle}>Let&apos;s Review That Again</Text>
 
-                        <View style={styles.scoreContainer}>
-                            <Text style={styles.scoreText}>
-                                {score} / {totalQuestions}
-                            </Text>
-                            <Text style={styles.percentageText}>{Math.round(percentage)}%</Text>
-                        </View>
+                        <Animated.View style={scoreStyle}>
+                            <View style={styles.scoreContainer}>
+                                <Text style={styles.scoreText}>
+                                    {score} / {totalQuestions}
+                                </Text>
+                                <Text style={styles.percentageText}>{Math.round(percentage)}%</Text>
+                            </View>
+                        </Animated.View>
 
                         <View style={styles.messageContainer}>
                             <Text style={styles.messageText}>
@@ -105,8 +166,17 @@ export default function QuizResultScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                </>
-            )}
+                )}
+            </Animated.View>
+
+            <Animated.View style={[headerStyle, styles.footerSpacer]}>
+                <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+                    <Text style={styles.continueButtonText}>
+                        {unlockedNextChapter ? "Continue to Next Chapter" : "Back to Dashboard"}
+                    </Text>
+                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                </TouchableOpacity>
+            </Animated.View>
         </ScrollView>
     );
 }
@@ -119,6 +189,9 @@ const styles = StyleSheet.create({
     content: {
         flexGrow: 1,
         padding: 24,
+    },
+    footerSpacer: {
+        marginTop: 24,
     },
     failureContainer: {
         alignItems: "center",
@@ -215,7 +288,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
-        marginTop: 24,
     },
     continueButtonText: {
         color: "#fff",

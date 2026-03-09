@@ -415,16 +415,23 @@ export interface ChapterSection {
 export interface QuizQuestion {
     id: string;
     question: string;
+    questionText?: string;
     options: string[];
-    correctAnswer: number;
+    correctAnswer?: number;
+    correctAnswerIndex?: number;
     explanation?: string;
+    points?: number;
 }
 
 export interface Quiz {
     id: string;
-    chapterId: string;
+    title?: string;
+    description?: string;
+    isSkipQuiz?: boolean;
+    timeLimit?: number;
+    chapterId?: string;
     questions: QuizQuestion[];
-    passingScore: number; // percentage, e.g., 80
+    passingScore?: number; // percentage, e.g., 80
 }
 
 export interface QuizSubmission {

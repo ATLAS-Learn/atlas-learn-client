@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View, Text, StyleSheet, Animated } from "react-native";
 
 interface QuizProgressProps {
     currentQuestion: number;
@@ -11,11 +11,30 @@ export default function QuizProgress({
     totalQuestions,
 }: QuizProgressProps) {
     const progress = (currentQuestion / totalQuestions) * 100;
+    const animatedProgress = useRef(new Animated.Value(progress)).current;
+
+    useEffect(() => {
+        Animated.timing(animatedProgress, {
+            toValue: progress,
+            duration: 240,
+            useNativeDriver: false,
+        }).start();
+    }, [progress, animatedProgress]);
 
     return (
         <View style={styles.container}>
             <View style={styles.progressBarContainer}>
-                <View style={[styles.progressBar, { width: `${progress}%` }]} />
+                <Animated.View
+                    style={[
+                        styles.progressBar,
+                        {
+                            width: animatedProgress.interpolate({
+                                inputRange: [0, 100],
+                                outputRange: ["0%", "100%"],
+                            }),
+                        },
+                    ]}
+                />
             </View>
             <Text style={styles.progressText}>
                 Question {currentQuestion} of {totalQuestions}

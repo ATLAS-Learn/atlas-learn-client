@@ -17,8 +17,9 @@ import { Quiz } from "@/lib/types";
 
 export default function QuizScreen() {
     const router = useRouter();
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { id, subjectId } = useLocalSearchParams<{ id: string; subjectId?: string }>();
     const chapterId = Array.isArray(id) ? id[0] : id;
+    const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -30,7 +31,7 @@ export default function QuizScreen() {
             if (!chapterId) {
                 throw new Error("Missing chapter ID");
             }
-            const data = await apiClient.getChapterQuiz(chapterId);
+            const data = await apiClient.getChapterQuiz(chapterId, subjectKey);
             setQuiz(data);
         } catch {
             Alert.alert("Error", "Failed to load quiz. Please try again.");
@@ -38,7 +39,7 @@ export default function QuizScreen() {
         } finally {
             setLoading(false);
         }
-    }, [chapterId, router]);
+    }, [chapterId, router, subjectKey]);
 
     useEffect(() => {
         if (chapterId) {
@@ -109,6 +110,7 @@ export default function QuizScreen() {
                     passed: result.passed.toString(),
                     pastPaperReference: result.pastPaperReference || "",
                     unlockedNextChapter: result.unlockedNextChapter.toString(),
+                    ...(subjectKey ? { subjectId: subjectKey } : {}),
                 },
             } as any);
         } catch {

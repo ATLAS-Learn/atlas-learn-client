@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useMemo, useRef } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from "react-native";
 import { QuizQuestion } from "@/lib/types";
 
 interface QuestionCardProps {
@@ -15,45 +15,89 @@ export default function QuestionCard({
     onSelectAnswer,
     showResult = false,
 }: QuestionCardProps) {
+    const readableQuestion = useMemo(
+        () =>
+            typeof question.question === "string" && question.question.trim().length > 0
+                ? question.question
+                : typeof question.questionText === "string"
+                    ? question.questionText
+                    : "",
+        [question.question, question.questionText]
+    );
+    const correctAnswer = useMemo(() => {
+        if (typeof question.correctAnswer === "number") {
+            return question.correctAnswer;
+        }
+        return typeof question.correctAnswerIndex === "number" ? question.correctAnswerIndex : -1;
+    }, [question.correctAnswer, question.correctAnswerIndex]);
+    const pressAnimations = useRef<Animated.Value[]>([]);
+    if (pressAnimations.current.length !== question.options.length) {
+        pressAnimations.current = question.options.map(() => new Animated.Value(1));
+    }
+
     const getOptionStyle = (index: number) => {
         if (!showResult) {
             return selectedAnswer === index ? styles.optionSelected : styles.option;
         }
 
-        if (index === question.correctAnswer) {
+        if (index === correctAnswer) {
             return styles.optionCorrect;
         }
-        if (selectedAnswer === index && index !== question.correctAnswer) {
+        if (selectedAnswer === index && index !== correctAnswer) {
             return styles.optionIncorrect;
         }
         return styles.option;
     };
 
+    const handleSelectAnswer = (answerIndex: number) => {
+        Animated.spring(pressAnimations.current[answerIndex], {
+            toValue: 0.98,
+            speed: 220,
+            bounciness: 10,
+            useNativeDriver: true,
+        }).start(() => {
+            Animated.spring(pressAnimations.current[answerIndex], {
+                toValue: 1,
+                speed: 220,
+                bounciness: 10,
+                useNativeDriver: true,
+            }).start();
+        });
+        onSelectAnswer(answerIndex);
+    };
+
     return (
         <View style={styles.container}>
-            <Text style={styles.questionText}>{question.question}</Text>
+            <Text style={styles.questionText}>{readableQuestion}</Text>
             <View style={styles.optionsContainer}>
                 {question.options.map((option, index) => (
-                    <TouchableOpacity
-                        key={index}
-                        style={getOptionStyle(index)}
-                        onPress={() => !showResult && onSelectAnswer(index)}
-                        disabled={showResult}
+                    <Animated.View
+                            key={index}
+                        style={{ transform: [{ scale: pressAnimations.current[index] }] }}
                     >
-                        <Text
-                            style={[
-                                styles.optionText,
-                                selectedAnswer === index && styles.optionTextSelected,
-                                showResult && index === question.correctAnswer && styles.optionTextCorrect,
-                                showResult && selectedAnswer === index && index !== question.correctAnswer && styles.optionTextIncorrect,
-                            ]}
+                        <TouchableOpacity
+                            style={getOptionStyle(index)}
+                            onPress={() => !showResult && handleSelectAnswer(index)}
+                            disabled={showResult}
                         >
-                            {option}
-                        </Text>
-                        {showResult && index === question.correctAnswer && (
-                            <Text style={styles.correctBadge}>✓ Correct</Text>
-                        )}
-                    </TouchableOpacity>
+                            <Text
+                                style={[
+                                    styles.optionText,
+                                    selectedAnswer === index && styles.optionTextSelected,
+                                    showResult && index === correctAnswer && styles.optionTextCorrect,
+                                    showResult &&
+                                        selectedAnswer === index &&
+                                        index !== correctAnswer &&
+                                        styles.optionTextIncorrect,
+                                ]}
+                            >
+                                {option}
+                            </Text>
+                            {showResult && index === correctAnswer && (
+                                <Text style={styles.correctBadge}>✓ Correct</Text>
+                            )}
+                        </TouchableOpacity>
+                    </Animated.View>
                 ))}
             </View>
             {showResult && question.explanation && (

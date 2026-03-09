@@ -12,6 +12,7 @@ import {
     CreateAssessmentQuestionPayload,
     UpdateAssessmentQuestionPayload,
     Chapter,
+    QuizQuestion,
     Quiz,
     QuizSubmission,
     QuizResult,
@@ -204,6 +205,62 @@ class APIClient {
             return (response as { data?: T }).data as T;
         }
         return response as T;
+    }
+
+    private normalizeQuestion(question: Partial<QuizQuestion>): QuizQuestion {
+        const id = typeof question.id === "string" ? question.id : "";
+        const options = Array.isArray(question.options) ? question.options : [];
+        const questionText =
+            typeof question.questionText === "string"
+                ? question.questionText
+                : typeof question.question === "string"
+                    ? question.question
+                    : "";
+        const correctAnswerRaw = question.correctAnswerIndex ?? question.correctAnswer;
+        const correctAnswer =
+            typeof correctAnswerRaw === "number" && Number.isInteger(correctAnswerRaw)
+                ? correctAnswerRaw
+                : -1;
+        const explanation = typeof question.explanation === "string" ? question.explanation : undefined;
+        const points = typeof question.points === "number" ? question.points : undefined;
+
+        return {
+            id,
+            question: questionText,
+            options,
+            questionText: typeof question.questionText === "string" ? question.questionText : undefined,
+            correctAnswer,
+            correctAnswerIndex: typeof question.correctAnswerIndex === "number" ? question.correctAnswerIndex : undefined,
+            explanation,
+            points,
+        };
+    }
+
+    private normalizeQuiz(quiz: Partial<Quiz>): Quiz {
+        const id = typeof quiz.id === "string" ? quiz.id : "";
+        const chapterId = typeof quiz.chapterId === "string" ? quiz.chapterId : "";
+        const rawQuestions = Array.isArray(quiz.questions) ? quiz.questions : [];
+        const normalizedQuestions = rawQuestions.map((question) =>
+            this.normalizeQuestion((question || {}) as Partial<QuizQuestion>)
+        );
+
+        return {
+            ...(quiz as Quiz),
+            id,
+            chapterId,
+            questions: normalizedQuestions,
+            title: typeof quiz.title === "string" ? quiz.title : undefined,
+            description: typeof quiz.description === "string" ? quiz.description : undefined,
+            isSkipQuiz: typeof quiz.isSkipQuiz === "boolean" ? quiz.isSkipQuiz : undefined,
+            timeLimit: typeof quiz.timeLimit === "number" ? quiz.timeLimit : undefined,
+            passingScore: typeof quiz.passingScore === "number" ? quiz.passingScore : undefined,
+        };
+    }
+
+    private normalizeQuizzes(quizzes: unknown[]): Quiz[] {
+        return quizzes
+            .map((quiz) => this.normalizeQuiz((quiz || {}) as Partial<Quiz>))
+            .filter((quiz) => quiz.id);
     }
 
     private normalizeUserPayload(response: unknown): User {
@@ -804,7 +861,7 @@ class APIClient {
             }
         );
         const quizzes = this.unwrapData<Quiz[]>(response);
-        return Array.isArray(quizzes) ? quizzes : [];
+        return Array.isArray(quizzes) ? this.normalizeQuizzes(this.dedupeById(quizzes)) : [];
     }
 
     async getSubjectChapterProgress(subjectId: string, chapterId: string): Promise<SubjectChapterProgress> {
@@ -1010,7 +1067,11 @@ class APIClient {
     // Chapter Quiz endpoints
     async getChapterQuizzes(chapterId: string): Promise<Quiz[]> {
         // Get all quizzes for a chapter
-        return this.request<Quiz[]>(`/chapters/${chapterId}/quizzes`);
+        const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
+            `/chapters/${chapterId}/quizzes`
+        );
+        const quizzes = this.unwrapData<Quiz[]>(response);
+        return Array.isArray(quizzes) ? this.normalizeQuizzes(this.dedupeById(quizzes)) : [];
     }
 
     async getChapterProgress(chapterId: string): Promise<ChapterProgressData> {
@@ -1034,9 +1095,21 @@ class APIClient {
         return Array.isArray(hints) ? hints : [];
     }
 
-    async getChapterQuiz(chapterId: string): Promise<Quiz> {
+    async getChapterQuiz(chapterId: string, subjectId?: string): Promise<Quiz> {
         // Get the first quiz for a chapter (for backward compatibility)
-        const quizzes = await this.getChapterQuizzes(chapterId);
+        const quizzes = subjectId
+            ? await this.getSubjectChapterQuizzes(subjectId, chapterId, { includeQuestions: true })
+            : await this.getChapterQuizzes(chapterId);
+        if (quizzes.length === 0 && !subjectId) {
+            throw new Error(`No quizzes found for chapter ${chapterId}`);
+        }
+        if (quizzes.length === 0 && subjectId) {
+            const fallbackQuizzes = await this.getChapterQuizzes(chapterId);
+            if (fallbackQuizzes.length === 0) {
+                throw new Error(`No quizzes found for chapter ${chapterId}`);
+            }
+            return fallbackQuizzes[0];
+        }
         if (quizzes.length === 0) {
             throw new Error(`No quizzes found for chapter ${chapterId}`);
         }
@@ -1055,11 +1128,20 @@ class APIClient {
     async getQuizzes(limit: number = 5): Promise<Quiz[]> {
         // Try with limit parameter first, fallback to no parameter
         try {
-            return await this.request<Quiz[]>(`/quizzes?limit=${limit}`);
+            const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
+                `/quizzes?limit=${limit}`
+            );
+            const quizzes = this.unwrapData<Quiz[]>(response);
+            if (Array.isArray(quizzes)) {
+                return this.normalizeQuizzes(this.dedupeById(quizzes)).slice(0, limit);
+            }
+            throw new Error("Quizzes response is not an array");
         } catch {
             // If query parameter fails, try without it
-            const allQuizzes = await this.request<Quiz[]>(`/quizzes`);
-            return allQuizzes.slice(0, limit);
+            const allQuizzes = this.unwrapData<Quiz[]>(
+                await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(`/quizzes`)
+            );
+            return Array.isArray(allQuizzes) ? this.normalizeQuizzes(this.dedupeById(allQuizzes)).slice(0, limit) : [];
         }
     }
 

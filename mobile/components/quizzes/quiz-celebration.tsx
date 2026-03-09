@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View, Text, StyleSheet, Animated, Easing } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 interface QuizCelebrationProps {
@@ -14,23 +14,114 @@ export default function QuizCelebration({
     pastPaperReference,
 }: QuizCelebrationProps) {
     const percentage = (score / totalQuestions) * 100;
+    const trophyScale = useRef(new Animated.Value(0.5)).current;
+    const scoreBounce = useRef(new Animated.Value(0)).current;
+    const confetti = useRef(
+        Array.from({ length: 7 }).map(() => new Animated.Value(0))
+    ).current;
+
+    useEffect(() => {
+        Animated.sequence([
+            Animated.spring(trophyScale, {
+                toValue: 1.1,
+                useNativeDriver: true,
+                friction: 4,
+            }),
+            Animated.spring(trophyScale, {
+                toValue: 1,
+                useNativeDriver: true,
+                friction: 4,
+            }),
+            Animated.spring(scoreBounce, {
+                toValue: 1,
+                useNativeDriver: true,
+                tension: 80,
+                friction: 7,
+            }),
+        ]).start();
+        const confettiAnimations = confetti.map((item, index) =>
+            Animated.loop(
+                Animated.sequence([
+                    Animated.delay(index * 100),
+                    Animated.timing(item, {
+                        toValue: 1,
+                        duration: 700,
+                        easing: Easing.out(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(item, {
+                        toValue: 0,
+                        duration: 700,
+                        easing: Easing.in(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                ]),
+                { iterations: 4 }
+            )
+        );
+        Animated.stagger(120, confettiAnimations).start();
+    }, [confetti, scoreBounce, trophyScale]);
 
     return (
         <View style={styles.container}>
-            <View style={styles.iconContainer}>
+            <View style={styles.confettiRow}>
+                {confetti.map((item, index) => (
+                    <Animated.View
+                        key={index}
+                        style={[
+                            styles.confetti,
+                            {
+                                opacity: item,
+                                transform: [
+                                    {
+                                        translateY: item.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [0, -18],
+                                        }),
+                                    },
+                                    {
+                                        rotate: item.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: ["0deg", `${45 + index * 12}deg`],
+                                        }),
+                                    },
+                                ],
+                            },
+                        ]}
+                    />
+                ))}
+            </View>
+
+            <Animated.View
+                style={[styles.iconContainer, { transform: [{ scale: trophyScale }] }]}
+            >
                 <View style={styles.iconCircle}>
                     <Ionicons name="trophy" size={60} color="#F2B138" />
                 </View>
-            </View>
+            </Animated.View>
 
             <Text style={styles.title}>Chapter Complete!</Text>
 
-            <View style={styles.scoreContainer}>
+            <Animated.View
+                style={[
+                    styles.scoreContainer,
+                    {
+                        transform: [
+                            {
+                                scale: scoreBounce.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.8, 1],
+                                }),
+                            },
+                        ],
+                    },
+                ]}
+            >
                 <Text style={styles.scoreText}>
                     {score} / {totalQuestions}
                 </Text>
                 <Text style={styles.percentageText}>{Math.round(percentage)}%</Text>
-            </View>
+            </Animated.View>
 
             {pastPaperReference && (
                 <View style={styles.referenceContainer}>
@@ -55,6 +146,21 @@ const styles = StyleSheet.create({
     container: {
         alignItems: "center",
         padding: 24,
+    },
+    confettiRow: {
+        position: "absolute",
+        top: 8,
+        flexDirection: "row",
+        width: "100%",
+        justifyContent: "center",
+        gap: 16,
+        opacity: 0.65,
+    },
+    confetti: {
+        width: 10,
+        height: 10,
+        borderRadius: 3,
+        backgroundColor: "#F2B138",
     },
     iconContainer: {
         marginBottom: 24,
