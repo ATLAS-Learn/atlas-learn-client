@@ -63,12 +63,6 @@ export default function ChapterScreen() {
         }
     }, [chapterId, loadChapter]);
 
-    useEffect(() => {
-        if (chapterId && chapter) {
-            loadLessons();
-        }
-    }, [chapter, chapterId, loadLessons]);
-
     const handleStartQuiz = () => {
         if (!chapterId) return;
         const subjectIdForQuiz =
@@ -175,6 +169,12 @@ export default function ChapterScreen() {
             setLessonsLoading(false);
         }
     }, [chapter, chapterId, resolvedSubjectId, resolveSubjectIdFromSubjects, subjectKey]);
+
+    useEffect(() => {
+        if (chapterId && chapter) {
+            loadLessons();
+        }
+    }, [chapter, chapterId, loadLessons]);
 
     const handleViewProgress = async () => {
         if (!chapterId) return;
