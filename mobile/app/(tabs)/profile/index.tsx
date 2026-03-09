@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserStore } from "@/lib/store/user";
 import { useAuthStore } from "@/lib/store/auth";
@@ -32,6 +33,7 @@ export default function ProfileScreen() {
     const [editSchool, setEditSchool] = useState("");
     const [editExamYear, setEditExamYear] = useState("");
     const isStudentRole = (user?.role || "").toLowerCase() === UserRole.STUDENT;
+    const insets = useSafeAreaInsets();
 
     const refreshUser = useCallback(async () => {
         try {
@@ -194,7 +196,13 @@ export default function ProfileScreen() {
     return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            <View style={[styles.header, { paddingHorizontal: width < 390 ? 16 : 24 }]}>
+            <View
+                style={[
+                    styles.header,
+                    { paddingHorizontal: width < 390 ? 16 : 24 },
+                    { paddingTop: 28 + insets.top * 0.4 },
+                ]}
+            >
                 <View style={styles.avatarContainer}>
                     <Ionicons name="person" size={48} color="#666" />
                 </View>
@@ -549,6 +557,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FAFAFA",
     },
     scrollContent: {
+        paddingTop: 12,
         paddingBottom: 24,
     },
     header: {
