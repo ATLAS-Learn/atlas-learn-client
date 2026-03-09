@@ -31,6 +31,7 @@ export default function ProfileScreen() {
     const [editBio, setEditBio] = useState("");
     const [editSchool, setEditSchool] = useState("");
     const [editExamYear, setEditExamYear] = useState("");
+    const isStudentRole = (user?.role || "").toLowerCase() === UserRole.STUDENT;
 
     const refreshUser = useCallback(async () => {
         try {
@@ -51,7 +52,7 @@ export default function ProfileScreen() {
     };
 
     const handleRequestRoleUpgrade = async () => {
-        if (user?.role !== UserRole.STUDENT) {
+        if (!isStudentRole) {
             return;
         }
         setRoleRequestModalVisible(true);
@@ -213,7 +214,7 @@ export default function ProfileScreen() {
                 {!!user?.bio && <Text style={styles.metaText} numberOfLines={2}>{user.bio}</Text>}
             </View>
 
-            {user?.role === UserRole.STUDENT && (
+            {isStudentRole && (
                 <View style={styles.progressSection}>
                     {loadingProgress ? (
                         <View style={styles.progressLoadingContainer}>
@@ -286,7 +287,7 @@ export default function ProfileScreen() {
                 </View>
             )}
 
-            {user?.role === UserRole.STUDENT && (
+            {isStudentRole && (
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Account</Text>
                     <TouchableOpacity
