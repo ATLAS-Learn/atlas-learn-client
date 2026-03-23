@@ -159,6 +159,19 @@ class APIClient {
         );
     }
 
+    private shouldFallbackFromSubjectScopedQuizError(error: unknown): boolean {
+        if (this.shouldFallbackFromSubjectScopedError(error)) {
+            return true;
+        }
+        if (!(error instanceof Error)) return false;
+        const message = error.message.toLowerCase();
+        return (
+            message.includes("access denied") ||
+            message.includes("required role: admin") ||
+            message.includes("forbidden")
+        );
+    }
+
     private async request<T>(
         endpoint: string,
         options: {
@@ -877,14 +890,22 @@ class APIClient {
         options: SubjectChapterQuizzesQueryOptions = {}
     ): Promise<Quiz[]> {
         this.traceIdOrigin("getSubjectChapterQuizzes", { subjectId, chapterId, options });
-        const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
-            `/subjects/${subjectId}/chapters/${chapterId}/quizzes`,
-            {
-                params: this.buildSubjectChapterQuizzesQueryParams(options),
+        try {
+            const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
+                `/subjects/${subjectId}/chapters/${chapterId}/quizzes`,
+                {
+                    params: this.buildSubjectChapterQuizzesQueryParams(options),
+                }
+            );
+            const quizzes = this.unwrapData<Quiz[]>(response);
+            return Array.isArray(quizzes) ? this.normalizeQuizzes(this.dedupeById(quizzes)) : [];
+        } catch (error) {
+            if (!this.shouldFallbackFromSubjectScopedQuizError(error)) {
+                throw error;
             }
-        );
-        const quizzes = this.unwrapData<Quiz[]>(response);
-        return Array.isArray(quizzes) ? this.normalizeQuizzes(this.dedupeById(quizzes)) : [];
+            // Fallback for deployments where learner quiz access is chapter-scoped only.
+            return this.getChapterQuizzes(chapterId);
+        }
     }
 
     async getSubjectChapterProgress(subjectId: string, chapterId: string): Promise<SubjectChapterProgress> {
