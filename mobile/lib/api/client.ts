@@ -159,19 +159,6 @@ class APIClient {
         );
     }
 
-    private shouldFallbackFromSubjectScopedQuizError(error: unknown): boolean {
-        if (this.shouldFallbackFromSubjectScopedError(error)) {
-            return true;
-        }
-        if (!(error instanceof Error)) return false;
-        const message = error.message.toLowerCase();
-        return (
-            message.includes("access denied") ||
-            message.includes("required role: admin") ||
-            message.includes("forbidden")
-        );
-    }
-
     private async request<T>(
         endpoint: string,
         options: {
@@ -890,22 +877,7 @@ class APIClient {
         options: SubjectChapterQuizzesQueryOptions = {}
     ): Promise<Quiz[]> {
         this.traceIdOrigin("getSubjectChapterQuizzes", { subjectId, chapterId, options });
-        try {
-            const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
-                `/subjects/${subjectId}/chapters/${chapterId}/quizzes`,
-                {
-                    params: this.buildSubjectChapterQuizzesQueryParams(options),
-                }
-            );
-            const quizzes = this.unwrapData<Quiz[]>(response);
-            return Array.isArray(quizzes) ? this.normalizeQuizzes(this.dedupeById(quizzes)) : [];
-        } catch (error) {
-            if (!this.shouldFallbackFromSubjectScopedQuizError(error)) {
-                throw error;
-            }
-            // Fallback for deployments where learner quiz access is chapter-scoped only.
-            return this.getChapterQuizzes(chapterId);
-        }
+        return this.getChapterQuizzes(chapterId);
     }
 
     async getSubjectChapterProgress(subjectId: string, chapterId: string): Promise<SubjectChapterProgress> {
@@ -1141,19 +1113,7 @@ class APIClient {
 
     async getChapterQuiz(chapterId: string, subjectId?: string): Promise<Quiz> {
         // Get the first quiz for a chapter (for backward compatibility)
-        const quizzes = subjectId
-            ? await this.getSubjectChapterQuizzes(subjectId, chapterId, { includeQuestions: true })
-            : await this.getChapterQuizzes(chapterId);
-        if (quizzes.length === 0 && !subjectId) {
-            throw new Error(`No quizzes found for chapter ${chapterId}`);
-        }
-        if (quizzes.length === 0 && subjectId) {
-            const fallbackQuizzes = await this.getChapterQuizzes(chapterId);
-            if (fallbackQuizzes.length === 0) {
-                throw new Error(`No quizzes found for chapter ${chapterId}`);
-            }
-            return fallbackQuizzes[0];
-        }
+        const quizzes = await this.getChapterQuizzes(chapterId);
         if (quizzes.length === 0) {
             throw new Error(`No quizzes found for chapter ${chapterId}`);
         }
