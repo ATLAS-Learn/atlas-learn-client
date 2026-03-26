@@ -37,6 +37,8 @@ import {
     AdminUsersQueryParams,
     AdminUsersListResponse,
     AdminAnalyticsOverview,
+    AdminAnalyticsChapterCompletion,
+    AdminAnalyticsQuizStats,
     UpdateProfilePayload,
     Subject,
     CreateSubjectPayload,
@@ -1639,6 +1641,20 @@ class APIClient {
             AdminAnalyticsOverview | { success?: boolean; data?: AdminAnalyticsOverview }
         >("/admin/analytics/overview");
         return this.unwrapData<AdminAnalyticsOverview>(response);
+    }
+
+    async getAdminAnalyticsChapterCompletion(): Promise<AdminAnalyticsChapterCompletion> {
+        const response = await this.request<
+            AdminAnalyticsChapterCompletion | { success?: boolean; data?: AdminAnalyticsChapterCompletion }
+        >("/admin/analytics/chapter-completion");
+        return this.unwrapData<AdminAnalyticsChapterCompletion>(response);
+    }
+
+    async getAdminAnalyticsQuizStats(): Promise<AdminAnalyticsQuizStats> {
+        const response = await this.request<
+            AdminAnalyticsQuizStats | { success?: boolean; data?: AdminAnalyticsQuizStats }
+        >("/admin/analytics/quiz-stats");
+        return this.unwrapData<AdminAnalyticsQuizStats>(response);
     }
 }
 

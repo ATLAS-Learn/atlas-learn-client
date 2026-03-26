@@ -728,3 +728,23 @@ export interface AdminAnalyticsOverview {
     quizzes?: Record<string, number | string | boolean | null | undefined>;
     [key: string]: unknown;
 }
+
+export interface AdminAnalyticsChapterCompletion {
+    primaryMetric?: {
+        label?: string;
+        chapter1CompletionRate?: number;
+        chapter1QuizPassRate?: number;
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+}
+
+export interface AdminAnalyticsQuizStats {
+    summary?: {
+        totalQuizzes?: number;
+        totalAttempts?: number;
+        overallPassRate?: number;
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+}

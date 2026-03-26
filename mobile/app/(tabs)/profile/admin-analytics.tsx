@@ -11,7 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { AdminAnalyticsOverview, UserRole } from "@/lib/types";
+import { AdminAnalyticsChapterCompletion, AdminAnalyticsOverview, AdminAnalyticsQuizStats, UserRole } from "@/lib/types";
 import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const SECTION_LABELS: Record<string, string> = {
@@ -39,15 +39,25 @@ export default function AdminAnalyticsScreen() {
     denyMessage: "This page is only available to admins.",
   });
   const [overview, setOverview] = useState<AdminAnalyticsOverview | null>(null);
+  const [chapterCompletion, setChapterCompletion] = useState<AdminAnalyticsChapterCompletion | null>(null);
+  const [quizStats, setQuizStats] = useState<AdminAnalyticsQuizStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadOverview = useCallback(async () => {
     try {
-      const data = await apiClient.getAdminAnalyticsOverview();
-      setOverview(data);
+      const [overviewData, chapterCompletionData, quizStatsData] = await Promise.all([
+        apiClient.getAdminAnalyticsOverview(),
+        apiClient.getAdminAnalyticsChapterCompletion(),
+        apiClient.getAdminAnalyticsQuizStats(),
+      ]);
+      setOverview(overviewData);
+      setChapterCompletion(chapterCompletionData);
+      setQuizStats(quizStatsData);
     } catch {
       setOverview(null);
+      setChapterCompletion(null);
+      setQuizStats(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -79,6 +89,9 @@ export default function AdminAnalyticsScreen() {
   }, [overview]);
 
   const hasOverview = sections.length > 0;
+
+  const chapterPrimaryMetric = chapterCompletion?.primaryMetric;
+  const quizSummary = quizStats?.summary;
 
   const updatedAtText = useMemo(() => {
     if (!overview || typeof overview.updatedAt !== "string") return null;
@@ -150,7 +163,47 @@ export default function AdminAnalyticsScreen() {
           </View>
         ) : null}
 
-        {!hasOverview ? (
+        {chapterPrimaryMetric ? (
+          <View style={styles.primaryMetricCard}>
+            <Text style={styles.primaryMetricEyebrow}>Primary Success Metric</Text>
+            <Text style={styles.primaryMetricTitle}>
+              {chapterPrimaryMetric.label || "Chapter 1 engagement"}
+            </Text>
+            <View style={styles.metricGrid}>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Chapter 1 Completion</Text>
+                <Text style={styles.cardValue}>{chapterPrimaryMetric.chapter1CompletionRate ?? 0}%</Text>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Chapter 1 Quiz Pass</Text>
+                <Text style={styles.cardValue}>{chapterPrimaryMetric.chapter1QuizPassRate ?? 0}%</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {quizSummary ? (
+          <View style={styles.secondaryMetricCard}>
+            <Text style={styles.secondaryMetricEyebrow}>Secondary Metric</Text>
+            <Text style={styles.secondaryMetricTitle}>Quiz Pass and Fail Statistics</Text>
+            <View style={styles.metricGrid}>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Total Quizzes</Text>
+                <Text style={styles.cardValue}>{quizSummary.totalQuizzes ?? 0}</Text>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Total Attempts</Text>
+                <Text style={styles.cardValue}>{quizSummary.totalAttempts ?? 0}</Text>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Overall Pass Rate</Text>
+                <Text style={styles.cardValue}>{quizSummary.overallPassRate ?? 0}%</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {!hasOverview && !chapterPrimaryMetric && !quizSummary ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="stats-chart-outline" size={56} color="#999" />
             <Text style={styles.emptyText}>No analytics available</Text>
@@ -210,6 +263,26 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { fontSize: 13, color: "#7A5B12", fontWeight: "700" },
   summaryValue: { marginTop: 8, fontSize: 26, color: "#282F2E", fontWeight: "800" },
+  primaryMetricCard: {
+    backgroundColor: "#EEF6FF",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#B7D4F7",
+    padding: 18,
+    marginBottom: 16,
+  },
+  primaryMetricEyebrow: { fontSize: 12, color: "#315A88", fontWeight: "800", textTransform: "uppercase" },
+  primaryMetricTitle: { marginTop: 6, marginBottom: 14, fontSize: 18, color: "#1E2E3E", fontWeight: "800" },
+  secondaryMetricCard: {
+    backgroundColor: "#F2F8EE",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#C9DDBA",
+    padding: 18,
+    marginBottom: 16,
+  },
+  secondaryMetricEyebrow: { fontSize: 12, color: "#4D6B33", fontWeight: "800", textTransform: "uppercase" },
+  secondaryMetricTitle: { marginTop: 6, marginBottom: 14, fontSize: 18, color: "#23311A", fontWeight: "800" },
   emptyContainer: { marginTop: 80, alignItems: "center" },
   emptyText: { marginTop: 12, color: "#666", fontSize: 16 },
   sectionCard: {
