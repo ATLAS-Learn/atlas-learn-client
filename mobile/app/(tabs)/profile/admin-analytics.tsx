@@ -11,7 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { AdminAnalyticsChapterCompletion, AdminAnalyticsOverview, AdminAnalyticsQuizStats, UserRole } from "@/lib/types";
+import { AdminAnalyticsChapterCompletion, AdminAnalyticsOverview, AdminAnalyticsQuizStats, AdminAnalyticsWAU, UserRole } from "@/lib/types";
 import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const SECTION_LABELS: Record<string, string> = {
@@ -41,23 +41,27 @@ export default function AdminAnalyticsScreen() {
   const [overview, setOverview] = useState<AdminAnalyticsOverview | null>(null);
   const [chapterCompletion, setChapterCompletion] = useState<AdminAnalyticsChapterCompletion | null>(null);
   const [quizStats, setQuizStats] = useState<AdminAnalyticsQuizStats | null>(null);
+  const [wau, setWAU] = useState<AdminAnalyticsWAU | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadOverview = useCallback(async () => {
     try {
-      const [overviewData, chapterCompletionData, quizStatsData] = await Promise.all([
+      const [overviewData, chapterCompletionData, quizStatsData, wauData] = await Promise.all([
         apiClient.getAdminAnalyticsOverview(),
         apiClient.getAdminAnalyticsChapterCompletion(),
         apiClient.getAdminAnalyticsQuizStats(),
+        apiClient.getAdminAnalyticsWAU(),
       ]);
       setOverview(overviewData);
       setChapterCompletion(chapterCompletionData);
       setQuizStats(quizStatsData);
+      setWAU(wauData);
     } catch {
       setOverview(null);
       setChapterCompletion(null);
       setQuizStats(null);
+      setWAU(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -92,6 +96,7 @@ export default function AdminAnalyticsScreen() {
 
   const chapterPrimaryMetric = chapterCompletion?.primaryMetric;
   const quizSummary = quizStats?.summary;
+  const wauChange = wau?.wauChangePercent;
 
   const updatedAtText = useMemo(() => {
     if (!overview || typeof overview.updatedAt !== "string") return null;
@@ -163,6 +168,35 @@ export default function AdminAnalyticsScreen() {
           </View>
         ) : null}
 
+        {wau ? (
+          <View style={styles.trendCard}>
+            <Text style={styles.trendEyebrow}>WAU Trend</Text>
+            <Text style={styles.trendTitle}>Weekly Active Users</Text>
+            <View style={styles.metricGrid}>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Current WAU</Text>
+                <Text style={styles.cardValue}>{wau.currentWAU ?? 0}</Text>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Previous WAU</Text>
+                <Text style={styles.cardValue}>{wau.previousWAU ?? 0}</Text>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Change</Text>
+                <Text
+                  style={[
+                    styles.cardValue,
+                    typeof wauChange === "number" && wauChange < 0 ? styles.negativeTrendValue : styles.positiveTrendValue,
+                  ]}
+                >
+                  {typeof wauChange === "number" ? `${wauChange}%` : "0%"}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.trendHint}>Baseline metric for the 40% WAU target.</Text>
+          </View>
+        ) : null}
+
         {chapterPrimaryMetric ? (
           <View style={styles.primaryMetricCard}>
             <Text style={styles.primaryMetricEyebrow}>Primary Success Metric</Text>
@@ -203,7 +237,7 @@ export default function AdminAnalyticsScreen() {
           </View>
         ) : null}
 
-        {!hasOverview && !chapterPrimaryMetric && !quizSummary ? (
+        {!hasOverview && !wau && !chapterPrimaryMetric && !quizSummary ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="stats-chart-outline" size={56} color="#999" />
             <Text style={styles.emptyText}>No analytics available</Text>
@@ -263,6 +297,17 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { fontSize: 13, color: "#7A5B12", fontWeight: "700" },
   summaryValue: { marginTop: 8, fontSize: 26, color: "#282F2E", fontWeight: "800" },
+  trendCard: {
+    backgroundColor: "#FFF4EF",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#F3C9B6",
+    padding: 18,
+    marginBottom: 16,
+  },
+  trendEyebrow: { fontSize: 12, color: "#9A4F2B", fontWeight: "800", textTransform: "uppercase" },
+  trendTitle: { marginTop: 6, marginBottom: 14, fontSize: 18, color: "#3A2419", fontWeight: "800" },
+  trendHint: { marginTop: 12, fontSize: 13, color: "#7A5A49" },
   primaryMetricCard: {
     backgroundColor: "#EEF6FF",
     borderRadius: 18,
@@ -299,6 +344,8 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 12,
   },
+  positiveTrendValue: { color: "#2E7D32" },
+  negativeTrendValue: { color: "#C62828" },
   card: {
     flexBasis: "48%",
     flexGrow: 1,

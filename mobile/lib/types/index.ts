@@ -748,3 +748,10 @@ export interface AdminAnalyticsQuizStats {
     };
     [key: string]: unknown;
 }
+
+export interface AdminAnalyticsWAU {
+    currentWAU?: number;
+    previousWAU?: number;
+    wauChangePercent?: number;
+    [key: string]: unknown;
+}
