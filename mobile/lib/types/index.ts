@@ -711,17 +711,20 @@ export interface AdminUsersListResponse {
 }
 
 export interface AdminAnalyticsOverview {
-    totalUsers?: number;
-    activeUsers?: number;
-    deactivatedUsers?: number;
-    totalStudents?: number;
-    totalTeachers?: number;
-    totalAdmins?: number;
-    pendingRoleUpgrades?: number;
-    totalSubjects?: number;
-    totalChapters?: number;
-    totalLessons?: number;
-    totalQuizzes?: number;
-    totalAssessments?: number;
+    users?: {
+        total?: number;
+        students?: number;
+        teachers?: number;
+        admins?: number;
+        deactivated?: number;
+        [key: string]: unknown;
+    };
+    activeUsers?: {
+        weekly?: number;
+        monthly?: number;
+        [key: string]: unknown;
+    };
+    content?: Record<string, number | string | boolean | null | undefined>;
+    quizzes?: Record<string, number | string | boolean | null | undefined>;
     [key: string]: unknown;
 }
