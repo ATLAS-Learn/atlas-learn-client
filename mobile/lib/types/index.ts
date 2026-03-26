@@ -755,3 +755,10 @@ export interface AdminAnalyticsWAU {
     wauChangePercent?: number;
     [key: string]: unknown;
 }
+
+export interface AdminAnalyticsTeacherActivity {
+    totalTeachers?: number;
+    activeTeachersWeekly?: number;
+    weeklyActiveRate?: number;
+    [key: string]: unknown;
+}

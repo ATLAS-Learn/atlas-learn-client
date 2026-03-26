@@ -40,6 +40,7 @@ import {
     AdminAnalyticsChapterCompletion,
     AdminAnalyticsQuizStats,
     AdminAnalyticsWAU,
+    AdminAnalyticsTeacherActivity,
     UpdateProfilePayload,
     Subject,
     CreateSubjectPayload,
@@ -1663,6 +1664,13 @@ class APIClient {
             AdminAnalyticsWAU | { success?: boolean; data?: AdminAnalyticsWAU }
         >("/admin/analytics/wau");
         return this.unwrapData<AdminAnalyticsWAU>(response);
+    }
+
+    async getAdminAnalyticsTeacherActivity(): Promise<AdminAnalyticsTeacherActivity> {
+        const response = await this.request<
+            AdminAnalyticsTeacherActivity | { success?: boolean; data?: AdminAnalyticsTeacherActivity }
+        >("/admin/analytics/teacher-activity");
+        return this.unwrapData<AdminAnalyticsTeacherActivity>(response);
     }
 }
 

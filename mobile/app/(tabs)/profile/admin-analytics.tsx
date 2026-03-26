@@ -11,7 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { AdminAnalyticsChapterCompletion, AdminAnalyticsOverview, AdminAnalyticsQuizStats, AdminAnalyticsWAU, UserRole } from "@/lib/types";
+import { AdminAnalyticsChapterCompletion, AdminAnalyticsOverview, AdminAnalyticsQuizStats, AdminAnalyticsTeacherActivity, AdminAnalyticsWAU, UserRole } from "@/lib/types";
 import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const SECTION_LABELS: Record<string, string> = {
@@ -42,26 +42,30 @@ export default function AdminAnalyticsScreen() {
   const [chapterCompletion, setChapterCompletion] = useState<AdminAnalyticsChapterCompletion | null>(null);
   const [quizStats, setQuizStats] = useState<AdminAnalyticsQuizStats | null>(null);
   const [wau, setWAU] = useState<AdminAnalyticsWAU | null>(null);
+  const [teacherActivity, setTeacherActivity] = useState<AdminAnalyticsTeacherActivity | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadOverview = useCallback(async () => {
     try {
-      const [overviewData, chapterCompletionData, quizStatsData, wauData] = await Promise.all([
+      const [overviewData, chapterCompletionData, quizStatsData, wauData, teacherActivityData] = await Promise.all([
         apiClient.getAdminAnalyticsOverview(),
         apiClient.getAdminAnalyticsChapterCompletion(),
         apiClient.getAdminAnalyticsQuizStats(),
         apiClient.getAdminAnalyticsWAU(),
+        apiClient.getAdminAnalyticsTeacherActivity(),
       ]);
       setOverview(overviewData);
       setChapterCompletion(chapterCompletionData);
       setQuizStats(quizStatsData);
       setWAU(wauData);
+      setTeacherActivity(teacherActivityData);
     } catch {
       setOverview(null);
       setChapterCompletion(null);
       setQuizStats(null);
       setWAU(null);
+      setTeacherActivity(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -197,6 +201,27 @@ export default function AdminAnalyticsScreen() {
           </View>
         ) : null}
 
+        {teacherActivity ? (
+          <View style={styles.teacherActivityCard}>
+            <Text style={styles.teacherActivityEyebrow}>Teacher Activity</Text>
+            <Text style={styles.teacherActivityTitle}>Weekly Teacher Engagement</Text>
+            <View style={styles.metricGrid}>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Total Teachers</Text>
+                <Text style={styles.cardValue}>{teacherActivity.totalTeachers ?? 0}</Text>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Weekly Active Teachers</Text>
+                <Text style={styles.cardValue}>{teacherActivity.activeTeachersWeekly ?? 0}</Text>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Weekly Active Rate</Text>
+                <Text style={styles.cardValue}>{teacherActivity.weeklyActiveRate ?? 0}%</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
         {chapterPrimaryMetric ? (
           <View style={styles.primaryMetricCard}>
             <Text style={styles.primaryMetricEyebrow}>Primary Success Metric</Text>
@@ -237,7 +262,7 @@ export default function AdminAnalyticsScreen() {
           </View>
         ) : null}
 
-        {!hasOverview && !wau && !chapterPrimaryMetric && !quizSummary ? (
+        {!hasOverview && !wau && !teacherActivity && !chapterPrimaryMetric && !quizSummary ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="stats-chart-outline" size={56} color="#999" />
             <Text style={styles.emptyText}>No analytics available</Text>
@@ -308,6 +333,16 @@ const styles = StyleSheet.create({
   trendEyebrow: { fontSize: 12, color: "#9A4F2B", fontWeight: "800", textTransform: "uppercase" },
   trendTitle: { marginTop: 6, marginBottom: 14, fontSize: 18, color: "#3A2419", fontWeight: "800" },
   trendHint: { marginTop: 12, fontSize: 13, color: "#7A5A49" },
+  teacherActivityCard: {
+    backgroundColor: "#F7F2FF",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#D9CCF3",
+    padding: 18,
+    marginBottom: 16,
+  },
+  teacherActivityEyebrow: { fontSize: 12, color: "#5B4A91", fontWeight: "800", textTransform: "uppercase" },
+  teacherActivityTitle: { marginTop: 6, marginBottom: 14, fontSize: 18, color: "#2D2452", fontWeight: "800" },
   primaryMetricCard: {
     backgroundColor: "#EEF6FF",
     borderRadius: 18,
