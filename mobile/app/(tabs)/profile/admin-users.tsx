@@ -16,9 +16,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { AdminUserListItem, Level, UserRole } from "@/lib/types";
 import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
+import { useUserStore } from "@/lib/store/user";
 
 export default function AdminUsersScreen() {
   const router = useRouter();
+  const { user: currentUser } = useUserStore();
   const { canAccess, roleKnown } = useRoleGuard([UserRole.ADMIN], {
     denyMessage: "This page is only available to admins.",
   });
@@ -125,6 +127,13 @@ export default function AdminUsersScreen() {
 
   const handleToggleActive = (user: AdminUserListItem) => {
     const isActive = user.isActive !== false;
+    const isCurrentUser = currentUser?.id === user.id;
+
+    if (isActive && isCurrentUser) {
+      Alert.alert("Not allowed", "You cannot deactivate your own account.");
+      return;
+    }
+
     const actionLabel = isActive ? "Deactivate" : "Reactivate";
     Alert.alert(
       `${actionLabel} User`,
@@ -258,6 +267,7 @@ export default function AdminUsersScreen() {
           users.map((user) => {
             const isActive = user.isActive !== false;
             const busy = processingUserId === user.id;
+            const isCurrentUser = currentUser?.id === user.id;
 
             return (
               <View key={user.id} style={styles.card}>
@@ -274,6 +284,7 @@ export default function AdminUsersScreen() {
                 </View>
 
                 <Text style={styles.metaText}>Role: {user.role}</Text>
+                {isCurrentUser && <Text style={styles.metaText}>This is your account</Text>}
                 {!!user.school && <Text style={styles.metaText}>School: {user.school}</Text>}
 
                 <View style={styles.cardActions}>
@@ -283,13 +294,13 @@ export default function AdminUsersScreen() {
                   <TouchableOpacity
                     style={[styles.smallButton, !isActive && styles.reactivateButton]}
                     onPress={() => handleToggleActive(user)}
-                    disabled={busy}
+                    disabled={busy || (isActive && isCurrentUser)}
                   >
                     {busy ? (
                       <ActivityIndicator size="small" color={isActive ? "#F44336" : "#2E7D32"} />
                     ) : (
                       <Text style={[styles.smallButtonText, !isActive && styles.reactivateText]}>
-                        {isActive ? "Deactivate" : "Reactivate"}
+                        {isActive ? (isCurrentUser ? "Current User" : "Deactivate") : "Reactivate"}
                       </Text>
                     )}
                   </TouchableOpacity>
