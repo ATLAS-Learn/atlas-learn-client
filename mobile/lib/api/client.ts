@@ -1598,9 +1598,21 @@ class APIClient {
     }
 
     async getAdminUser(userId: string): Promise<AdminUserListItem> {
-        const response = await this.request<AdminUserListItem | { success?: boolean; data?: AdminUserListItem }>(
-            `/admin/users/${userId}`
-        );
+        const response = await this.request<
+            | AdminUserListItem
+            | {
+                success?: boolean;
+                data?: AdminUserListItem | { user?: AdminUserListItem };
+            }
+        >(`/admin/users/${userId}`);
+
+        if (response && typeof response === "object" && "data" in response) {
+            const payload = response.data;
+            if (payload && typeof payload === "object" && "user" in payload && payload.user) {
+                return payload.user;
+            }
+        }
+
         return this.unwrapData<AdminUserListItem>(response);
     }
 
