@@ -201,9 +201,7 @@ export default function ChapterScreen() {
         if (!chapterId) return;
         setLoadingInsight(true);
         try {
-            const hints = resolvedSubjectId
-                ? await apiClient.getSubjectChapterExamHints(resolvedSubjectId, chapterId)
-                : await apiClient.getChapterExamHints(chapterId);
+            const hints = await apiClient.getChapterExamHints(chapterId);
             if (!Array.isArray(hints) || hints.length === 0) {
                 Alert.alert("Exam Hints", "No hints available yet for this chapter.");
                 return;
@@ -232,9 +230,7 @@ export default function ChapterScreen() {
         if (!chapterId) return;
         setLoadingInsight(true);
         try {
-            const result = resolvedSubjectId
-                ? await apiClient.unlockSubjectChapter(resolvedSubjectId, chapterId)
-                : await apiClient.unlockChapter(chapterId);
+            const result = await apiClient.unlockChapter(chapterId);
             Alert.alert("Unlock Chapter", result?.message || "Chapter unlock request completed.");
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to unlock chapter.");

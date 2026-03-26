@@ -306,13 +306,10 @@ export default function AdminSubjectsScreen() {
     }
   };
 
-  const loadChapterQuizzes = async (subjectId: string, chapterId: string) => {
+  const loadChapterQuizzes = async (chapterId: string) => {
     setLoadingQuizzes(true);
     try {
-      const quizzes = await apiClient.getSubjectChapterQuizzes(subjectId, chapterId, {
-        includeQuestions: true,
-        includeAttempts: false,
-      });
+      const quizzes = await apiClient.getChapterQuizzes(chapterId);
       setChapterQuizzes(Array.isArray(quizzes) ? quizzes : []);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to load chapter quizzes.");
@@ -341,7 +338,7 @@ export default function AdminSubjectsScreen() {
     setQuizzesChapter(chapter);
     resetQuizForm();
     setQuizzesModalOpen(true);
-    await loadChapterQuizzes(chaptersSubject.id, chapter.id);
+    await loadChapterQuizzes(chapter.id);
   };
 
   const openEditLesson = (lesson: Lesson) => {
@@ -543,7 +540,7 @@ export default function AdminSubjectsScreen() {
       }
       resetQuizForm();
       if (!chaptersSubject?.id) return;
-      await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
+      await loadChapterQuizzes(quizzesChapter.id);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to save quiz.");
     } finally {
@@ -573,7 +570,7 @@ export default function AdminSubjectsScreen() {
             await apiClient.deleteQuiz(quizId);
             if (quizzesChapter?.id) {
               if (!chaptersSubject?.id) return;
-              await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
+              await loadChapterQuizzes(quizzesChapter.id);
             }
           } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to delete quiz.");
@@ -601,7 +598,7 @@ export default function AdminSubjectsScreen() {
       Alert.alert("Success", "Question added.");
       if (quizzesChapter?.id) {
         if (!chaptersSubject?.id) return;
-        await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
+        await loadChapterQuizzes(quizzesChapter.id);
       }
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to add question.");
@@ -649,7 +646,7 @@ export default function AdminSubjectsScreen() {
       Alert.alert("Success", "Question updated.");
       if (quizzesChapter?.id) {
         if (!chaptersSubject?.id) return;
-        await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
+        await loadChapterQuizzes(quizzesChapter.id);
       }
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to update question.");
@@ -685,7 +682,7 @@ export default function AdminSubjectsScreen() {
             }
             if (quizzesChapter?.id) {
               if (!chaptersSubject?.id) return;
-              await loadChapterQuizzes(chaptersSubject.id, quizzesChapter.id);
+              await loadChapterQuizzes(quizzesChapter.id);
             }
           } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to delete question.");
@@ -787,27 +784,6 @@ export default function AdminSubjectsScreen() {
       openChapterDataModal(`Progress: ${chapter.title}`, progressSummary);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to load chapter progress.");
-    }
-  };
-
-  const handleUnlockChapter = async (chapter: SubjectChapter) => {
-    if (!chaptersSubject?.id) return;
-    try {
-      const response = await apiClient.unlockSubjectChapter(chaptersSubject.id, chapter.id);
-      openChapterDataModal(`Unlock: ${chapter.title}`, response);
-      await loadSubjectChapters(chaptersSubject.id);
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to unlock chapter.");
-    }
-  };
-
-  const handleViewExamHints = async (chapter: SubjectChapter) => {
-    if (!chaptersSubject?.id) return;
-    try {
-      const hints = await apiClient.getSubjectChapterExamHints(chaptersSubject.id, chapter.id);
-      openChapterDataModal(`Exam Hints: ${chapter.title}`, hints);
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to load exam hints.");
     }
   };
 
@@ -1086,12 +1062,6 @@ export default function AdminSubjectsScreen() {
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.smallButton} onPress={() => handleOpenLessonsManager(chapter)}>
                         <Text style={styles.smallButtonText}>Lessons</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.smallButton} onPress={() => handleUnlockChapter(chapter)}>
-                        <Text style={styles.smallButtonText}>Unlock</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.smallButton} onPress={() => handleViewExamHints(chapter)}>
-                        <Text style={styles.smallButtonText}>Exam Hints</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.smallButton} onPress={() => openEditChapter(chapter)}>
                         <Text style={styles.smallButtonText}>Edit</Text>

@@ -40,14 +40,11 @@ import {
     SubjectQueryOptions,
     SubjectChaptersQueryOptions,
     SubjectChapterQueryOptions,
-    SubjectChapterQuizzesQueryOptions,
     SubjectChapter,
     CreateSubjectChapterPayload,
     UpdateSubjectChapterPayload,
     SubjectStats,
     SubjectChapterProgress,
-    SubjectChapterUnlockResponse,
-    SubjectExamHint,
     Lesson,
     CreateLessonPayload,
     UpdateLessonPayload,
@@ -374,17 +371,6 @@ class APIClient {
         }
         if (options.includeExamHints) {
             params.includeExamHints = "true";
-        }
-        return Object.keys(params).length ? params : undefined;
-    }
-
-    private buildSubjectChapterQuizzesQueryParams(options: SubjectChapterQuizzesQueryOptions = {}) {
-        const params: Record<string, string> = {};
-        if (options.includeQuestions) {
-            params.includeQuestions = "true";
-        }
-        if (options.includeAttempts) {
-            params.includeAttempts = "true";
         }
         return Object.keys(params).length ? params : undefined;
     }
@@ -882,39 +868,12 @@ class APIClient {
         return this.unwrapData<SubjectStats>(response);
     }
 
-    async getSubjectChapterQuizzes(
-        subjectId: string,
-        chapterId: string,
-        options: SubjectChapterQuizzesQueryOptions = {}
-    ): Promise<Quiz[]> {
-        this.traceIdOrigin("getSubjectChapterQuizzes", { subjectId, chapterId, options });
-        return this.getChapterQuizzes(chapterId);
-    }
-
     async getSubjectChapterProgress(subjectId: string, chapterId: string): Promise<SubjectChapterProgress> {
         this.traceIdOrigin("getSubjectChapterProgress", { subjectId, chapterId });
         const response = await this.request<
             SubjectChapterProgress | { success?: boolean; message?: string; data?: SubjectChapterProgress }
         >(`/subjects/${subjectId}/chapters/${chapterId}/progress`);
         return this.unwrapData<SubjectChapterProgress>(response);
-    }
-
-    async unlockSubjectChapter(subjectId: string, chapterId: string): Promise<SubjectChapterUnlockResponse> {
-        return this.request<SubjectChapterUnlockResponse>(
-            `/subjects/${subjectId}/chapters/${chapterId}/progress/unlock`,
-            {
-                method: "POST",
-            }
-        );
-    }
-
-    async getSubjectChapterExamHints(subjectId: string, chapterId: string): Promise<SubjectExamHint[]> {
-        this.traceIdOrigin("getSubjectChapterExamHints", { subjectId, chapterId });
-        const response = await this.request<SubjectExamHint[] | { success?: boolean; data?: SubjectExamHint[] }>(
-            `/subjects/${subjectId}/chapters/${chapterId}/exam-hints`
-        );
-        const hints = this.unwrapData<SubjectExamHint[]>(response);
-        return Array.isArray(hints) ? hints : [];
     }
 
     // Lesson endpoints (subject chapter)
