@@ -178,6 +178,10 @@ export interface SubjectChapterQuizzesQueryOptions {
     includeAttempts?: boolean;
 }
 
+export interface SubjectChapterLessonsQueryOptions {
+    includeProgress?: boolean;
+}
+
 export interface CreateSubjectPayload {
     name: string;
     code: string;
@@ -298,10 +302,18 @@ export interface Lesson {
     title?: string;
     content?: string;
     orderIndex?: number;
+    isFree?: boolean;
     estimatedMinutes?: number;
     videoUrl?: string;
     durationSeconds?: number;
     pdfUrl?: string;
+    externalLinks?: ExternalLink[];
+    LessonProgress?: Array<{
+        isCompleted?: boolean;
+        timeSpent?: number;
+        completedAt?: string;
+        [key: string]: unknown;
+    }>;
     examples?: unknown;
     keyPoints?: unknown;
     chapterId?: string;

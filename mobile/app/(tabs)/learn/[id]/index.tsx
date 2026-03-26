@@ -157,7 +157,7 @@ export default function ChapterScreen() {
                 resolvedSubjectId: subjectIdForRequest,
             });
             const data = subjectIdForRequest
-                ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId)
+                ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, { includeProgress: true })
                 : await apiClient.getChapterLessons(chapterId);
             setLessons(Array.isArray(data) ? data : []);
         } catch (error: any) {

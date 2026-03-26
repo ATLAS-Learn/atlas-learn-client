@@ -48,7 +48,7 @@ export default function LessonsListScreen() {
         if (!chapterId) return;
         try {
             const data = resolvedSubjectId
-                ? await apiClient.getSubjectChapterLessons(resolvedSubjectId, chapterId)
+                ? await apiClient.getSubjectChapterLessons(resolvedSubjectId, chapterId, { includeProgress: true })
                 : await apiClient.getChapterLessons(chapterId);
             setLessons(Array.isArray(data) ? data : []);
         } catch (error: any) {

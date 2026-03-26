@@ -41,6 +41,7 @@ import {
     SubjectChaptersQueryOptions,
     SubjectChapterQueryOptions,
     SubjectChapterQuizzesQueryOptions,
+    SubjectChapterLessonsQueryOptions,
     SubjectChapter,
     CreateSubjectChapterPayload,
     UpdateSubjectChapterPayload,
@@ -382,6 +383,14 @@ class APIClient {
         }
         if (options.includeAttempts !== undefined) {
             params.includeAttempts = String(options.includeAttempts);
+        }
+        return Object.keys(params).length ? params : undefined;
+    }
+
+    private buildSubjectChapterLessonsQueryParams(options: SubjectChapterLessonsQueryOptions = {}) {
+        const params: Record<string, string> = {};
+        if (options.includeProgress !== undefined) {
+            params.includeProgress = String(options.includeProgress);
         }
         return Object.keys(params).length ? params : undefined;
     }
@@ -916,10 +925,17 @@ class APIClient {
     }
 
     // Lesson endpoints (subject chapter)
-    async getSubjectChapterLessons(subjectId: string, chapterId: string): Promise<Lesson[]> {
+    async getSubjectChapterLessons(
+        subjectId: string,
+        chapterId: string,
+        options: SubjectChapterLessonsQueryOptions = {}
+    ): Promise<Lesson[]> {
         this.traceIdOrigin("getSubjectChapterLessons", { subjectId, chapterId });
         const response = await this.request<Lesson[] | { success?: boolean; data?: Lesson[] }>(
-            `/subjects/${subjectId}/chapters/${chapterId}/lessons`
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons`,
+            {
+                params: this.buildSubjectChapterLessonsQueryParams(options),
+            }
         );
         const lessons = this.unwrapData<Lesson[]>(response);
         return Array.isArray(lessons) ? this.dedupeById(lessons) : [];
