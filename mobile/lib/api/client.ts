@@ -295,6 +295,45 @@ class APIClient {
             .filter((quiz) => quiz.id);
     }
 
+    private normalizeLesson(lesson: Partial<Lesson>): Lesson {
+        const rawLesson = lesson as Partial<Lesson> & {
+            lessonId?: unknown;
+            _id?: unknown;
+        };
+        const id =
+            typeof rawLesson.id === "string" && rawLesson.id.trim()
+                ? rawLesson.id.trim()
+                : typeof rawLesson.lessonId === "string" && rawLesson.lessonId.trim()
+                    ? rawLesson.lessonId.trim()
+                    : typeof rawLesson._id === "string" && rawLesson._id.trim()
+                        ? rawLesson._id.trim()
+                        : "";
+
+        return {
+            ...(lesson as Lesson),
+            id,
+        };
+    }
+
+    private normalizeLessons(lessons: unknown[]): Lesson[] {
+        const seen = new Set<string>();
+
+        return lessons
+            .map((lesson) => this.normalizeLesson((lesson || {}) as Partial<Lesson>))
+            .filter((lesson, index) => {
+                const stableKey =
+                    lesson.id ||
+                    `${typeof lesson.title === "string" ? lesson.title.trim() : ""}::${typeof lesson.orderIndex === "number" ? lesson.orderIndex : index}`;
+
+                if (seen.has(stableKey)) {
+                    return false;
+                }
+
+                seen.add(stableKey);
+                return true;
+            });
+    }
+
     private normalizeUserPayload(response: unknown): User {
         if (!response || typeof response !== "object") {
             throw new Error("Invalid user response");
@@ -938,7 +977,7 @@ class APIClient {
             }
         );
         const lessons = this.unwrapData<Lesson[]>(response);
-        return Array.isArray(lessons) ? this.dedupeById(lessons) : [];
+        return Array.isArray(lessons) ? this.normalizeLessons(lessons) : [];
     }
 
     async createSubjectChapterLesson(
@@ -1110,7 +1149,7 @@ class APIClient {
             `/chapters/${chapterId}/lessons`
         );
         const lessons = this.unwrapData<ChapterLesson[]>(response);
-        return Array.isArray(lessons) ? this.dedupeById(lessons) : [];
+        return Array.isArray(lessons) ? this.normalizeLessons(lessons) as ChapterLesson[] : [];
     }
 
     // Chapter Quiz endpoints
