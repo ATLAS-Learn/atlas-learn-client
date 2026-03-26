@@ -56,7 +56,6 @@ import {
     ChapterPdfMaterial,
     ChapterLesson,
     ChapterProgressData,
-    ChapterUnlockResponse,
     ChapterExamHint,
 } from "@/lib/types";
 
@@ -476,8 +475,36 @@ class APIClient {
 
     // Session management endpoints
     async getSessions(): Promise<{ id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[]> {
-        const response = await this.request<{ sessions?: { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[] }>("/auth/sessions");
-        return response?.sessions ?? [];
+        const response = await this.request<
+            | { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[]
+            | {
+                success?: boolean;
+                data?:
+                    | { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[]
+                    | {
+                        sessions?: { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[];
+                    };
+                sessions?: { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[];
+            }
+        >("/auth/sessions");
+
+        if (Array.isArray(response)) {
+            return response;
+        }
+
+        if (Array.isArray(response?.sessions)) {
+            return response.sessions;
+        }
+
+        if (Array.isArray(response?.data)) {
+            return response.data;
+        }
+
+        if (response?.data && typeof response.data === "object" && Array.isArray(response.data.sessions)) {
+            return response.data.sessions;
+        }
+
+        return [];
     }
 
     async revokeSession(sessionId: string): Promise<{ message: string }> {
@@ -1029,6 +1056,14 @@ class APIClient {
         return Array.isArray(chapters) ? chapters : [];
     }
 
+    async createChapter(data: Partial<Chapter>): Promise<Chapter> {
+        const response = await this.request<Chapter | { success?: boolean; data?: Chapter }>(`/chapters`, {
+            method: "POST",
+            data,
+        });
+        return this.unwrapData<Chapter>(response);
+    }
+
     async getChapter(chapterId: string): Promise<Chapter> {
         return this.request<Chapter>(`/chapters/${chapterId}`);
     }
@@ -1083,12 +1118,6 @@ class APIClient {
             `/chapters/${chapterId}/progress`
         );
         return this.unwrapData<ChapterProgressData>(response);
-    }
-
-    async unlockChapter(chapterId: string): Promise<ChapterUnlockResponse> {
-        return this.request<ChapterUnlockResponse>(`/chapters/${chapterId}/progress/unlock`, {
-            method: "POST",
-        });
     }
 
     async getChapterExamHints(chapterId: string): Promise<ChapterExamHint[]> {

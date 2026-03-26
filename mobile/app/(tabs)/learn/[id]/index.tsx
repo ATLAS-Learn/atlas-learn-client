@@ -12,14 +12,12 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { Chapter, Lesson, UserRole } from "@/lib/types";
+import { Chapter, Lesson } from "@/lib/types";
 import ChapterHeader from "@/components/lessons/chapter-header";
 import ContentSection from "@/components/lessons/content-section";
-import { useUserStore } from "@/lib/store/user";
 
 export default function ChapterScreen() {
     const router = useRouter();
-    const { user } = useUserStore();
     const { id, subjectId } = useLocalSearchParams<{ id: string; subjectId?: string }>();
     const chapterId = Array.isArray(id) ? id[0] : id;
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
@@ -29,7 +27,6 @@ export default function ChapterScreen() {
     const [lessons, setLessons] = useState<Lesson[]>([]);
     const [lessonsLoading, setLessonsLoading] = useState(false);
     const [loadingInsight, setLoadingInsight] = useState(false);
-    const canUnlockChapter = Boolean(resolvedSubjectId) || user?.role === UserRole.ADMIN || user?.role === UserRole.TEACHER;
 
     useEffect(() => {
         console.log("[ID_TRACE] ChapterScreen route params", {
@@ -226,19 +223,6 @@ export default function ChapterScreen() {
         }
     };
 
-    const handleUnlockChapter = async () => {
-        if (!chapterId) return;
-        setLoadingInsight(true);
-        try {
-            const result = await apiClient.unlockChapter(chapterId);
-            Alert.alert("Unlock Chapter", result?.message || "Chapter unlock request completed.");
-        } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to unlock chapter.");
-        } finally {
-            setLoadingInsight(false);
-        }
-    };
-
     const handleOpenLesson = (lessonId: string) => {
         if (!chapterId) return;
         const subjectIdForRoute = resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
@@ -318,11 +302,6 @@ export default function ChapterScreen() {
                     <TouchableOpacity style={styles.actionButton} onPress={handleViewExamHints} disabled={loadingInsight}>
                         <Text style={styles.actionButtonText}>Exam Hints</Text>
                     </TouchableOpacity>
-                    {canUnlockChapter && (
-                        <TouchableOpacity style={styles.actionButton} onPress={handleUnlockChapter} disabled={loadingInsight}>
-                            <Text style={styles.actionButtonText}>Unlock</Text>
-                        </TouchableOpacity>
-                    )}
                 </View>
 
                 <View style={styles.lessonsHeader}>
