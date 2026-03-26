@@ -284,6 +284,22 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.menuItem}
+                        onPress={() => router.push("/(tabs)/profile/admin-users")}
+                    >
+                        <Ionicons name="people-outline" size={24} color="#666" />
+                        <Text style={styles.menuText}>Users</Text>
+                        <Ionicons name="chevron-forward" size={20} color="#999" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => router.push("/(tabs)/profile/admin-analytics")}
+                    >
+                        <Ionicons name="stats-chart-outline" size={24} color="#666" />
+                        <Text style={styles.menuText}>Platform Analytics</Text>
+                        <Ionicons name="chevron-forward" size={20} color="#999" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.menuItem}
                         onPress={() => router.push("/(tabs)/profile/admin-role-upgrades")}
                     >
                         <Ionicons name="shield-checkmark-outline" size={24} color="#666" />

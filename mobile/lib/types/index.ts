@@ -681,3 +681,25 @@ export interface TeacherStudentQuizAttemptsResponse {
     };
     data: TeacherStudentQuizAttemptApiItem[];
 }
+
+export interface AdminUserListItem extends User {
+    isActive?: boolean;
+    deactivatedAt?: string | null;
+    [key: string]: unknown;
+}
+
+export interface AdminAnalyticsOverview {
+    totalUsers?: number;
+    activeUsers?: number;
+    deactivatedUsers?: number;
+    totalStudents?: number;
+    totalTeachers?: number;
+    totalAdmins?: number;
+    pendingRoleUpgrades?: number;
+    totalSubjects?: number;
+    totalChapters?: number;
+    totalLessons?: number;
+    totalQuizzes?: number;
+    totalAssessments?: number;
+    [key: string]: unknown;
+}

@@ -33,6 +33,8 @@ import {
     TeacherDashboardData,
     StudentDetail,
     StudentStatus,
+    AdminUserListItem,
+    AdminAnalyticsOverview,
     UpdateProfilePayload,
     Subject,
     CreateSubjectPayload,
@@ -1506,6 +1508,46 @@ class APIClient {
             chapterProgress: [],
             quizAttempts,
         };
+    }
+
+    async getAdminUsers(): Promise<AdminUserListItem[]> {
+        const response = await this.request<
+            AdminUserListItem[] | { success?: boolean; data?: AdminUserListItem[] }
+        >("/admin/users");
+        const users = this.unwrapData<AdminUserListItem[]>(response);
+        return Array.isArray(users) ? users : [];
+    }
+
+    async getAdminUser(userId: string): Promise<AdminUserListItem> {
+        const response = await this.request<AdminUserListItem | { success?: boolean; data?: AdminUserListItem }>(
+            `/admin/users/${userId}`
+        );
+        return this.unwrapData<AdminUserListItem>(response);
+    }
+
+    async deactivateAdminUser(userId: string): Promise<{ success?: boolean; message?: string; data?: unknown }> {
+        return this.request<{ success?: boolean; message?: string; data?: unknown }>(
+            `/admin/users/${userId}/deactivate`,
+            {
+                method: "PATCH",
+            }
+        );
+    }
+
+    async reactivateAdminUser(userId: string): Promise<{ success?: boolean; message?: string; data?: unknown }> {
+        return this.request<{ success?: boolean; message?: string; data?: unknown }>(
+            `/admin/users/${userId}/reactivate`,
+            {
+                method: "PATCH",
+            }
+        );
+    }
+
+    async getAdminAnalyticsOverview(): Promise<AdminAnalyticsOverview> {
+        const response = await this.request<
+            AdminAnalyticsOverview | { success?: boolean; data?: AdminAnalyticsOverview }
+        >("/admin/analytics/overview");
+        return this.unwrapData<AdminAnalyticsOverview>(response);
     }
 }
 
