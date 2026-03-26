@@ -26,13 +26,17 @@ export default function QuizScreen() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
-    const getQuestionKey = (question: Quiz["questions"][number], index: number): string => {
+    const getQuestionKey = (question: Quiz["questions"][number] | undefined, index: number): string => {
+        if (!question || typeof question !== "object") {
+            return `index-${index}`;
+        }
+
         const rawQuestion = question as Quiz["questions"][number] & { questionId?: unknown; _id?: unknown };
         return typeof question.id === "string" && question.id.trim()
             ? question.id.trim()
             : typeof rawQuestion.questionId === "string" && rawQuestion.questionId.trim()
                 ? rawQuestion.questionId.trim()
-                : typeof rawQuestion._id === "string" && rawQuestion._id.trim()
+                    : typeof rawQuestion._id === "string" && rawQuestion._id.trim()
                     ? rawQuestion._id.trim()
                     : `index-${index}`;
     };
@@ -142,6 +146,14 @@ export default function QuizScreen() {
         return (
             <View style={styles.loadingContainer}>
                 <Text style={styles.errorText}>Quiz not found</Text>
+            </View>
+        );
+    }
+
+    if (quiz.questions.length === 0) {
+        return (
+            <View style={styles.loadingContainer}>
+                <Text style={styles.errorText}>This quiz has no available questions yet.</Text>
             </View>
         );
     }

@@ -247,6 +247,17 @@ class APIClient {
         };
     }
 
+    private isValidQuizQuestion(question: QuizQuestion): boolean {
+        const hasPrompt =
+            typeof question.question === "string" && question.question.trim().length > 0;
+        const hasOptions =
+            Array.isArray(question.options) &&
+            question.options.length > 0 &&
+            question.options.every((option) => typeof option === "string" && option.trim().length > 0);
+
+        return hasPrompt && hasOptions;
+    }
+
     private normalizeQuiz(quiz: Partial<Quiz>): Quiz {
         const rawQuiz = quiz as Partial<Quiz> & {
             chapterId?: unknown;
@@ -263,9 +274,9 @@ class APIClient {
                 ? rawQuiz.chapterId.trim()
                 : "";
         const rawQuestions = Array.isArray(quiz.questions) ? quiz.questions : [];
-        const normalizedQuestions = rawQuestions.map((question) =>
-            this.normalizeQuestion((question || {}) as Partial<QuizQuestion>)
-        );
+        const normalizedQuestions = rawQuestions
+            .map((question) => this.normalizeQuestion((question || {}) as Partial<QuizQuestion>))
+            .filter((question) => this.isValidQuizQuestion(question));
 
         return {
             ...(quiz as Quiz),
