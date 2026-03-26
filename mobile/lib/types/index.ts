@@ -688,6 +688,28 @@ export interface AdminUserListItem extends User {
     [key: string]: unknown;
 }
 
+export interface AdminUsersQueryParams {
+    search?: string;
+    role?: UserRole;
+    isActive?: boolean;
+    level?: Level;
+    limit?: number;
+    offset?: number;
+}
+
+export interface AdminUsersListResponse {
+    success?: boolean;
+    count?: number;
+    total?: number;
+    pagination?: {
+        limit: number;
+        offset: number;
+        hasMore: boolean;
+    };
+    data: AdminUserListItem[];
+    [key: string]: unknown;
+}
+
 export interface AdminAnalyticsOverview {
     totalUsers?: number;
     activeUsers?: number;

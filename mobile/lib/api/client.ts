@@ -34,6 +34,8 @@ import {
     StudentDetail,
     StudentStatus,
     AdminUserListItem,
+    AdminUsersQueryParams,
+    AdminUsersListResponse,
     AdminAnalyticsOverview,
     UpdateProfilePayload,
     Subject,
@@ -1510,12 +1512,89 @@ class APIClient {
         };
     }
 
-    async getAdminUsers(): Promise<AdminUserListItem[]> {
+    async getAdminUsers(params: AdminUsersQueryParams = {}): Promise<AdminUsersListResponse> {
+        const normalizedLimit =
+            typeof params.limit === "number" && Number.isFinite(params.limit)
+                ? Math.min(Math.max(Math.trunc(params.limit), 1), 100)
+                : 50;
+        const normalizedOffset =
+            typeof params.offset === "number" && Number.isFinite(params.offset)
+                ? Math.max(Math.trunc(params.offset), 0)
+                : 0;
+        const requestParams = {
+            search: typeof params.search === "string" && params.search.trim() ? params.search.trim() : undefined,
+            role: params.role,
+            isActive: typeof params.isActive === "boolean" ? params.isActive : undefined,
+            level: params.level,
+            limit: normalizedLimit,
+            offset: normalizedOffset,
+        };
         const response = await this.request<
-            AdminUserListItem[] | { success?: boolean; data?: AdminUserListItem[] }
-        >("/admin/users");
-        const users = this.unwrapData<AdminUserListItem[]>(response);
-        return Array.isArray(users) ? users : [];
+            | AdminUsersListResponse
+            | AdminUserListItem[]
+            | {
+                success?: boolean;
+                count?: number;
+                total?: number;
+                pagination?: { limit?: number; offset?: number; hasMore?: boolean };
+                data?: AdminUserListItem[] | { users?: AdminUserListItem[]; data?: AdminUserListItem[] };
+            }
+        >("/admin/users", {
+            params: requestParams,
+        });
+
+        if (Array.isArray(response)) {
+            return {
+                data: response,
+                count: response.length,
+                total: response.length,
+                pagination: {
+                    limit: normalizedLimit,
+                    offset: normalizedOffset,
+                    hasMore: false,
+                },
+            };
+        }
+
+        if (response && typeof response === "object") {
+            const payload = "data" in response ? response.data : undefined;
+            const users = Array.isArray(payload)
+                ? payload
+                : payload && typeof payload === "object" && Array.isArray(payload.users)
+                    ? payload.users
+                    : payload && typeof payload === "object" && Array.isArray(payload.data)
+                        ? payload.data
+                        : [];
+            const count = typeof response.count === "number" ? response.count : users.length;
+            const total = typeof response.total === "number" ? response.total : count;
+            const pagination = {
+                limit: response.pagination?.limit ?? normalizedLimit,
+                offset: response.pagination?.offset ?? normalizedOffset,
+                hasMore:
+                    typeof response.pagination?.hasMore === "boolean"
+                        ? response.pagination.hasMore
+                        : normalizedOffset + users.length < total,
+            };
+
+            return {
+                ...response,
+                count,
+                total,
+                pagination,
+                data: users,
+            };
+        }
+
+        return {
+            data: [],
+            count: 0,
+            total: 0,
+            pagination: {
+                limit: normalizedLimit,
+                offset: normalizedOffset,
+                hasMore: false,
+            },
+        };
     }
 
     async getAdminUser(userId: string): Promise<AdminUserListItem> {

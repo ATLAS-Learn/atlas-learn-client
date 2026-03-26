@@ -14,7 +14,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { AdminUserListItem, UserRole } from "@/lib/types";
+import { AdminUserListItem, Level, UserRole } from "@/lib/types";
 import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 export default function AdminUsersScreen() {
@@ -26,36 +26,89 @@ export default function AdminUsersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | UserRole>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [levelFilter, setLevelFilter] = useState<"all" | Level>("all");
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUserListItem | null>(null);
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
+  const limit = 50;
 
-  const loadUsers = useCallback(async () => {
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 350);
+
+    return () => clearTimeout(timeout);
+  }, [search]);
+
+  const loadUsers = useCallback(async (options?: { append?: boolean; nextOffset?: number }) => {
+    const append = options?.append === true;
+    const offset = options?.nextOffset ?? 0;
     try {
-      const data = await apiClient.getAdminUsers();
-      setUsers(data);
+      const response = await apiClient.getAdminUsers({
+        search: debouncedSearch || undefined,
+        role: roleFilter === "all" ? undefined : roleFilter,
+        isActive:
+          statusFilter === "all"
+            ? undefined
+            : statusFilter === "active",
+        level: levelFilter === "all" ? undefined : levelFilter,
+        limit,
+        offset,
+      });
+
+      const incoming = Array.isArray(response.data) ? response.data : [];
+      setUsers((prev) => {
+        if (!append) {
+          return incoming;
+        }
+
+        const seen = new Set(prev.map((user) => user.id));
+        const nextUsers = [...prev];
+        incoming.forEach((user) => {
+          if (!seen.has(user.id)) {
+            seen.add(user.id);
+            nextUsers.push(user);
+          }
+        });
+        return nextUsers;
+      });
+
+      const resolvedTotal =
+        typeof response.total === "number"
+          ? response.total
+          : typeof response.count === "number"
+            ? response.count
+            : incoming.length;
+      setTotalUsers(resolvedTotal);
+      setHasMore(
+        typeof response.pagination?.hasMore === "boolean"
+          ? response.pagination.hasMore
+          : offset + incoming.length < resolvedTotal
+      );
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to load users.");
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
-  }, []);
+  }, [debouncedSearch, levelFilter, roleFilter, statusFilter]);
 
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
 
-  const filteredUsers = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    if (!needle) return users;
-    return users.filter((user) =>
-      [user.name, user.email, user.username, user.school, user.role]
-        .filter((value): value is string => typeof value === "string")
-        .some((value) => value.toLowerCase().includes(needle))
-    );
-  }, [search, users]);
+  const summaryText = useMemo(() => {
+    if (totalUsers <= 0) return "No users found";
+    return `Showing ${users.length} of ${totalUsers} user${totalUsers === 1 ? "" : "s"}`;
+  }, [totalUsers, users.length]);
 
   const openUserDetails = async (userId: string) => {
     setLoadingDetail(true);
@@ -137,12 +190,56 @@ export default function AdminUsersScreen() {
         <Ionicons name="search-outline" size={18} color="#999" />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by name, email, role"
+          placeholder="Search by name, email, username"
           value={search}
           onChangeText={setSearch}
           autoCapitalize="none"
         />
       </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+        {(["all", UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN] as const).map((role) => (
+          <TouchableOpacity
+            key={role}
+            style={[styles.filterChip, roleFilter === role && styles.filterChipActive]}
+            onPress={() => setRoleFilter(role)}
+          >
+            <Text style={[styles.filterChipText, roleFilter === role && styles.filterChipTextActive]}>
+              {role === "all" ? "All Roles" : role}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+        {(["all", "active", "inactive"] as const).map((status) => (
+          <TouchableOpacity
+            key={status}
+            style={[styles.filterChip, statusFilter === status && styles.filterChipActive]}
+            onPress={() => setStatusFilter(status)}
+          >
+            <Text style={[styles.filterChipText, statusFilter === status && styles.filterChipTextActive]}>
+              {status === "all" ? "All Status" : status === "active" ? "Active" : "Inactive"}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+        {(["all", Level.FOUNDATIONAL, Level.CORE, Level.ADVANCED] as const).map((level) => (
+          <TouchableOpacity
+            key={level}
+            style={[styles.filterChip, levelFilter === level && styles.filterChipActive]}
+            onPress={() => setLevelFilter(level)}
+          >
+            <Text style={[styles.filterChipText, levelFilter === level && styles.filterChipTextActive]}>
+              {level === "all" ? "All Levels" : level}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <Text style={styles.summaryText}>{summaryText}</Text>
 
       <ScrollView
         style={styles.scrollView}
@@ -152,13 +249,13 @@ export default function AdminUsersScreen() {
           loadUsers();
         }} />}
       >
-        {filteredUsers.length === 0 ? (
+        {users.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="people-outline" size={56} color="#999" />
             <Text style={styles.emptyText}>No users found</Text>
           </View>
         ) : (
-          filteredUsers.map((user) => {
+          users.map((user) => {
             const isActive = user.isActive !== false;
             const busy = processingUserId === user.id;
 
@@ -200,6 +297,23 @@ export default function AdminUsersScreen() {
               </View>
             );
           })
+        )}
+
+        {hasMore && (
+          <TouchableOpacity
+            style={styles.loadMoreButton}
+            onPress={() => {
+              setLoadingMore(true);
+              loadUsers({ append: true, nextOffset: users.length });
+            }}
+            disabled={loadingMore}
+          >
+            {loadingMore ? (
+              <ActivityIndicator size="small" color="#F2B138" />
+            ) : (
+              <Text style={styles.loadMoreText}>Load More</Text>
+            )}
+          </TouchableOpacity>
         )}
       </ScrollView>
 
@@ -259,6 +373,22 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
   },
   searchInput: { flex: 1, paddingVertical: 14, paddingLeft: 10, color: "#282F2E" },
+  filterRow: { paddingHorizontal: 16, paddingBottom: 10, gap: 8 },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  filterChipActive: {
+    backgroundColor: "#FFF4D9",
+    borderColor: "#F2B138",
+  },
+  filterChipText: { color: "#666", fontSize: 13, fontWeight: "600" },
+  filterChipTextActive: { color: "#8A5D00" },
+  summaryText: { paddingHorizontal: 16, paddingBottom: 12, color: "#666", fontSize: 13, fontWeight: "600" },
   scrollView: { flex: 1 },
   content: { paddingHorizontal: 16, paddingBottom: 24 },
   emptyContainer: { marginTop: 80, alignItems: "center" },
@@ -297,6 +427,17 @@ const styles = StyleSheet.create({
   smallButtonText: { color: "#8A5D00", fontWeight: "700", fontSize: 13 },
   reactivateButton: { backgroundColor: "#E8F5E9" },
   reactivateText: { color: "#2E7D32" },
+  loadMoreButton: {
+    alignSelf: "center",
+    marginTop: 8,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#F2B138",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  loadMoreText: { color: "#8A5D00", fontWeight: "700" },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.3)",
