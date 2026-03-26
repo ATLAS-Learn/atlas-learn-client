@@ -2,13 +2,31 @@ import "../styles/global.css";
 
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Animated, StatusBar } from "react-native";
+import { Animated, LogBox, StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { FontLoader } from "@/components/ui/font-loader";
 import { SplashScreen } from "@/components/ui/splash-screen";
 import { useAppFlow } from "../hooks/useAppFlow";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
+
+const KEEP_AWAKE_ERROR_PATTERNS = [
+  "Unable to activate keep awake",
+  "Error: Unable to activate keep awake",
+];
+
+const shouldIgnoreKeepAwakeMessage = (value: unknown): boolean => {
+  const message =
+    typeof value === "string"
+      ? value
+      : value && typeof value === "object" && "message" in value
+        ? String((value as { message?: unknown }).message || "")
+        : "";
+
+  return KEEP_AWAKE_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+};
+
+LogBox.ignoreLogs(KEEP_AWAKE_ERROR_PATTERNS);
 
 export default function RootLayout() {
   const [showIntro, setShowIntro] = useState(true);
@@ -21,21 +39,26 @@ export default function RootLayout() {
       onunhandledrejection?: ((event: { reason?: unknown; preventDefault?: () => void }) => void) | null;
     };
     const previousHandler = globalWithUnhandled.onunhandledrejection;
+    const previousConsoleError = console.error;
 
     globalWithUnhandled.onunhandledrejection = (event) => {
-      const reason =
-        typeof event?.reason === "string"
-          ? event.reason
-          : (event?.reason as { message?: string } | undefined)?.message || "";
-      if (reason.includes("Unable to activate keep awake")) {
+      if (shouldIgnoreKeepAwakeMessage(event?.reason)) {
         event?.preventDefault?.();
         return;
       }
       previousHandler?.(event);
     };
 
+    console.error = (...args: unknown[]) => {
+      if (args.some((arg) => shouldIgnoreKeepAwakeMessage(arg))) {
+        return;
+      }
+      previousConsoleError(...args);
+    };
+
     return () => {
       globalWithUnhandled.onunhandledrejection = previousHandler || null;
+      console.error = previousConsoleError;
     };
   }, []);
 
