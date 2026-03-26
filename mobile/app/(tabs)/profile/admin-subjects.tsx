@@ -309,7 +309,10 @@ export default function AdminSubjectsScreen() {
   const loadChapterQuizzes = async (chapterId: string) => {
     setLoadingQuizzes(true);
     try {
-      const quizzes = await apiClient.getChapterQuizzes(chapterId);
+      const quizzes = await apiClient.getChapterQuizzes(chapterId, {
+        includeQuestions: true,
+        includeAttempts: false,
+      });
       setChapterQuizzes(Array.isArray(quizzes) ? quizzes : []);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to load chapter quizzes.");

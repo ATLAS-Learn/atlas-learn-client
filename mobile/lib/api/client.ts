@@ -40,6 +40,7 @@ import {
     SubjectQueryOptions,
     SubjectChaptersQueryOptions,
     SubjectChapterQueryOptions,
+    SubjectChapterQuizzesQueryOptions,
     SubjectChapter,
     CreateSubjectChapterPayload,
     UpdateSubjectChapterPayload,
@@ -371,6 +372,17 @@ class APIClient {
         }
         if (options.includeExamHints) {
             params.includeExamHints = "true";
+        }
+        return Object.keys(params).length ? params : undefined;
+    }
+
+    private buildChapterQuizzesQueryParams(options: SubjectChapterQuizzesQueryOptions = {}) {
+        const params: Record<string, string> = {};
+        if (options.includeQuestions) {
+            params.includeQuestions = "true";
+        }
+        if (options.includeAttempts !== undefined) {
+            params.includeAttempts = String(options.includeAttempts);
         }
         return Object.keys(params).length ? params : undefined;
     }
@@ -1051,10 +1063,16 @@ class APIClient {
     }
 
     // Chapter Quiz endpoints
-    async getChapterQuizzes(chapterId: string): Promise<Quiz[]> {
+    async getChapterQuizzes(
+        chapterId: string,
+        options: SubjectChapterQuizzesQueryOptions = {}
+    ): Promise<Quiz[]> {
         // Get all quizzes for a chapter
         const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
-            `/chapters/${chapterId}/quizzes`
+            `/chapters/${chapterId}/quizzes`,
+            {
+                params: this.buildChapterQuizzesQueryParams(options),
+            }
         );
         const quizzes = this.unwrapData<Quiz[]>(response);
         return Array.isArray(quizzes) ? this.normalizeQuizzes(this.dedupeById(quizzes)) : [];
@@ -1083,7 +1101,10 @@ class APIClient {
 
     async getChapterQuiz(chapterId: string, subjectId?: string): Promise<Quiz> {
         // Get the first quiz for a chapter (for backward compatibility)
-        const quizzes = await this.getChapterQuizzes(chapterId);
+        const quizzes = await this.getChapterQuizzes(chapterId, {
+            includeQuestions: true,
+            includeAttempts: false,
+        });
         if (quizzes.length === 0) {
             throw new Error(`No quizzes found for chapter ${chapterId}`);
         }
