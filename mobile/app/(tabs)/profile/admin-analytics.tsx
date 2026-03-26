@@ -11,7 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { AdminAnalyticsChapterCompletion, AdminAnalyticsOverview, AdminAnalyticsQuizStats, AdminAnalyticsTeacherActivity, AdminAnalyticsWAU, UserRole } from "@/lib/types";
+import { AdminAnalyticsChapterCompletion, AdminAnalyticsOverview, AdminAnalyticsQuizStats, AdminAnalyticsSignups, AdminAnalyticsTeacherActivity, AdminAnalyticsWAU, UserRole } from "@/lib/types";
 import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const SECTION_LABELS: Record<string, string> = {
@@ -43,29 +43,33 @@ export default function AdminAnalyticsScreen() {
   const [quizStats, setQuizStats] = useState<AdminAnalyticsQuizStats | null>(null);
   const [wau, setWAU] = useState<AdminAnalyticsWAU | null>(null);
   const [teacherActivity, setTeacherActivity] = useState<AdminAnalyticsTeacherActivity | null>(null);
+  const [signups, setSignups] = useState<AdminAnalyticsSignups | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadOverview = useCallback(async () => {
     try {
-      const [overviewData, chapterCompletionData, quizStatsData, wauData, teacherActivityData] = await Promise.all([
+      const [overviewData, chapterCompletionData, quizStatsData, wauData, teacherActivityData, signupsData] = await Promise.all([
         apiClient.getAdminAnalyticsOverview(),
         apiClient.getAdminAnalyticsChapterCompletion(),
         apiClient.getAdminAnalyticsQuizStats(),
         apiClient.getAdminAnalyticsWAU(),
         apiClient.getAdminAnalyticsTeacherActivity(),
+        apiClient.getAdminAnalyticsSignups(),
       ]);
       setOverview(overviewData);
       setChapterCompletion(chapterCompletionData);
       setQuizStats(quizStatsData);
       setWAU(wauData);
       setTeacherActivity(teacherActivityData);
+      setSignups(signupsData);
     } catch {
       setOverview(null);
       setChapterCompletion(null);
       setQuizStats(null);
       setWAU(null);
       setTeacherActivity(null);
+      setSignups(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -101,6 +105,7 @@ export default function AdminAnalyticsScreen() {
   const chapterPrimaryMetric = chapterCompletion?.primaryMetric;
   const quizSummary = quizStats?.summary;
   const wauChange = wau?.wauChangePercent;
+  const signupSummary = signups?.summary;
 
   const updatedAtText = useMemo(() => {
     if (!overview || typeof overview.updatedAt !== "string") return null;
@@ -222,6 +227,31 @@ export default function AdminAnalyticsScreen() {
           </View>
         ) : null}
 
+        {signupSummary ? (
+          <View style={styles.signupsCard}>
+            <Text style={styles.signupsEyebrow}>Signup Trend</Text>
+            <Text style={styles.signupsTitle}>Last 30 Days</Text>
+            <View style={styles.metricGrid}>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Total Signups</Text>
+                <Text style={styles.cardValue}>{signupSummary.totalSignups ?? 0}</Text>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Student Signups</Text>
+                <Text style={styles.cardValue}>{signupSummary.studentSignups ?? 0}</Text>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Teacher Signups</Text>
+                <Text style={styles.cardValue}>{signupSummary.teacherSignups ?? 0}</Text>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>Admin Signups</Text>
+                <Text style={styles.cardValue}>{signupSummary.adminSignups ?? 0}</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
         {chapterPrimaryMetric ? (
           <View style={styles.primaryMetricCard}>
             <Text style={styles.primaryMetricEyebrow}>Primary Success Metric</Text>
@@ -262,7 +292,7 @@ export default function AdminAnalyticsScreen() {
           </View>
         ) : null}
 
-        {!hasOverview && !wau && !teacherActivity && !chapterPrimaryMetric && !quizSummary ? (
+        {!hasOverview && !wau && !teacherActivity && !signupSummary && !chapterPrimaryMetric && !quizSummary ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="stats-chart-outline" size={56} color="#999" />
             <Text style={styles.emptyText}>No analytics available</Text>
@@ -343,6 +373,16 @@ const styles = StyleSheet.create({
   },
   teacherActivityEyebrow: { fontSize: 12, color: "#5B4A91", fontWeight: "800", textTransform: "uppercase" },
   teacherActivityTitle: { marginTop: 6, marginBottom: 14, fontSize: 18, color: "#2D2452", fontWeight: "800" },
+  signupsCard: {
+    backgroundColor: "#EEF7F2",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#C7DFD2",
+    padding: 18,
+    marginBottom: 16,
+  },
+  signupsEyebrow: { fontSize: 12, color: "#3A6D57", fontWeight: "800", textTransform: "uppercase" },
+  signupsTitle: { marginTop: 6, marginBottom: 14, fontSize: 18, color: "#1F3B30", fontWeight: "800" },
   primaryMetricCard: {
     backgroundColor: "#EEF6FF",
     borderRadius: 18,

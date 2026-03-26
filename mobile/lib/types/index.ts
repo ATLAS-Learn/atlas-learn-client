@@ -762,3 +762,22 @@ export interface AdminAnalyticsTeacherActivity {
     weeklyActiveRate?: number;
     [key: string]: unknown;
 }
+
+export interface AdminAnalyticsSignups {
+    summary?: {
+        totalSignups?: number;
+        studentSignups?: number;
+        teacherSignups?: number;
+        adminSignups?: number;
+        [key: string]: unknown;
+    };
+    trend?: Array<{
+        date?: string;
+        total?: number;
+        students?: number;
+        teachers?: number;
+        admins?: number;
+        [key: string]: unknown;
+    }>;
+    [key: string]: unknown;
+}
