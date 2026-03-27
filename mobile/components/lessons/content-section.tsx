@@ -16,7 +16,7 @@ export default function ContentSection({ section }: ContentSectionProps) {
             } else {
                 Alert.alert("Error", `Cannot open this link: ${title}`);
             }
-        } catch (error) {
+        } catch {
             Alert.alert("Error", "Failed to open link. Please try again.");
         }
     };

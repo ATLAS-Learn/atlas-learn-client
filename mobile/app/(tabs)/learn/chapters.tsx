@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -23,11 +23,7 @@ export default function ChaptersListScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    useEffect(() => {
-        loadChapters();
-    }, []);
-
-    const loadChapters = async () => {
+    const loadChapters = useCallback(async () => {
         try {
             const [data, progressData] = await Promise.all([
                 apiClient.getChapters(),
@@ -58,7 +54,11 @@ export default function ChaptersListScreen() {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [user?.level]);
+
+    useEffect(() => {
+        loadChapters();
+    }, [loadChapters]);
 
     const handleRefresh = () => {
         setRefreshing(true);
