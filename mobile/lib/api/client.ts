@@ -537,10 +537,10 @@ class APIClient {
             | {
                 success?: boolean;
                 data?:
-                    | { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[]
-                    | {
-                        sessions?: { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[];
-                    };
+                | { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[]
+                | {
+                    sessions?: { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[];
+                };
                 sessions?: { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[];
             }
         >("/auth/sessions");
@@ -603,7 +603,7 @@ class APIClient {
 
     // Assessment endpoints
     // Using dedicated assessment endpoints: /api/v1/assessment/*
-    
+
     /**
      * Start assessment and retrieve questions
      * @returns Array of assessment questions mapped to the expected format
@@ -626,12 +626,12 @@ class APIClient {
                 }[];
             };
         }>("/assessment/start");
-        
+
         // Validate response structure to prevent runtime errors
         if (!response?.data?.questions || !Array.isArray(response.data.questions)) {
             throw new Error("Invalid assessment response: questions array not found");
         }
-        
+
         // Map API response format to AssessmentQuestion format
         // API uses 'questionText' but our types expect 'question'
         return response.data.questions.map((q) => ({
@@ -1311,14 +1311,14 @@ class APIClient {
                 : null;
         const percentageRaw = typeof result.percentage === "number" ? result.percentage : undefined;
         const percentage = typeof percentageRaw === "number"
-                ? percentageRaw
-                : correctAnswers !== null && totalQuestions > 0
-                    ? (correctAnswers / totalQuestions) * 100
-                    : totalPoints && totalPoints > 0
-                        ? (earnedPoints ?? scoreValue) / totalPoints * 100
-                        : totalQuestions > 0
-                            ? (scoreValue / totalQuestions) * 100
-                            : 0;
+            ? percentageRaw
+            : correctAnswers !== null && totalQuestions > 0
+                ? (correctAnswers / totalQuestions) * 100
+                : totalPoints && totalPoints > 0
+                    ? (earnedPoints ?? scoreValue) / totalPoints * 100
+                    : totalQuestions > 0
+                        ? (scoreValue / totalQuestions) * 100
+                        : 0;
         const score =
             correctAnswers !== null
                 ? correctAnswers
@@ -1614,11 +1614,14 @@ class APIClient {
         if (response && typeof response === "object" && "data" in response) {
             const payload = response.data;
             if (payload && typeof payload === "object" && "user" in payload && payload.user) {
-                return payload.user;
+                return payload.user as AdminUserListItem;
+            }
+            if (payload && typeof payload === "object" && !("user" in payload)) {
+                return this.unwrapData<AdminUserListItem>(payload as AdminUserListItem | { data?: AdminUserListItem });
             }
         }
 
-        return this.unwrapData<AdminUserListItem>(response);
+        return this.unwrapData<AdminUserListItem>(response as AdminUserListItem | { data?: AdminUserListItem });
     }
 
     async deactivateAdminUser(userId: string): Promise<{ success?: boolean; message?: string; data?: unknown }> {
