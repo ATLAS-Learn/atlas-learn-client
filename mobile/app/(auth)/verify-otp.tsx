@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
+    Modal,
     KeyboardAvoidingView,
     Platform,
     TouchableWithoutFeedback,
@@ -30,6 +31,7 @@ export default function VerifyOTPScreen() {
     
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(false);
+    const [verificationState, setVerificationState] = useState<"idle" | "verifying" | "success">("idle");
     const [resending, setResending] = useState(false);
     const [error, setError] = useState("");
     const [cooldown, setCooldown] = useState(0);
@@ -79,6 +81,7 @@ export default function VerifyOTPScreen() {
 
         setError("");
         setLoading(true);
+        setVerificationState("verifying");
         try {
             const response = await apiClient.verifyOTP(email, code);
             
@@ -95,13 +98,14 @@ export default function VerifyOTPScreen() {
 
             // Check if assessment is complete
             const assessmentComplete = await getItem("assessmentComplete");
-            if (assessmentComplete === "true") {
-                router.replace("/(tabs)");
-            } else {
-                // Route to onboarding if assessment not complete
-                router.replace("/(onboarding)");
-            }
+            setVerificationState("success");
+
+            const redirectTarget = assessmentComplete === "true" ? "/(tabs)" : "/(onboarding)";
+            setTimeout(() => {
+                router.replace(redirectTarget as any);
+            }, 1200);
         } catch (error: any) {
+            setVerificationState("idle");
             setError(error.message || "Invalid verification code. Please try again.");
         } finally {
             setLoading(false);
@@ -257,6 +261,35 @@ export default function VerifyOTPScreen() {
                     </Text>
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            <Modal visible={verificationState !== "idle"} transparent animationType="fade">
+                <View style={styles.overlay}>
+                    <View style={styles.sheet}>
+                        <View style={styles.sheetHandle} />
+                        {verificationState === "verifying" ? (
+                            <>
+                                <Text style={styles.sheetTitle}>Verifying Code</Text>
+                                <Text style={styles.sheetSubtitle}>We are verifying the code...</Text>
+                                <View style={styles.sheetButton}>
+                                    <ActivityIndicator color="#FFFFFF" />
+                                </View>
+                            </>
+                        ) : (
+                            <>
+                                <Image
+                                    source={require("@/assets/images/icons/Success Illustration.png")}
+                                    resizeMode="contain"
+                                    style={styles.successImage}
+                                />
+                                <Text style={styles.successTitle}>Code Verified</Text>
+                                <TouchableOpacity style={styles.sheetButton} activeOpacity={0.9}>
+                                    <Text style={styles.sheetButtonText}>Continue</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </TouchableWithoutFeedback>
     );
 }
@@ -387,5 +420,64 @@ const styles = StyleSheet.create({
     link: {
         color: "#F2B138",
         fontWeight: "600",
+    },
+    overlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.18)",
+        justifyContent: "flex-end",
+    },
+    sheet: {
+        backgroundColor: "#FFFFFF",
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        paddingHorizontal: 24,
+        paddingTop: 12,
+        paddingBottom: 32,
+        alignItems: "center",
+        minHeight: 280,
+    },
+    sheetHandle: {
+        width: 44,
+        height: 4,
+        borderRadius: 999,
+        backgroundColor: "#D9D9D9",
+        marginBottom: 36,
+    },
+    sheetTitle: {
+        fontSize: 24,
+        fontWeight: "700",
+        color: "#282F2E",
+        marginBottom: 10,
+    },
+    sheetSubtitle: {
+        fontSize: 16,
+        color: "#6C7580",
+        textAlign: "center",
+        marginBottom: 40,
+    },
+    sheetButton: {
+        marginTop: "auto",
+        width: "100%",
+        height: 56,
+        borderRadius: 16,
+        backgroundColor: "#F2B138",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    sheetButtonText: {
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontWeight: "700",
+    },
+    successImage: {
+        width: 120,
+        height: 120,
+        marginBottom: 12,
+    },
+    successTitle: {
+        fontSize: 22,
+        fontWeight: "700",
+        color: "#F2B138",
+        marginBottom: 32,
     },
 });
