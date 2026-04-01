@@ -5,7 +5,7 @@ const { width, height } = Dimensions.get("window");
 
 const AnimatedImage = Animated.createAnimatedComponent(Image);
 
-export const SPLASH_SEQUENCE_MS = 4300;
+export const SPLASH_SEQUENCE_MS = 5600;
 
 export function SplashScreen() {
   const dropTranslateY = useRef(new Animated.Value(-height * 0.2)).current;
@@ -18,6 +18,7 @@ export function SplashScreen() {
   const waterRise = useRef(new Animated.Value(height * 0.44)).current;
   const waveDriftFront = useRef(new Animated.Value(0)).current;
   const waveDriftBack = useRef(new Animated.Value(0)).current;
+  const waveOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const fallSequence = Animated.sequence([
@@ -98,13 +99,21 @@ export function SplashScreen() {
           useNativeDriver: true,
         }),
       ]),
-      Animated.delay(80),
-      Animated.timing(waterRise, {
-        toValue: height * 0.12,
-        duration: 2500,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
+      Animated.delay(180),
+      Animated.parallel([
+        Animated.timing(waveOpacity, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(waterRise, {
+          toValue: height * 0.11,
+          duration: 3400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
     ]);
 
     const frontWaveLoop = Animated.loop(
@@ -142,13 +151,21 @@ export function SplashScreen() {
     );
 
     fallSequence.start();
-    frontWaveLoop.start();
-    backWaveLoop.start();
+
+    const frontWaveStart = setTimeout(() => {
+      frontWaveLoop.start();
+    }, 1300);
+
+    const backWaveStart = setTimeout(() => {
+      backWaveLoop.start();
+    }, 1300);
 
     return () => {
       fallSequence.stop();
       frontWaveLoop.stop();
       backWaveLoop.stop();
+      clearTimeout(frontWaveStart);
+      clearTimeout(backWaveStart);
     };
   }, [
     dropOpacity,
@@ -159,6 +176,7 @@ export function SplashScreen() {
     splashOpacity,
     splashScale,
     waterRise,
+    waveOpacity,
     waveDriftBack,
     waveDriftFront,
   ]);
@@ -234,11 +252,12 @@ export function SplashScreen() {
           },
         ]}
       >
-        <View style={styles.waterBack} />
-        <View style={styles.waterFront} />
+        <Animated.View style={[styles.waterBack, { opacity: waveOpacity }]} />
+        <Animated.View style={[styles.waterFront, { opacity: waveOpacity }]} />
         <Animated.View
           style={[
             styles.waveBack,
+            { opacity: waveOpacity },
             {
               transform: [{ translateX: backWaveTranslateX }],
             },
@@ -247,6 +266,7 @@ export function SplashScreen() {
         <Animated.View
           style={[
             styles.waveFront,
+            { opacity: waveOpacity },
             {
               transform: [{ translateX: frontWaveTranslateX }],
             },
@@ -257,6 +277,10 @@ export function SplashScreen() {
           resizeMode="stretch"
           style={[
             styles.waveTextureBack,
+            { opacity: waveOpacity.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 0.2],
+            }) },
             {
               transform: [{ translateX: backWaveTranslateX }],
             },
@@ -267,6 +291,10 @@ export function SplashScreen() {
           resizeMode="stretch"
           style={[
             styles.waveTextureFront,
+            { opacity: waveOpacity.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 0.32],
+            }) },
             {
               transform: [{ translateX: frontWaveTranslateX }],
             },
