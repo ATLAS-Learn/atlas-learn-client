@@ -187,9 +187,7 @@ export default function ChapterScreen() {
         if (!chapterId) return;
         setLoadingInsight(true);
         try {
-            const progress = resolvedSubjectId
-                ? await apiClient.getSubjectChapterProgress(resolvedSubjectId, chapterId)
-                : await apiClient.getChapterProgress(chapterId);
+            const progress = await apiClient.getChapterProgress(chapterId);
             const completion = Number(progress?.completionPercentage ?? 0);
             const completed = progress?.completed ? "Yes" : "No";
             const unlocked = progress?.unlocked ? "Yes" : "No";

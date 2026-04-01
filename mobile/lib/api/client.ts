@@ -55,7 +55,6 @@ import {
     CreateSubjectChapterPayload,
     UpdateSubjectChapterPayload,
     SubjectStats,
-    SubjectChapterProgress,
     Lesson,
     CreateLessonPayload,
     UpdateLessonPayload,
@@ -1012,14 +1011,6 @@ class APIClient {
             `/subjects/${subjectId}/stats`
         );
         return this.unwrapData<SubjectStats>(response);
-    }
-
-    async getSubjectChapterProgress(subjectId: string, chapterId: string): Promise<SubjectChapterProgress> {
-        this.traceIdOrigin("getSubjectChapterProgress", { subjectId, chapterId });
-        const response = await this.request<
-            SubjectChapterProgress | { success?: boolean; message?: string; data?: SubjectChapterProgress }
-        >(`/subjects/${subjectId}/chapters/${chapterId}/progress`);
-        return this.unwrapData<SubjectChapterProgress>(response);
     }
 
     // Lesson endpoints (subject chapter)
