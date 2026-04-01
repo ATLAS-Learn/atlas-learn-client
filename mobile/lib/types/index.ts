@@ -244,37 +244,6 @@ export interface SubjectStats {
     [key: string]: unknown;
 }
 
-export interface SubjectChapterProgress {
-    id?: string;
-    subjectId?: string;
-    chapterId?: string;
-    isCompleted?: boolean;
-    isUnlocked?: boolean;
-    bestScore?: number;
-    currentScore?: number;
-    attemptsCount?: number;
-    timeSpent?: number;
-    lastAttemptedAt?: string;
-    // Backward compatibility aliases
-    completed?: boolean;
-    unlocked?: boolean;
-    completionPercentage?: number;
-    [key: string]: unknown;
-}
-
-export interface SubjectChapterUnlockResponse {
-    success?: boolean;
-    message?: string;
-    data?: {
-        id?: string;
-        isUnlocked?: boolean;
-        userId?: string;
-        chapterId?: string;
-        [key: string]: unknown;
-    };
-    [key: string]: unknown;
-}
-
 export interface SubjectExamHint {
     id: string;
     title?: string;

@@ -23,12 +23,6 @@ export default function SubjectsScreen() {
     const loadSubjects = useCallback(async () => {
         try {
             const data = await apiClient.getSubjects({ includeChapters: false });
-            console.log("[ID_TRACE] SubjectsScreen loaded subjects", {
-                count: Array.isArray(data) ? data.length : 0,
-                sample: Array.isArray(data)
-                    ? data.slice(0, 3).map((item) => ({ id: item.id, code: item.code, name: item.name }))
-                    : [],
-            });
             setSubjects(Array.isArray(data) ? data : []);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to load subjects.");
@@ -48,10 +42,6 @@ export default function SubjectsScreen() {
     };
 
     const handleOpenSubject = (subject: Subject) => {
-        console.log("[ID_TRACE] SubjectsScreen navigate subject detail", {
-            subjectId: subject.id,
-            subjectCode: subject.code,
-        });
         router.push({
             pathname: "/(tabs)/learn/subjects/[subjectId]",
             params: { subjectId: subject.id, subjectCode: subject.code },

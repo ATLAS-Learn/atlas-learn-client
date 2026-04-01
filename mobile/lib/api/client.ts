@@ -529,10 +529,6 @@ class APIClient {
         return Object.keys(params).length ? params : undefined;
     }
 
-    private traceIdOrigin(context: string, payload: Record<string, unknown>) {
-        console.log(`[ID_TRACE] ${context}`, payload);
-    }
-
     // Auth endpoints
     async signUpWithOTP(data: {
         name: string;
@@ -928,7 +924,6 @@ class APIClient {
     }
 
     async getSubjectById(subjectId: string, options: SubjectQueryOptions = {}): Promise<Subject> {
-        this.traceIdOrigin("getSubjectById", { subjectId, options });
         const response = await this.request<
             Subject | { success?: boolean; message?: string; data?: Subject }
         >(
@@ -982,7 +977,6 @@ class APIClient {
         subjectId: string,
         options: SubjectChaptersQueryOptions = {}
     ): Promise<SubjectChapter[]> {
-        this.traceIdOrigin("getSubjectChapters", { subjectId, options });
         const response = await this.request<
             SubjectChapter[] | { success?: boolean; count?: number; data?: SubjectChapter[] }
         >(`/subjects/${subjectId}/chapters`, {
@@ -1010,7 +1004,6 @@ class APIClient {
         chapterId: string,
         options: SubjectChapterQueryOptions = {}
     ): Promise<SubjectChapter> {
-        this.traceIdOrigin("getSubjectChapter", { subjectId, chapterId, options });
         const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
             `/subjects/${subjectId}/chapters/${chapterId}`,
             {
@@ -1056,7 +1049,6 @@ class APIClient {
         chapterId: string,
         options: SubjectChapterLessonsQueryOptions = {}
     ): Promise<Lesson[]> {
-        this.traceIdOrigin("getSubjectChapterLessons", { subjectId, chapterId });
         const response = await this.request<Lesson[] | { success?: boolean; data?: Lesson[] }>(
             `/subjects/${subjectId}/chapters/${chapterId}/lessons`,
             {

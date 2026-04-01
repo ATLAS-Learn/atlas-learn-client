@@ -34,15 +34,6 @@ export default function ChapterScreen() {
             ? lesson.LessonProgress[0]
             : undefined;
 
-    useEffect(() => {
-        console.log("[ID_TRACE] ChapterScreen route params", {
-            rawId: id,
-            rawSubjectId: subjectId,
-            chapterId,
-            subjectKey,
-        });
-    }, [chapterId, id, subjectId, subjectKey]);
-
     const loadChapter = useCallback(async () => {
         try {
             if (!chapterId) {
@@ -160,12 +151,6 @@ export default function ChapterScreen() {
                     setResolvedSubjectId(subjectIdForRequest);
                 }
             }
-            console.log("[ID_TRACE] ChapterScreen loadLessons resolved IDs", {
-                chapterId,
-                subjectKey,
-                chapterSubjectId: getSubjectIdFromChapter(chapter),
-                resolvedSubjectId: subjectIdForRequest,
-            });
             const requestKey = `${chapterId}:${subjectIdForRequest || "chapter-fallback"}`;
             if (lastLessonsRequestKeyRef.current === requestKey) {
                 return;

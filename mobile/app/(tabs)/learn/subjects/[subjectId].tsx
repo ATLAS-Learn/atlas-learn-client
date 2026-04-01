@@ -26,16 +26,6 @@ export default function SubjectDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    useEffect(() => {
-        console.log("[ID_TRACE] SubjectDetail route params", {
-            rawSubjectId: subjectId,
-            rawSubjectCode: subjectCode,
-            subjectKey,
-            subjectCodeKey,
-            resolvedSubjectId,
-        });
-    }, [resolvedSubjectId, subjectId, subjectCode, subjectKey, subjectCodeKey]);
-
     const toSubjectChapterArray = (value: unknown): SubjectChapter[] => {
         if (!Array.isArray(value)) return [];
         return value.filter((item): item is SubjectChapter => Boolean(item && typeof item === "object"));
@@ -67,8 +57,6 @@ export default function SubjectDetailScreen() {
     }, []);
 
     const loadSubjectAndChapters = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
-        console.log("[ID_TRACE] loadSubjectAndChapters", { targetSubjectId, targetSubjectCode });
-
         let subjectResponse: Subject;
         if (targetSubjectCode) {
             subjectResponse = await apiClient.getSubjectByCode(targetSubjectCode, {
@@ -111,11 +99,6 @@ export default function SubjectDetailScreen() {
                 await loadFromSubjectsFallback(subjectKey, subjectCodeKey);
             }
         } catch (error: any) {
-            console.log("[ID_TRACE] SubjectDetail invalid subjectId", {
-                subjectKey,
-                subjectCodeKey,
-                errorMessage: error?.message,
-            });
             Alert.alert("Error", error?.message || "Subject not found.");
             router.back();
         } finally {
