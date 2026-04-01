@@ -15,13 +15,13 @@ export function SplashScreen() {
       Animated.sequence([
         Animated.timing(waveDriftPrimary, {
           toValue: 1,
-          duration: 2600,
+          duration: 1600,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
         Animated.timing(waveDriftPrimary, {
           toValue: 0,
-          duration: 2600,
+          duration: 1600,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
@@ -32,13 +32,13 @@ export function SplashScreen() {
       Animated.sequence([
         Animated.timing(waveDriftSecondary, {
           toValue: 1,
-          duration: 3200,
+          duration: 2100,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
         Animated.timing(waveDriftSecondary, {
           toValue: 0,
-          duration: 3200,
+          duration: 2100,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
@@ -70,7 +70,7 @@ export function SplashScreen() {
     () =>
       waveDriftPrimary.interpolate({
         inputRange: [0, 1],
-        outputRange: [-18, 14],
+        outputRange: [-34, 30],
       }),
     [waveDriftPrimary]
   );
@@ -79,7 +79,7 @@ export function SplashScreen() {
     () =>
       waveDriftSecondary.interpolate({
         inputRange: [0, 1],
-        outputRange: [16, -22],
+        outputRange: [30, -38],
       }),
     [waveDriftSecondary]
   );
