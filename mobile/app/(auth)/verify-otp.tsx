@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
+    Image,
     Modal,
     KeyboardAvoidingView,
     Platform,
