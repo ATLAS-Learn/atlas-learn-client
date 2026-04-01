@@ -32,7 +32,7 @@ export default function RootLayout() {
   const [showIntro, setShowIntro] = useState(true);
   const fadeAnim = useState(new Animated.Value(1))[0];
   const router = useRouter();
-  const { assessmentComplete, isAuthenticated, isLoading } = useAppFlow();
+  const { onboardingComplete, assessmentComplete, isAuthenticated, isLoading } = useAppFlow();
 
   useEffect(() => {
     const globalWithUnhandled = globalThis as typeof globalThis & {
@@ -79,8 +79,11 @@ export default function RootLayout() {
 
         // Navigate based on user state
         // Flow: 1. Check auth first, 2. Check assessment completion
-        if (!isAuthenticated) {
-          // Not authenticated → go to auth (signup/login)
+        if (!isAuthenticated && !onboardingComplete) {
+          // First-time unauthenticated users → show pre-auth intro slides.
+          router.replace("/(intro)");
+        } else if (!isAuthenticated) {
+          // Returning unauthenticated users → go to auth.
           router.replace("/(auth)");
         } else if (assessmentComplete) {
           // Authenticated and assessment complete → go to main app
@@ -93,7 +96,7 @@ export default function RootLayout() {
     }, minDisplayTime); // Show splash for at least 5 seconds
 
     return () => clearTimeout(timer);
-  }, [fadeAnim, isAuthenticated, assessmentComplete, isLoading, router]);
+  }, [fadeAnim, onboardingComplete, isAuthenticated, assessmentComplete, isLoading, router]);
 
 
   return (

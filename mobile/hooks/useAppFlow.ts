@@ -11,6 +11,9 @@ export function useAppFlow() {
   const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(
     null
   );
+  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, loadAuth, token, logout } = useAuthStore();
   const { user, lastSyncedAt, setUser, loadUser } = useUserStore();
@@ -19,6 +22,8 @@ export function useAppFlow() {
   useEffect(() => {
     async function initialize() {
       setIsLoading(true);
+      const onboarding = await getItem("onboardingComplete");
+      setOnboardingComplete(onboarding === "true");
       await Promise.all([loadAuth(), loadUser(), loadProgress()]);
     }
     initialize();
@@ -27,6 +32,7 @@ export function useAppFlow() {
   useEffect(() => {
     async function restoreSession() {
       if (!isAuthenticated) {
+        setAssessmentComplete(null);
         setIsLoading(false);
         return;
       }
@@ -89,5 +95,5 @@ export function useAppFlow() {
     }
   }, [isAuthenticated, token, user, lastSyncedAt, setUser, loadProgress, logout]);
 
-  return { assessmentComplete, isAuthenticated, user, isLoading };
+  return { onboardingComplete, assessmentComplete, isAuthenticated, user, isLoading };
 }
