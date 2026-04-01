@@ -307,6 +307,7 @@ class APIClient {
         const rawLesson = lesson as Partial<Lesson> & {
             lessonId?: unknown;
             _id?: unknown;
+            order?: unknown;
         };
         const id =
             typeof rawLesson.id === "string" && rawLesson.id.trim()
@@ -320,25 +321,61 @@ class APIClient {
         return {
             ...(lesson as Lesson),
             id,
+            title: typeof lesson.title === "string" ? lesson.title.trim() : undefined,
+            content: typeof lesson.content === "string" ? lesson.content.trim() : undefined,
+            orderIndex:
+                typeof lesson.orderIndex === "number"
+                    ? lesson.orderIndex
+                    : typeof rawLesson.order === "number"
+                        ? rawLesson.order
+                        : undefined,
         };
     }
 
     private normalizeLessons(lessons: unknown[]): Lesson[] {
-        const seen = new Set<string>();
+        const seenIds = new Set<string>();
+        const seenSemanticKeys = new Set<string>();
 
         return lessons
             .map((lesson) => this.normalizeLesson((lesson || {}) as Partial<Lesson>))
-            .filter((lesson, index) => {
-                const stableKey =
-                    lesson.id ||
-                    `${typeof lesson.title === "string" ? lesson.title.trim() : ""}::${typeof lesson.orderIndex === "number" ? lesson.orderIndex : index}`;
+            .filter((lesson) => {
+                const canonicalTitle =
+                    typeof lesson.title === "string"
+                        ? lesson.title
+                            .trim()
+                            .toLowerCase()
+                            .replace(/^lesson\s+\d+\s*:\s*/i, "")
+                        : "";
+                const contentKey =
+                    typeof lesson.content === "string" && lesson.content.trim()
+                        ? lesson.content.trim().toLowerCase().slice(0, 120)
+                        : "";
+                const pdfKey = typeof lesson.pdfUrl === "string" ? lesson.pdfUrl.trim().toLowerCase() : "";
+                const videoKey = typeof lesson.videoUrl === "string" ? lesson.videoUrl.trim().toLowerCase() : "";
+                const semanticKey = [canonicalTitle, contentKey, pdfKey, videoKey]
+                    .filter(Boolean)
+                    .join("::");
 
-                if (seen.has(stableKey)) {
+                if (lesson.id && seenIds.has(lesson.id)) {
                     return false;
                 }
 
-                seen.add(stableKey);
+                if (semanticKey && seenSemanticKeys.has(semanticKey)) {
+                    return false;
+                }
+
+                if (lesson.id) {
+                    seenIds.add(lesson.id);
+                }
+                if (semanticKey) {
+                    seenSemanticKeys.add(semanticKey);
+                }
                 return true;
+            })
+            .sort((a, b) => {
+                const aOrder = typeof a.orderIndex === "number" ? a.orderIndex : Number.MAX_SAFE_INTEGER;
+                const bOrder = typeof b.orderIndex === "number" ? b.orderIndex : Number.MAX_SAFE_INTEGER;
+                return aOrder - bOrder;
             });
     }
 
