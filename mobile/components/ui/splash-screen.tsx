@@ -5,83 +5,180 @@ const { width, height } = Dimensions.get("window");
 
 const AnimatedImage = Animated.createAnimatedComponent(Image);
 
+export const SPLASH_SEQUENCE_MS = 4300;
+
 export function SplashScreen() {
-  const waveDriftPrimary = useRef(new Animated.Value(0)).current;
-  const waveDriftSecondary = useRef(new Animated.Value(0)).current;
-  const waveRise = useRef(new Animated.Value(height * 0.34)).current;
+  const dropTranslateY = useRef(new Animated.Value(-height * 0.2)).current;
+  const dropScaleY = useRef(new Animated.Value(1)).current;
+  const dropOpacity = useRef(new Animated.Value(0)).current;
+  const splashScale = useRef(new Animated.Value(0.2)).current;
+  const splashOpacity = useRef(new Animated.Value(0)).current;
+  const mistScale = useRef(new Animated.Value(0.4)).current;
+  const mistOpacity = useRef(new Animated.Value(0)).current;
+  const waterRise = useRef(new Animated.Value(height * 0.44)).current;
+  const waveDriftFront = useRef(new Animated.Value(0)).current;
+  const waveDriftBack = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const primaryWaveLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(waveDriftPrimary, {
+    const fallSequence = Animated.sequence([
+      Animated.parallel([
+        Animated.timing(dropOpacity, {
           toValue: 1,
-          duration: 1600,
-          easing: Easing.inOut(Easing.sin),
+          duration: 180,
+          easing: Easing.out(Easing.quad),
           useNativeDriver: true,
         }),
-        Animated.timing(waveDriftPrimary, {
+        Animated.timing(dropTranslateY, {
+          toValue: height * 0.53,
+          duration: 900,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.delay(520),
+          Animated.timing(dropScaleY, {
+            toValue: 1.18,
+            duration: 180,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(dropScaleY, {
+            toValue: 0.7,
+            duration: 140,
+            easing: Easing.in(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+      Animated.parallel([
+        Animated.timing(dropOpacity, {
           toValue: 0,
-          duration: 1600,
-          easing: Easing.inOut(Easing.sin),
+          duration: 120,
+          easing: Easing.out(Easing.quad),
           useNativeDriver: true,
         }),
-      ])
-    );
-
-    const secondaryWaveLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(waveDriftSecondary, {
+        Animated.sequence([
+          Animated.timing(splashOpacity, {
+            toValue: 1,
+            duration: 80,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(splashOpacity, {
+            toValue: 0,
+            duration: 380,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.timing(splashScale, {
+          toValue: 1.05,
+          duration: 420,
+          easing: Easing.out(Easing.back(1.2)),
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.timing(mistOpacity, {
+            toValue: 0.45,
+            duration: 120,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(mistOpacity, {
+            toValue: 0,
+            duration: 320,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.timing(mistScale, {
           toValue: 1,
-          duration: 2100,
-          easing: Easing.inOut(Easing.sin),
+          duration: 420,
+          easing: Easing.out(Easing.quad),
           useNativeDriver: true,
         }),
-        Animated.timing(waveDriftSecondary, {
-          toValue: 0,
-          duration: 2100,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    const riseAnimation = Animated.sequence([
-      Animated.delay(500),
-      Animated.timing(waveRise, {
+      ]),
+      Animated.delay(80),
+      Animated.timing(waterRise, {
         toValue: height * 0.12,
-        duration: 3400,
+        duration: 2500,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
     ]);
 
-    primaryWaveLoop.start();
-    secondaryWaveLoop.start();
-    riseAnimation.start();
+    const frontWaveLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(waveDriftFront, {
+          toValue: 1,
+          duration: 1100,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(waveDriftFront, {
+          toValue: 0,
+          duration: 1100,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    const backWaveLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(waveDriftBack, {
+          toValue: 1,
+          duration: 1500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(waveDriftBack, {
+          toValue: 0,
+          duration: 1500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    fallSequence.start();
+    frontWaveLoop.start();
+    backWaveLoop.start();
 
     return () => {
-      primaryWaveLoop.stop();
-      secondaryWaveLoop.stop();
-      riseAnimation.stop();
+      fallSequence.stop();
+      frontWaveLoop.stop();
+      backWaveLoop.stop();
     };
-  }, [waveDriftPrimary, waveDriftSecondary, waveRise]);
+  }, [
+    dropOpacity,
+    dropScaleY,
+    dropTranslateY,
+    mistOpacity,
+    mistScale,
+    splashOpacity,
+    splashScale,
+    waterRise,
+    waveDriftBack,
+    waveDriftFront,
+  ]);
 
-  const wavePrimaryTranslateX = useMemo(
+  const frontWaveTranslateX = useMemo(
     () =>
-      waveDriftPrimary.interpolate({
+      waveDriftFront.interpolate({
         inputRange: [0, 1],
-        outputRange: [-34, 30],
+        outputRange: [-26, 24],
       }),
-    [waveDriftPrimary]
+    [waveDriftFront]
   );
 
-  const waveSecondaryTranslateX = useMemo(
+  const backWaveTranslateX = useMemo(
     () =>
-      waveDriftSecondary.interpolate({
+      waveDriftBack.interpolate({
         inputRange: [0, 1],
-        outputRange: [30, -38],
+        outputRange: [22, -28],
       }),
-    [waveDriftSecondary]
+    [waveDriftBack]
   );
 
   return (
@@ -92,35 +189,66 @@ export function SplashScreen() {
           resizeMode="contain"
           style={styles.logo}
         />
-        <Text style={styles.text}>
-          Your Gateway to an A Grade
-        </Text>
+        <Text style={styles.text}>Your Gateway to an A Grade</Text>
       </View>
 
       <Animated.View
         pointerEvents="none"
         style={[
-          styles.waveStage,
+          styles.drop,
           {
-            transform: [{ translateY: waveRise }],
+            opacity: dropOpacity,
+            transform: [{ translateY: dropTranslateY }, { scaleY: dropScaleY }],
+          },
+        ]}
+      />
+
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.splashRing,
+          {
+            opacity: splashOpacity,
+            transform: [{ scaleX: splashScale }, { scaleY: splashScale }],
+          },
+        ]}
+      />
+
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.splashMist,
+          {
+            opacity: mistOpacity,
+            transform: [{ scale: mistScale }],
+          },
+        ]}
+      />
+
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.waterStage,
+          {
+            transform: [{ translateY: waterRise }],
           },
         ]}
       >
-        <View style={styles.waterFillAccent} />
-        <View style={styles.waterFill} />
+        <View style={styles.waterBack} />
+        <View style={styles.waterFront} />
         <Animated.View
           style={[
-            styles.waveCrestBack,
+            styles.waveBack,
             {
-              transform: [{ translateX: waveSecondaryTranslateX }],
+              transform: [{ translateX: backWaveTranslateX }],
             },
           ]}
         />
         <Animated.View
           style={[
-            styles.waveCrestFront,
+            styles.waveFront,
             {
-              transform: [{ translateX: wavePrimaryTranslateX }],
+              transform: [{ translateX: frontWaveTranslateX }],
             },
           ]}
         />
@@ -128,9 +256,9 @@ export function SplashScreen() {
           source={require("@/assets/images/waves.png")}
           resizeMode="stretch"
           style={[
-            styles.wavePrimary,
+            styles.waveTextureBack,
             {
-              transform: [{ translateX: wavePrimaryTranslateX }],
+              transform: [{ translateX: backWaveTranslateX }],
             },
           ]}
         />
@@ -138,9 +266,9 @@ export function SplashScreen() {
           source={require("@/assets/images/waves.png")}
           resizeMode="stretch"
           style={[
-            styles.waveSecondary,
+            styles.waveTextureFront,
             {
-              transform: [{ translateX: waveSecondaryTranslateX }],
+              transform: [{ translateX: frontWaveTranslateX }],
             },
           ]}
         />
@@ -152,8 +280,6 @@ export function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: "100%",
-    height: "100%",
     backgroundColor: "#F3B43C",
     overflow: "hidden",
     alignItems: "center",
@@ -179,65 +305,97 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 20,
   },
-  waveStage: {
+  drop: {
+    position: "absolute",
+    top: 0,
+    width: 24,
+    height: 40,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    backgroundColor: "#FFECC0",
+    zIndex: 3,
+  },
+  splashRing: {
+    position: "absolute",
+    bottom: height * 0.275,
+    width: width * 0.2,
+    height: 24,
+    borderRadius: 999,
+    borderWidth: 4,
+    borderColor: "rgba(255, 245, 224, 0.9)",
+    backgroundColor: "transparent",
+    zIndex: 3,
+  },
+  splashMist: {
+    position: "absolute",
+    bottom: height * 0.26,
+    width: width * 0.26,
+    height: 38,
+    borderRadius: 999,
+    backgroundColor: "rgba(255, 245, 224, 0.35)",
+    zIndex: 3,
+  },
+  waterStage: {
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: -height * 0.3,
-    height: height * 0.72,
+    bottom: -height * 0.32,
+    height: height * 0.74,
   },
-  waterFillAccent: {
+  waterBack: {
     position: "absolute",
-    left: -width * 0.1,
-    right: -width * 0.1,
-    top: 88,
+    left: -width * 0.08,
+    right: -width * 0.08,
+    top: 96,
     bottom: 0,
-    backgroundColor: "#E0A334",
+    backgroundColor: "#DAA03A",
   },
-  waterFill: {
+  waterFront: {
     position: "absolute",
-    left: -width * 0.15,
-    right: -width * 0.15,
-    top: 110,
+    left: -width * 0.12,
+    right: -width * 0.12,
+    top: 118,
     bottom: 0,
     backgroundColor: "#F2B138",
   },
-  waveCrestBack: {
-    position: "absolute",
-    top: 44,
-    alignSelf: "center",
-    width: width * 0.95,
-    height: 120,
-    borderTopLeftRadius: width * 0.46,
-    borderTopRightRadius: width * 0.46,
-    backgroundColor: "#D6A03C",
-    opacity: 0.55,
-  },
-  waveCrestFront: {
-    position: "absolute",
-    top: 62,
-    alignSelf: "center",
-    width: width * 0.82,
-    height: 100,
-    borderTopLeftRadius: width * 0.38,
-    borderTopRightRadius: width * 0.38,
-    backgroundColor: "#EAB34A",
-    opacity: 0.9,
-  },
-  wavePrimary: {
+  waveBack: {
     position: "absolute",
     top: 48,
-    left: -width * 0.08,
-    width: width * 1.18,
-    height: 92,
-    opacity: 0.6,
+    alignSelf: "center",
+    width: width * 0.98,
+    height: 118,
+    borderTopLeftRadius: width * 0.46,
+    borderTopRightRadius: width * 0.46,
+    backgroundColor: "#D39A36",
+    opacity: 0.65,
   },
-  waveSecondary: {
+  waveFront: {
     position: "absolute",
-    top: 78,
+    top: 72,
+    alignSelf: "center",
+    width: width * 0.84,
+    height: 96,
+    borderTopLeftRadius: width * 0.4,
+    borderTopRightRadius: width * 0.4,
+    backgroundColor: "#E9AF45",
+    opacity: 0.95,
+  },
+  waveTextureBack: {
+    position: "absolute",
+    top: 58,
+    left: -width * 0.08,
+    width: width * 1.16,
+    height: 82,
+    opacity: 0.2,
+  },
+  waveTextureFront: {
+    position: "absolute",
+    top: 86,
     left: -width * 0.12,
-    width: width * 1.24,
-    height: 80,
-    opacity: 0.28,
+    width: width * 1.22,
+    height: 74,
+    opacity: 0.32,
   },
 });

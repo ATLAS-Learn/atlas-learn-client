@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { Animated, LogBox, StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { FontLoader } from "@/components/ui/font-loader";
-import { SplashScreen } from "@/components/ui/splash-screen";
+import { SplashScreen, SPLASH_SEQUENCE_MS } from "@/components/ui/splash-screen";
 import { useAppFlow } from "../hooks/useAppFlow";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
@@ -67,8 +67,8 @@ export default function RootLayout() {
     // Wait for auth state to finish loading
     if (isLoading) return;
 
-    // Show splash screen for longer so user can see it (5 seconds minimum)
-    const minDisplayTime = 5000; // 5 seconds
+    // Keep navigation aligned with the custom splash animation sequence.
+    const minDisplayTime = SPLASH_SEQUENCE_MS;
     const timer = setTimeout(() => {
       Animated.timing(fadeAnim, {
         toValue: 0,
