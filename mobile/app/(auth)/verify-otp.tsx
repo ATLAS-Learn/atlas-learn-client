@@ -160,137 +160,139 @@ export default function VerifyOTPScreen() {
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <KeyboardAvoidingView
-                style={styles.container}
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-            >
-                <ScrollView
-                    contentContainerStyle={[
-                        styles.scrollContent,
-                        {
-                            paddingTop: Math.max(64, Math.floor(height * 0.08)),
-                            paddingHorizontal: width < 390 ? 16 : 24,
-                        },
-                    ]}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
+            <View style={styles.container}>
+                <KeyboardAvoidingView
+                    style={styles.container}
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
                 >
-                    <TouchableOpacity
-                        style={[styles.backArrow, { top: Math.max(32, Math.floor(height * 0.06)) }]}
-                        onPress={() => router.back()}
+                    <ScrollView
+                        contentContainerStyle={[
+                            styles.scrollContent,
+                            {
+                                paddingTop: Math.max(64, Math.floor(height * 0.08)),
+                                paddingHorizontal: width < 390 ? 16 : 24,
+                            },
+                        ]}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
                     >
-                        <Ionicons name="arrow-back" size={24} color="#000" />
-                    </TouchableOpacity>
-
-                    <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
-                        <Ionicons name="keypad-outline" size={80} color="#F2B138" />
-                    </View>
-
-                    <Text style={styles.title}>Enter Verification Code</Text>
-                    <Text style={styles.subtitle}>
-                        We&apos;ve sent a verification code to {email ? email : "your email"}. Please enter it below.
-                    </Text>
-
-                    <TouchableOpacity style={styles.otpContainer} onPress={() => otpInputRef.current?.focus()}>
-                        {Array.from({ length: 6 }).map((_, index) => {
-                            const digit = code[index] || "";
-                            const isActive = code.length === index;
-                            return (
-                                <View
-                                    key={index}
-                                    style={[
-                                        styles.otpBox,
-                                        isActive && styles.otpBoxActive,
-                                    ]}
-                                >
-                                    <Text style={styles.otpDigit}>{digit}</Text>
-                                </View>
-                            );
-                        })}
-                        <TextInput
-                            ref={otpInputRef}
-                            value={code}
-                            onChangeText={(text) => {
-                                setCode(text.replace(/\D/g, "").slice(0, 6));
-                                setError("");
-                            }}
-                            keyboardType="number-pad"
-                            maxLength={6}
-                            style={styles.hiddenInput}
-                            autoFocus
-                        />
-                    </TouchableOpacity>
-                    {error && <Text style={styles.errorText}>{error}</Text>}
-
-                    <TouchableOpacity
-                        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-                        onPress={handleVerify}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.submitButtonText}>
-                                {mode === "signup" ? "Verify & Create Account" : "Verify & Sign In"}
-                            </Text>
-                        )}
-                    </TouchableOpacity>
-
-                    <View style={styles.resendContainer}>
-                        <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
-                        <TouchableOpacity 
-                            onPress={handleResend} 
-                            disabled={resending || cooldown > 0}
+                        <TouchableOpacity
+                            style={[styles.backArrow, { top: Math.max(32, Math.floor(height * 0.06)) }]}
+                            onPress={() => router.back()}
                         >
-                            {resending ? (
-                                <ActivityIndicator size="small" color="#F2B138" />
-                            ) : cooldown > 0 ? (
-                                <Text style={styles.resendLinkDisabled}>
-                                    Resend ({cooldown}s)
-                                </Text>
+                            <Ionicons name="arrow-back" size={24} color="#000" />
+                        </TouchableOpacity>
+
+                        <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
+                            <Ionicons name="keypad-outline" size={80} color="#F2B138" />
+                        </View>
+
+                        <Text style={styles.title}>Enter Verification Code</Text>
+                        <Text style={styles.subtitle}>
+                            We&apos;ve sent a verification code to {email ? email : "your email"}. Please enter it below.
+                        </Text>
+
+                        <TouchableOpacity style={styles.otpContainer} onPress={() => otpInputRef.current?.focus()}>
+                            {Array.from({ length: 6 }).map((_, index) => {
+                                const digit = code[index] || "";
+                                const isActive = code.length === index;
+                                return (
+                                    <View
+                                        key={index}
+                                        style={[
+                                            styles.otpBox,
+                                            isActive && styles.otpBoxActive,
+                                        ]}
+                                    >
+                                        <Text style={styles.otpDigit}>{digit}</Text>
+                                    </View>
+                                );
+                            })}
+                            <TextInput
+                                ref={otpInputRef}
+                                value={code}
+                                onChangeText={(text) => {
+                                    setCode(text.replace(/\D/g, "").slice(0, 6));
+                                    setError("");
+                                }}
+                                keyboardType="number-pad"
+                                maxLength={6}
+                                style={styles.hiddenInput}
+                                autoFocus
+                            />
+                        </TouchableOpacity>
+                        {error && <Text style={styles.errorText}>{error}</Text>}
+
+                        <TouchableOpacity
+                            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                            onPress={handleVerify}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.resendLink}>Resend</Text>
+                                <Text style={styles.submitButtonText}>
+                                    {mode === "signup" ? "Verify & Create Account" : "Verify & Sign In"}
+                                </Text>
                             )}
                         </TouchableOpacity>
-                    </View>
 
-                    <Text style={styles.backToLoginText}>
-                        <Link href="/(auth)" style={styles.link}>
-                            Back to Sign In
-                        </Link>
-                    </Text>
-                </ScrollView>
-            </KeyboardAvoidingView>
+                        <View style={styles.resendContainer}>
+                            <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
+                            <TouchableOpacity 
+                                onPress={handleResend} 
+                                disabled={resending || cooldown > 0}
+                            >
+                                {resending ? (
+                                    <ActivityIndicator size="small" color="#F2B138" />
+                                ) : cooldown > 0 ? (
+                                    <Text style={styles.resendLinkDisabled}>
+                                        Resend ({cooldown}s)
+                                    </Text>
+                                ) : (
+                                    <Text style={styles.resendLink}>Resend</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
 
-            <Modal visible={verificationState !== "idle"} transparent animationType="fade">
-                <View style={styles.overlay}>
-                    <View style={styles.sheet}>
-                        <View style={styles.sheetHandle} />
-                        {verificationState === "verifying" ? (
-                            <>
-                                <Text style={styles.sheetTitle}>Verifying Code</Text>
-                                <Text style={styles.sheetSubtitle}>We are verifying the code...</Text>
-                                <View style={styles.sheetButton}>
-                                    <ActivityIndicator color="#FFFFFF" />
-                                </View>
-                            </>
-                        ) : (
-                            <>
-                                <Image
-                                    source={require("@/assets/images/icons/Success Illustration.png")}
-                                    resizeMode="contain"
-                                    style={styles.successImage}
-                                />
-                                <Text style={styles.successTitle}>Code Verified</Text>
-                                <TouchableOpacity style={styles.sheetButton} activeOpacity={0.9}>
-                                    <Text style={styles.sheetButtonText}>Continue</Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
+                        <Text style={styles.backToLoginText}>
+                            <Link href="/(auth)" style={styles.link}>
+                                Back to Sign In
+                            </Link>
+                        </Text>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+
+                <Modal visible={verificationState !== "idle"} transparent animationType="fade">
+                    <View style={styles.overlay}>
+                        <View style={styles.sheet}>
+                            <View style={styles.sheetHandle} />
+                            {verificationState === "verifying" ? (
+                                <>
+                                    <Text style={styles.sheetTitle}>Verifying Code</Text>
+                                    <Text style={styles.sheetSubtitle}>We are verifying the code...</Text>
+                                    <View style={styles.sheetButton}>
+                                        <ActivityIndicator color="#FFFFFF" />
+                                    </View>
+                                </>
+                            ) : (
+                                <>
+                                    <Image
+                                        source={require("@/assets/images/icons/Success Illustration.png")}
+                                        resizeMode="contain"
+                                        style={styles.successImage}
+                                    />
+                                    <Text style={styles.successTitle}>Code Verified</Text>
+                                    <TouchableOpacity style={styles.sheetButton} activeOpacity={0.9}>
+                                        <Text style={styles.sheetButtonText}>Continue</Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                        </View>
                     </View>
-                </View>
-            </Modal>
+                </Modal>
+            </View>
         </TouchableWithoutFeedback>
     );
 }

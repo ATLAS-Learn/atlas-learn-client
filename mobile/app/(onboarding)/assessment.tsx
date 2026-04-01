@@ -209,14 +209,16 @@ export default function AssessmentScreen() {
     if (error) {
         return (
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#000" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Assessment</Text>
-                    <View style={styles.backButton} />
-                </View>
-                <View style={styles.errorContainer}>
+                {!showAlreadyCompleted ? (
+                    <View style={styles.header}>
+                        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                            <Ionicons name="arrow-back" size={24} color="#000" />
+                        </TouchableOpacity>
+                        <Text style={styles.headerTitle}>Assessment</Text>
+                        <View style={styles.backButton} />
+                    </View>
+                ) : null}
+                <View style={[styles.errorContainer, showAlreadyCompleted && styles.completedContainer]}>
                     <Ionicons name="alert-circle-outline" size={64} color="#F44336" />
                     <Text style={styles.errorTitle}>
                         {showAlreadyCompleted ? "Assessment Already Completed" : "Assessment Unavailable"}
@@ -352,12 +354,17 @@ const styles = StyleSheet.create({
         padding: 24,
         backgroundColor: "#FAFAFA",
     },
+    completedContainer: {
+        paddingHorizontal: 28,
+        paddingBottom: 40,
+    },
     errorTitle: {
         fontSize: 24,
         fontWeight: "700",
         color: "#282F2E",
         marginTop: 16,
         marginBottom: 8,
+        textAlign: "center",
     },
     errorMessage: {
         fontSize: 16,
@@ -365,6 +372,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginBottom: 32,
         lineHeight: 24,
+        maxWidth: 320,
     },
     redirectMessage: {
         fontSize: 14,
@@ -373,6 +381,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         lineHeight: 20,
         fontWeight: "600",
+        maxWidth: 280,
     },
     errorActions: {
         flexDirection: "row",
