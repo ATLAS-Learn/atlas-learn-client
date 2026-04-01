@@ -57,6 +57,10 @@ export default function LessonDetailScreen() {
 
     const examples = useMemo(() => normalizeStringArray(lesson?.examples), [lesson]);
     const keyPoints = useMemo(() => normalizeStringArray(lesson?.keyPoints), [lesson]);
+    const primaryProgress = useMemo(
+        () => (Array.isArray(lesson?.LessonProgress) && lesson.LessonProgress.length > 0 ? lesson.LessonProgress[0] : undefined),
+        [lesson]
+    );
 
     const loadLesson = useCallback(async () => {
         if (!chapterId || !lessonKey || !subjectKey) {
@@ -175,12 +179,31 @@ export default function LessonDetailScreen() {
             </View>
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-                <Text style={styles.lessonTitle}>{lesson.title || "Untitled lesson"}</Text>
+                <View style={styles.lessonHeaderRow}>
+                    <Text style={styles.lessonTitle}>{lesson.title || "Untitled lesson"}</Text>
+                    {lesson.isFree ? (
+                        <View style={styles.freeBadge}>
+                            <Text style={styles.freeBadgeText}>Free</Text>
+                        </View>
+                    ) : null}
+                </View>
                 {lesson.estimatedMinutes ? (
                     <Text style={styles.lessonMeta}>Estimated {lesson.estimatedMinutes} min</Text>
                 ) : lesson.durationSeconds ? (
                     <Text style={styles.lessonMeta}>
                         Estimated {Math.ceil(lesson.durationSeconds / 60)} min
+                    </Text>
+                ) : null}
+                {primaryProgress?.isCompleted ? (
+                    <Text style={styles.progressSummaryText}>
+                        Completed
+                        {typeof primaryProgress.timeSpent === "number"
+                            ? ` • ${Math.max(1, Math.ceil(primaryProgress.timeSpent / 60))} min spent`
+                            : ""}
+                    </Text>
+                ) : typeof primaryProgress?.timeSpent === "number" ? (
+                    <Text style={styles.progressSummaryText}>
+                        In progress • {Math.max(1, Math.ceil(primaryProgress.timeSpent / 60))} min spent
                     </Text>
                 ) : null}
 
@@ -329,17 +352,40 @@ const styles = StyleSheet.create({
     content: {
         padding: 24,
     },
+    lessonHeaderRow: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 10,
+    },
     lessonTitle: {
         fontSize: 24,
         fontWeight: "700",
         color: "#1F2524",
         marginBottom: 6,
+        flex: 1,
     },
     lessonMeta: {
         fontSize: 13,
         color: "#666",
         marginBottom: 16,
         fontWeight: "600",
+    },
+    progressSummaryText: {
+        fontSize: 13,
+        color: "#4F6B52",
+        marginBottom: 16,
+        fontWeight: "600",
+    },
+    freeBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 999,
+        backgroundColor: "#FFF3D6",
+    },
+    freeBadgeText: {
+        color: "#9A6500",
+        fontSize: 11,
+        fontWeight: "700",
     },
     lessonContent: {
         fontSize: 16,

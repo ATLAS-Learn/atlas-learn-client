@@ -29,6 +29,11 @@ export default function ChapterScreen() {
     const [loadingInsight, setLoadingInsight] = useState(false);
     const lastLessonsRequestKeyRef = useRef<string | null>(null);
 
+    const getPrimaryLessonProgress = (lesson: Lesson) =>
+        Array.isArray(lesson.LessonProgress) && lesson.LessonProgress.length > 0
+            ? lesson.LessonProgress[0]
+            : undefined;
+
     useEffect(() => {
         console.log("[ID_TRACE] ChapterScreen route params", {
             rawId: id,
@@ -339,24 +344,39 @@ export default function ChapterScreen() {
                     </View>
                 ) : (
                     lessons.map((lesson, index) => (
-                        <TouchableOpacity
-                            key={lesson.id}
-                            style={styles.lessonCard}
-                            onPress={() => handleOpenLesson(lesson.id)}
-                        >
+                        <TouchableOpacity key={lesson.id} style={styles.lessonCard} onPress={() => handleOpenLesson(lesson.id)}>
                             <View style={styles.lessonRow}>
                                 <Text style={styles.lessonIndex}>{lesson.orderIndex ?? index + 1}</Text>
                                 <View style={styles.lessonInfo}>
-                                    <Text style={styles.lessonTitle} numberOfLines={2}>
-                                        {lesson.title || "Untitled lesson"}
-                                    </Text>
+                                    <View style={styles.lessonTitleRow}>
+                                        <Text style={styles.lessonTitle} numberOfLines={2}>
+                                            {lesson.title || "Untitled lesson"}
+                                        </Text>
+                                        {lesson.isFree ? (
+                                            <View style={styles.freeBadge}>
+                                                <Text style={styles.freeBadgeText}>Free</Text>
+                                            </View>
+                                        ) : null}
+                                    </View>
                                     <Text style={styles.lessonMeta}>
                                         {lesson.estimatedMinutes
                                             ? `${lesson.estimatedMinutes} min`
                                             : lesson.durationSeconds
                                               ? `${Math.ceil(lesson.durationSeconds / 60)} min`
-                                              : "Time n/a"}
+                                              : "Duration unavailable"}
                                     </Text>
+                                    {getPrimaryLessonProgress(lesson)?.isCompleted ? (
+                                        <Text style={styles.lessonProgressText}>
+                                            Completed
+                                            {typeof getPrimaryLessonProgress(lesson)?.timeSpent === "number"
+                                                ? ` • ${Math.max(1, Math.ceil((getPrimaryLessonProgress(lesson)?.timeSpent || 0) / 60))} min spent`
+                                                : ""}
+                                        </Text>
+                                    ) : typeof getPrimaryLessonProgress(lesson)?.timeSpent === "number" ? (
+                                        <Text style={styles.lessonProgressText}>
+                                            In progress • {Math.max(1, Math.ceil((getPrimaryLessonProgress(lesson)?.timeSpent || 0) / 60))} min spent
+                                        </Text>
+                                    ) : null}
                                 </View>
                             </View>
                             <Ionicons name="chevron-forward" size={20} color="#999" />
@@ -535,16 +555,39 @@ const styles = StyleSheet.create({
     lessonInfo: {
         flex: 1,
     },
+    lessonTitleRow: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 8,
+    },
     lessonTitle: {
         fontSize: 15,
         fontWeight: "700",
         color: "#222",
+        flex: 1,
     },
     lessonMeta: {
         marginTop: 4,
         fontSize: 12,
         color: "#777",
         fontWeight: "600",
+    },
+    lessonProgressText: {
+        marginTop: 4,
+        fontSize: 12,
+        color: "#4F6B52",
+        fontWeight: "600",
+    },
+    freeBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 999,
+        backgroundColor: "#FFF3D6",
+    },
+    freeBadgeText: {
+        color: "#9A6500",
+        fontSize: 11,
+        fontWeight: "700",
     },
     footer: {
         padding: 16,
