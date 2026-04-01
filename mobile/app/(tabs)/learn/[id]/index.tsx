@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     View,
     Text,
@@ -27,6 +27,7 @@ export default function ChapterScreen() {
     const [lessons, setLessons] = useState<Lesson[]>([]);
     const [lessonsLoading, setLessonsLoading] = useState(false);
     const [loadingInsight, setLoadingInsight] = useState(false);
+    const lastLessonsRequestKeyRef = useRef<string | null>(null);
 
     useEffect(() => {
         console.log("[ID_TRACE] ChapterScreen route params", {
@@ -44,6 +45,10 @@ export default function ChapterScreen() {
             }
             const data = await apiClient.getChapter(chapterId);
             setChapter(data);
+            const chapterSubjectId = getSubjectIdFromChapter(data);
+            if (chapterSubjectId) {
+                setResolvedSubjectId(chapterSubjectId);
+            }
         } catch {
             Alert.alert("Error", "Failed to load chapter. Please try again.");
             router.back();
@@ -156,6 +161,11 @@ export default function ChapterScreen() {
                 chapterSubjectId: getSubjectIdFromChapter(chapter),
                 resolvedSubjectId: subjectIdForRequest,
             });
+            const requestKey = `${chapterId}:${subjectIdForRequest || "chapter-fallback"}`;
+            if (lastLessonsRequestKeyRef.current === requestKey) {
+                return;
+            }
+            lastLessonsRequestKeyRef.current = requestKey;
             const data = subjectIdForRequest
                 ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, { includeProgress: true })
                 : await apiClient.getChapterLessons(chapterId);

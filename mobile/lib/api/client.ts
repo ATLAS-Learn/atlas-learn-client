@@ -343,6 +343,56 @@ class APIClient {
             });
     }
 
+    private normalizeChapter(chapter: Partial<Chapter>): Chapter {
+        const rawChapter = chapter as Partial<Chapter> & {
+            _id?: unknown;
+            orderIndex?: unknown;
+            subjectId?: unknown;
+            subject_id?: unknown;
+            estimatedMinutes?: unknown;
+            unlockThreshold?: unknown;
+            pdfUrl?: unknown;
+            externalLinks?: unknown;
+        };
+
+        const id =
+            typeof rawChapter.id === "string" && rawChapter.id.trim()
+                ? rawChapter.id.trim()
+                : typeof rawChapter._id === "string" && rawChapter._id.trim()
+                    ? rawChapter._id.trim()
+                    : "";
+        const order =
+            typeof chapter.order === "number"
+                ? chapter.order
+                : typeof rawChapter.orderIndex === "number"
+                    ? rawChapter.orderIndex
+                    : 0;
+        const subjectId =
+            typeof rawChapter.subjectId === "string" && rawChapter.subjectId.trim()
+                ? rawChapter.subjectId.trim()
+                : typeof rawChapter.subject_id === "string" && rawChapter.subject_id.trim()
+                    ? rawChapter.subject_id.trim()
+                    : undefined;
+
+        return {
+            ...(chapter as Chapter),
+            id,
+            title: typeof chapter.title === "string" ? chapter.title : "",
+            description: typeof chapter.description === "string" ? chapter.description : "",
+            level: typeof chapter.level === "string" ? chapter.level : Level.FOUNDATIONAL,
+            order,
+            subject: typeof chapter.subject === "string" ? chapter.subject : "",
+            content: Array.isArray(chapter.content) ? chapter.content : [],
+            subjectId,
+            estimatedTime:
+                typeof chapter.estimatedTime === "number"
+                    ? chapter.estimatedTime
+                    : typeof rawChapter.estimatedMinutes === "number"
+                        ? rawChapter.estimatedMinutes
+                        : 0,
+        };
+    }
+
     private normalizeUserPayload(response: unknown): User {
         if (!response || typeof response !== "object") {
             throw new Error("Invalid user response");
@@ -1129,7 +1179,8 @@ class APIClient {
     }
 
     async getChapter(chapterId: string): Promise<Chapter> {
-        return this.request<Chapter>(`/chapters/${chapterId}`);
+        const response = await this.request<Chapter | { success?: boolean; data?: Chapter }>(`/chapters/${chapterId}`);
+        return this.normalizeChapter(this.unwrapData<Chapter>(response));
     }
 
     async updateChapter(chapterId: string, data: Partial<Chapter>): Promise<Chapter> {

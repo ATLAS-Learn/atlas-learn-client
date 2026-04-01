@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
     View,
     Text,
@@ -25,6 +25,7 @@ export default function QuizScreen() {
     const [answers, setAnswers] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const submitLockRef = useRef(false);
 
     const getQuestionKey = (question: Quiz["questions"][number] | undefined, index: number): string => {
         if (!question || typeof question !== "object") {
@@ -90,7 +91,7 @@ export default function QuizScreen() {
     };
 
     const handleSubmit = async () => {
-        if (!quiz) return;
+        if (!quiz || submitLockRef.current || submitting) return;
 
         const unansweredQuestions = quiz.questions.filter(
             (q, index) => answers[getQuestionKey(q, index)] === undefined
@@ -104,6 +105,7 @@ export default function QuizScreen() {
             return;
         }
 
+        submitLockRef.current = true;
         setSubmitting(true);
         try {
             const submission = {
@@ -129,6 +131,7 @@ export default function QuizScreen() {
         } catch {
             Alert.alert("Error", "Failed to submit quiz. Please try again.");
         } finally {
+            submitLockRef.current = false;
             setSubmitting(false);
         }
     };

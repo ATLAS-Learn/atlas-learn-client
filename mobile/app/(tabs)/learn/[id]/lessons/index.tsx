@@ -21,6 +21,7 @@ export default function LessonsListScreen() {
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
 
     const [chapter, setChapter] = useState<Chapter | null>(null);
+    const [resolvedSubjectId, setResolvedSubjectId] = useState<string | null>(subjectKey || null);
     const [lessons, setLessons] = useState<Lesson[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -32,36 +33,43 @@ export default function LessonsListScreen() {
         return legacy.subject_id;
     };
 
-    const resolvedSubjectId = subjectKey || getSubjectIdFromChapter(chapter);
-
-    const loadChapter = useCallback(async () => {
+    const loadChapter = useCallback(async (): Promise<Chapter | null> => {
         if (!chapterId) return;
         try {
             const data = await apiClient.getChapter(chapterId);
             setChapter(data);
+            const chapterSubjectId = getSubjectIdFromChapter(data);
+            if (chapterSubjectId) {
+                setResolvedSubjectId(chapterSubjectId);
+            }
+            return data;
         } catch {
             // Optional, list can still render without chapter metadata.
+            return null;
         }
     }, [chapterId]);
 
-    const loadLessons = useCallback(async () => {
+    const loadLessons = useCallback(async (subjectIdOverride?: string) => {
         if (!chapterId) return;
         try {
-            const data = resolvedSubjectId
-                ? await apiClient.getSubjectChapterLessons(resolvedSubjectId, chapterId, { includeProgress: true })
+            const subjectIdForRequest = subjectIdOverride || resolvedSubjectId || subjectKey;
+            const data = subjectIdForRequest
+                ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, { includeProgress: true })
                 : await apiClient.getChapterLessons(chapterId);
             setLessons(Array.isArray(data) ? data : []);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to load lessons.");
         }
-    }, [chapterId, resolvedSubjectId]);
+    }, [chapterId, resolvedSubjectId, subjectKey]);
 
     const initialize = useCallback(async () => {
         if (!chapterId) return;
         setLoading(true);
-        await Promise.all([loadChapter(), loadLessons()]);
+        const chapterData = await loadChapter();
+        const chapterSubjectId = getSubjectIdFromChapter(chapterData);
+        await loadLessons(chapterSubjectId || subjectKey);
         setLoading(false);
-    }, [chapterId, loadChapter, loadLessons]);
+    }, [chapterId, loadChapter, loadLessons, subjectKey]);
 
     useEffect(() => {
         initialize();
@@ -69,7 +77,8 @@ export default function LessonsListScreen() {
 
     const handleRefresh = async () => {
         setRefreshing(true);
-        await loadLessons();
+        const chapterSubjectId = getSubjectIdFromChapter(chapter);
+        await loadLessons(chapterSubjectId || resolvedSubjectId || subjectKey);
         setRefreshing(false);
     };
 
