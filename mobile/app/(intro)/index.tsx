@@ -4,7 +4,7 @@ import { INTRO_STEPS } from "@/lib/constants";
 import { setItem } from "@/lib/utils/storage";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Image, Text, TouchableHighlight, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Image, Text, TouchableHighlight, View, useWindowDimensions } from "react-native";
 
 export default function Intro() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -12,13 +12,10 @@ export default function Intro() {
   const { width, height } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(false);
   const completeOnboarding = async () => {
+    if (isLoading) return;
     await setItem("onboardingComplete", "true");
     setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-      router.replace('/(auth)')
-    }, 500);
+    router.replace("/(auth)");
   };
 
   const changeStep = () => {
@@ -65,11 +62,7 @@ export default function Intro() {
           }}
         >
           {isLoading ? (
-            <Image
-              source={require("@/assets/images/icons/spnner.png")}
-              resizeMode="contain"
-              className="animate-spin"
-            />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
             <View className="w-full flex flex-row h-full justify-center items-center gap-[8px]">
               <Text className="text-white text-[16px] font-semibold">
