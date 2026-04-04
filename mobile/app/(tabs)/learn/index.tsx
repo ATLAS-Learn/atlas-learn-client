@@ -1,335 +1,435 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
-  TouchableOpacity,
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { apiClient } from "@/lib/api";
-import { DashboardData, Chapter, Progress } from "@/lib/types";
-import WelcomeHeader from "@/components/progress/welcome-header";
-import ProgressBar from "@/components/progress/progress-bar";
-import CurrentChapterCard from "@/components/progress/current-chapter-card";
-import NextChapterCard from "@/components/progress/next-chapter-card";
-import { useUserStore } from "@/lib/store/user";
+import { Subject, SubjectProgress } from "@/lib/types";
 import { useOverallProgress } from "@/lib/hooks/api";
+import { useUserStore } from "@/lib/store/user";
 
-export default function LearnDashboardScreen() {
-  const router = useRouter();
-  const { user, setUser } = useUserStore();
-  const { data: overallProgressData, refetch: refetchOverallProgress } = useOverallProgress();
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+const SURFACE_COLORS = ["#FFF5D9", "#E9F7EF", "#EAF2FF", "#FFE9E1"];
+const ACCENT_COLORS = ["#C98700", "#1F7A4F", "#2563C9", "#C85A2A"];
 
-  useEffect(() => {
-    if (!user) return;
-    setDashboardData((prev) => (prev ? { ...prev, user } : prev));
-  }, [user]);
+const getChapterCount = (subject: Subject): number => {
+    return Array.isArray(subject.chapters) ? subject.chapters.length : 0;
+};
 
-  useEffect(() => {
-    if (!overallProgressData) return;
-    setDashboardData((prev) => {
-      if (!prev) return prev;
-      const nextOverall = Number(
-        overallProgressData.overall?.completionPercentage ?? prev.progress.overallProgress
-      );
-      const nextStreak = prev.progress.streak;
+const normalizeNumber = (value: unknown): number => {
+    return typeof value === "number" && Number.isFinite(value) ? value : 0;
+};
 
-      if (nextOverall === prev.progress.overallProgress && nextStreak === prev.progress.streak) {
-        return prev;
-      }
+export default function LearnHubScreen() {
+    const router = useRouter();
+    const { user } = useUserStore();
+    const { data: overallProgress, refetch: refetchOverallProgress, isRefetching } = useOverallProgress();
 
-      return {
-        ...prev,
-        progress: {
-          ...prev.progress,
-          overallProgress: nextOverall,
-          streak: nextStreak,
-        },
-      };
-    });
-  }, [overallProgressData]);
+    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-  const loadDashboard = useCallback(async () => {
-    try {
-      let activeUser = user;
-      if (!activeUser) {
-        activeUser = await apiClient.getCurrentUser();
-        setUser(activeUser);
-      }
-      if (!activeUser) {
-        throw new Error("User data not available");
-      }
+    const displayName = user?.name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
 
-      const [allChaptersRaw, serverProgress] = await Promise.all([
-        apiClient.getChapters(),
-        apiClient.getOverallProgress(),
-      ]);
-      const allChapters = (Array.isArray(allChaptersRaw) ? allChaptersRaw : []).map((chapter) => ({
-        ...chapter,
-        content: Array.isArray(chapter.content) ? chapter.content : [],
-        estimatedTime: typeof chapter.estimatedTime === "number" ? chapter.estimatedTime : 0,
-      }));
+    const subjectProgressMap = useMemo(() => {
+        const entries = Array.isArray(overallProgress?.subjects) ? overallProgress.subjects : [];
+        return new Map<string, SubjectProgress>(entries.map((entry) => [entry.subjectId, entry]));
+    }, [overallProgress?.subjects]);
 
-      if (allChapters.length === 0) {
-        Alert.alert("Info", "No chapters available yet.");
-        return;
-      }
+    const orderedSubjects = useMemo(() => {
+        return [...subjects].sort((left, right) => {
+            const leftProgress = normalizeNumber(subjectProgressMap.get(left.id)?.completionPercentage);
+            const rightProgress = normalizeNumber(subjectProgressMap.get(right.id)?.completionPercentage);
 
-      allChapters.sort((a, b) => a.order - b.order);
-      const completedChapterCount = Math.max(
-        0,
-        Math.min(serverProgress?.overall?.chapters?.completed || 0, allChapters.length)
-      );
-      const completedChapterIds = new Set<string>(
-        allChapters.slice(0, completedChapterCount).map((chapter) => chapter.id)
-      );
+            const leftStarted = leftProgress > 0 ? 1 : 0;
+            const rightStarted = rightProgress > 0 ? 1 : 0;
+            if (leftStarted !== rightStarted) {
+                return rightStarted - leftStarted;
+            }
 
-      const currentChapter =
-        allChapters[completedChapterCount] || allChapters[allChapters.length - 1];
+            if (leftProgress !== rightProgress) {
+                return rightProgress - leftProgress;
+            }
 
-      let nextChapter: Chapter | undefined;
+            return left.name.localeCompare(right.name);
+        });
+    }, [subjectProgressMap, subjects]);
 
-      const currentIndex = allChapters.findIndex((c) => c.id === currentChapter.id);
-      if (currentIndex >= 0 && currentIndex < allChapters.length - 1) {
-        nextChapter = allChapters[currentIndex + 1];
-      }
+    const loadSubjects = useCallback(async () => {
+        try {
+            const data = await apiClient.getSubjects({
+                includeChapters: true,
+                includeChapterDetails: true,
+            });
+            setSubjects(Array.isArray(data) ? data : []);
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Could not load your subjects.");
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, []);
 
-      const overallProgress = Number(
-        overallProgressData?.overall?.completionPercentage ??
-          serverProgress?.overall?.completionPercentage ??
-          0
-      );
-      const streak = 0;
-      const latestActivity = activeUser.createdAt;
+    useEffect(() => {
+        loadSubjects();
+    }, [loadSubjects]);
 
-      const finalProgress: Progress = {
-        userId: activeUser.id,
-        currentChapterId: currentChapter.id,
-        completedChapters: Array.from(completedChapterIds),
-        completedLessons: [],
-        completedQuizzes: [],
-        overallProgress,
-        streak,
-        lastActiveDate: latestActivity,
-      };
+    const handleRefresh = useCallback(() => {
+        setRefreshing(true);
+        void refetchOverallProgress();
+        void loadSubjects();
+    }, [loadSubjects, refetchOverallProgress]);
 
-      const isNextChapterLocked = completedChapterCount <= currentIndex;
+    const handleOpenSubject = (subject: Subject) => {
+        router.push({
+            pathname: "/(tabs)/learn/subjects/[subjectId]",
+            params: { subjectId: subject.id, subjectCode: subject.code },
+        } as any);
+    };
 
-      const localDashboardData: DashboardData = {
-        user: activeUser,
-        progress: finalProgress,
-        currentChapter,
-        nextChapter,
-        isNextChapterLocked,
-      };
+    const overallCompletion = Math.round(normalizeNumber(overallProgress?.overall?.completionPercentage));
+    const completedLessons = normalizeNumber(overallProgress?.overall?.lessons?.completed);
+    const totalLessons = normalizeNumber(overallProgress?.overall?.lessons?.total);
+    const totalMinutes = Math.round(normalizeNumber(overallProgress?.overall?.totalTimeSpent) / 60);
 
-      setDashboardData(localDashboardData);
-    } catch (error: unknown) {
-      console.error("Error loading dashboard:", error);
-      Alert.alert("Error", (error as Error).message || "Failed to load dashboard. Please try again.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#D88A1C" />
+                <Text style={styles.loadingText}>Setting up your study space...</Text>
+            </View>
+        );
     }
-  }, [overallProgressData, setUser, user]);
 
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    refetchOverallProgress();
-    loadDashboard();
-  };
-
-  const handleChapterPress = (chapter: Chapter) => {
-    const chapterSubjectId =
-      chapter.subjectId ||
-      ((chapter as Chapter & { subject_id?: string }).subject_id ?? "");
-    router.push({
-      pathname: "/(tabs)/learn/[id]",
-      params: {
-        id: chapter.id,
-        subjectId: chapterSubjectId,
-      },
-    } as any);
-  };
-
-  if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#F2B138" />
-        <Text style={styles.loadingText}>Loading dashboard...</Text>
-      </View>
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.content}
+            refreshControl={<RefreshControl refreshing={refreshing || isRefetching} onRefresh={handleRefresh} />}
+        >
+            <View style={styles.heroCard}>
+                <View style={styles.heroGlowOne} />
+                <View style={styles.heroGlowTwo} />
+                <Text style={styles.heroEyebrow}>Learn</Text>
+                <Text style={styles.heroTitle}>Hey {displayName}, let&apos;s keep the momentum going.</Text>
+                <Text style={styles.heroText}>
+                    Pick a subject and we&apos;ll keep chapters in the right order, with the next one locked until you unlock it.
+                </Text>
+
+                <View style={styles.heroStatsRow}>
+                    <View style={styles.heroStatPill}>
+                        <Text style={styles.heroStatValue}>{overallCompletion}%</Text>
+                        <Text style={styles.heroStatLabel}>overall</Text>
+                    </View>
+                    <View style={styles.heroStatPill}>
+                        <Text style={styles.heroStatValue}>
+                            {completedLessons}/{totalLessons}
+                        </Text>
+                        <Text style={styles.heroStatLabel}>lessons</Text>
+                    </View>
+                    <View style={styles.heroStatPill}>
+                        <Text style={styles.heroStatValue}>{totalMinutes}m</Text>
+                        <Text style={styles.heroStatLabel}>study time</Text>
+                    </View>
+                </View>
+            </View>
+
+            <View style={styles.sectionHeader}>
+                <View>
+                    <Text style={styles.sectionTitle}>Your subjects</Text>
+                    <Text style={styles.sectionText}>Started topics float to the top so it&apos;s easier to jump back in.</Text>
+                </View>
+                <View style={styles.sectionCountBadge}>
+                    <Text style={styles.sectionCountText}>{orderedSubjects.length}</Text>
+                </View>
+            </View>
+
+            {orderedSubjects.length === 0 ? (
+                <View style={styles.emptyCard}>
+                    <Ionicons name="sparkles-outline" size={28} color="#D88A1C" />
+                    <Text style={styles.emptyTitle}>No subjects yet</Text>
+                    <Text style={styles.emptyText}>Once subjects are available, they&apos;ll show up here in a cleaner study flow.</Text>
+                </View>
+            ) : (
+                orderedSubjects.map((subject, index) => {
+                    const progress = normalizeNumber(subjectProgressMap.get(subject.id)?.completionPercentage);
+                    const chapters = getChapterCount(subject);
+                    const colorIndex = index % SURFACE_COLORS.length;
+                    const chapterLabel = chapters === 1 ? "chapter" : "chapters";
+
+                    return (
+                        <TouchableOpacity
+                            key={subject.id}
+                            style={[styles.subjectCard, { backgroundColor: SURFACE_COLORS[colorIndex] }]}
+                            onPress={() => handleOpenSubject(subject)}
+                            activeOpacity={0.88}
+                        >
+                            <View style={styles.subjectTopRow}>
+                                <View style={[styles.subjectIconWrap, { backgroundColor: `${ACCENT_COLORS[colorIndex]}18` }]}>
+                                    <Ionicons name="book-outline" size={20} color={ACCENT_COLORS[colorIndex]} />
+                                </View>
+                                <View style={styles.subjectCodeBadge}>
+                                    <Text style={styles.subjectCode}>{subject.code}</Text>
+                                </View>
+                            </View>
+
+                            <Text style={styles.subjectTitle}>{subject.name}</Text>
+                            <Text style={styles.subjectDescription} numberOfLines={2}>
+                                {subject.description || "Tap in and move chapter by chapter at your own pace."}
+                            </Text>
+
+                            <View style={styles.progressTrack}>
+                                <View style={[styles.progressFill, { width: `${Math.max(6, progress)}%`, backgroundColor: ACCENT_COLORS[colorIndex] }]} />
+                            </View>
+
+                            <View style={styles.subjectFooter}>
+                                <Text style={styles.subjectMeta}>
+                                    {Math.round(progress)}% done • {chapters} {chapterLabel}
+                                </Text>
+                                <View style={styles.openChip}>
+                                    <Text style={styles.openChipText}>Open</Text>
+                                    <Ionicons name="arrow-forward" size={14} color="#1F2524" />
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    );
+                })
+            )}
+        </ScrollView>
     );
-  }
-
-  if (!dashboardData) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Failed to load dashboard</Text>
-      </View>
-    );
-  }
-
-  const headerName =
-    user?.name ||
-    user?.email?.split("@")[0] ||
-    dashboardData.user?.name ||
-    dashboardData.user?.email?.split("@")[0] ||
-    "Student";
-
-  return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-      }
-    >
-      <WelcomeHeader
-        name={headerName.split(" ")[0]}
-        streak={dashboardData.progress.streak}
-      />
-
-      <ProgressBar progress={dashboardData.progress.overallProgress} />
-
-      {overallProgressData?.overall?.lessons && (
-        <View style={styles.lessonSummaryCard}>
-          <Text style={styles.sectionTitle}>Lesson Progress</Text>
-          <View style={styles.lessonSummaryRow}>
-            <View style={styles.lessonSummaryItem}>
-              <Text style={styles.lessonSummaryValue}>
-                {overallProgressData.overall.lessons.percentage ?? 0}%
-              </Text>
-              <Text style={styles.lessonSummaryLabel}>Completion</Text>
-            </View>
-            <View style={styles.lessonSummaryItem}>
-              <Text style={styles.lessonSummaryValue}>
-                {overallProgressData.overall.lessons.completed ?? 0}/
-                {overallProgressData.overall.lessons.total ?? 0}
-              </Text>
-              <Text style={styles.lessonSummaryLabel}>Lessons Done</Text>
-            </View>
-            <View style={styles.lessonSummaryItem}>
-              <Text style={styles.lessonSummaryValue}>
-                {Math.round((overallProgressData.overall.totalTimeSpent || 0) / 60)}m
-              </Text>
-              <Text style={styles.lessonSummaryLabel}>Time Spent</Text>
-            </View>
-          </View>
-        </View>
-      )}
-
-      <CurrentChapterCard
-        chapter={dashboardData.currentChapter}
-        onPress={() => handleChapterPress(dashboardData.currentChapter)}
-      />
-
-      {dashboardData.nextChapter && (
-        <NextChapterCard
-          chapter={dashboardData.nextChapter}
-          isLocked={dashboardData.isNextChapterLocked}
-        />
-      )}
-
-      <TouchableOpacity
-        style={styles.chaptersButton}
-        onPress={() => router.push("/(tabs)/learn/subjects")}
-      >
-        <Ionicons name="albums" size={24} color="#F2B138" />
-        <Text style={styles.chaptersButtonText}>Browse Subjects</Text>
-        <Ionicons name="chevron-forward" size={20} color="#999" />
-      </TouchableOpacity>
-    </ScrollView>
-  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAFA",
-  },
-  content: {
-    padding: 24,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FAFAFA",
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#666",
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#F44336",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#282F2E",
-  },
-  lessonSummaryCard: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  lessonSummaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 12,
-  },
-  lessonSummaryItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  lessonSummaryValue: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#282F2E",
-  },
-  lessonSummaryLabel: {
-    marginTop: 4,
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "600",
-  },
-  chaptersButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    gap: 12,
-  },
-  chaptersButtonText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#282F2E",
-  },
+    container: {
+        flex: 1,
+        backgroundColor: "#FFF8EF",
+    },
+    content: {
+        padding: 20,
+        paddingBottom: 36,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#FFF8EF",
+    },
+    loadingText: {
+        marginTop: 14,
+        fontSize: 15,
+        color: "#7B6A58",
+    },
+    heroCard: {
+        position: "relative",
+        overflow: "hidden",
+        padding: 22,
+        borderRadius: 28,
+        backgroundColor: "#1E2A24",
+        marginBottom: 22,
+    },
+    heroGlowOne: {
+        position: "absolute",
+        width: 180,
+        height: 180,
+        borderRadius: 90,
+        backgroundColor: "#F2B138",
+        opacity: 0.18,
+        top: -50,
+        right: -40,
+    },
+    heroGlowTwo: {
+        position: "absolute",
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: "#F08A5D",
+        opacity: 0.16,
+        bottom: -30,
+        left: -10,
+    },
+    heroEyebrow: {
+        fontSize: 12,
+        fontWeight: "800",
+        letterSpacing: 1,
+        textTransform: "uppercase",
+        color: "#F2B138",
+        marginBottom: 10,
+    },
+    heroTitle: {
+        fontSize: 30,
+        lineHeight: 36,
+        fontWeight: "900",
+        color: "#FFF8EF",
+    },
+    heroText: {
+        marginTop: 12,
+        fontSize: 14,
+        lineHeight: 21,
+        color: "#D8DDD8",
+        maxWidth: "90%",
+    },
+    heroStatsRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 10,
+        marginTop: 18,
+    },
+    heroStatPill: {
+        minWidth: 92,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        borderRadius: 18,
+        backgroundColor: "rgba(255,255,255,0.08)",
+    },
+    heroStatValue: {
+        fontSize: 18,
+        fontWeight: "800",
+        color: "#FFF8EF",
+    },
+    heroStatLabel: {
+        marginTop: 2,
+        fontSize: 12,
+        color: "#CBD4CD",
+        textTransform: "lowercase",
+    },
+    sectionHeader: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 12,
+        marginBottom: 14,
+    },
+    sectionTitle: {
+        fontSize: 23,
+        fontWeight: "900",
+        color: "#1F2524",
+    },
+    sectionText: {
+        marginTop: 4,
+        fontSize: 13,
+        lineHeight: 19,
+        color: "#756452",
+        maxWidth: 250,
+    },
+    sectionCountBadge: {
+        minWidth: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#1F2524",
+    },
+    sectionCountText: {
+        fontSize: 14,
+        fontWeight: "800",
+        color: "#FFF8EF",
+    },
+    emptyCard: {
+        alignItems: "center",
+        paddingVertical: 36,
+        paddingHorizontal: 20,
+        borderRadius: 24,
+        backgroundColor: "#FFF4DE",
+    },
+    emptyTitle: {
+        marginTop: 12,
+        fontSize: 18,
+        fontWeight: "800",
+        color: "#1F2524",
+    },
+    emptyText: {
+        marginTop: 6,
+        fontSize: 13,
+        lineHeight: 19,
+        color: "#756452",
+        textAlign: "center",
+    },
+    subjectCard: {
+        borderRadius: 24,
+        padding: 18,
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: "rgba(31,37,36,0.06)",
+    },
+    subjectTopRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 14,
+    },
+    subjectIconWrap: {
+        width: 42,
+        height: 42,
+        borderRadius: 16,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    subjectCodeBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: "rgba(255,255,255,0.7)",
+    },
+    subjectCode: {
+        fontSize: 11,
+        fontWeight: "800",
+        color: "#5C5249",
+        letterSpacing: 0.8,
+    },
+    subjectTitle: {
+        fontSize: 20,
+        fontWeight: "900",
+        color: "#1F2524",
+    },
+    subjectDescription: {
+        marginTop: 6,
+        fontSize: 13,
+        lineHeight: 19,
+        color: "#5F5A54",
+    },
+    progressTrack: {
+        height: 10,
+        borderRadius: 999,
+        backgroundColor: "rgba(255,255,255,0.75)",
+        overflow: "hidden",
+        marginTop: 16,
+    },
+    progressFill: {
+        height: "100%",
+        borderRadius: 999,
+    },
+    subjectFooter: {
+        marginTop: 14,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+    },
+    subjectMeta: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#3E403E",
+    },
+    openChip: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 999,
+        backgroundColor: "rgba(255,255,255,0.75)",
+    },
+    openChipText: {
+        fontSize: 12,
+        fontWeight: "800",
+        color: "#1F2524",
+    },
 });
