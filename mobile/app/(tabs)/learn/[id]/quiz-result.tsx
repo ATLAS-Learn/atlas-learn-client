@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+    Alert,
     View,
     Text,
     TouchableOpacity,
@@ -11,6 +12,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import QuizCelebration from "@/components/quizzes/quiz-celebration";
+import { apiClient } from "@/lib/api";
 
 export default function QuizResultScreen() {
     const router = useRouter();
@@ -35,6 +37,7 @@ export default function QuizResultScreen() {
     const subjectId = Array.isArray(params.subjectId) ? params.subjectId[0] : params.subjectId;
     const headerAnimation = useRef(new Animated.Value(0)).current;
     const scoreAnimation = useRef(new Animated.Value(0)).current;
+    const [continuing, setContinuing] = useState(false);
 
     useEffect(() => {
         Animated.parallel([
@@ -82,13 +85,80 @@ export default function QuizResultScreen() {
         ],
     };
 
-    const handleContinue = () => {
-        if (unlockedNextChapter && passed && params.id) {
+    const getNextSubjectChapterId = async (currentChapterId: string, currentSubjectId: string) => {
+        const subjectChapters = await apiClient.getSubjectChapters(currentSubjectId, {
+            includeDetails: true,
+        });
+        const sorted = Array.isArray(subjectChapters)
+            ? [...subjectChapters].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
+            : [];
+        const currentIndex = sorted.findIndex((chapter) => chapter.id === currentChapterId);
+        if (currentIndex < 0 || currentIndex >= sorted.length - 1) {
+            return undefined;
+        }
+        return sorted[currentIndex + 1]?.id;
+    };
+
+    const getNextGlobalChapterId = async (currentChapterId: string) => {
+        const chapters = await apiClient.getChapters();
+        const sorted = Array.isArray(chapters)
+            ? [...chapters].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+            : [];
+        const currentIndex = sorted.findIndex((chapter) => chapter.id === currentChapterId);
+        if (currentIndex < 0 || currentIndex >= sorted.length - 1) {
+            return undefined;
+        }
+        return sorted[currentIndex + 1]?.id;
+    };
+
+    const handleContinue = async () => {
+        if (!params.id) {
             router.replace("/(tabs)/learn");
-        } else if (passed && params.id) {
-            router.replace("/(tabs)/learn");
-        } else {
+            return;
+        }
+
+        if (!passed) {
             router.back();
+            return;
+        }
+
+        if (!unlockedNextChapter) {
+            if (subjectId) {
+                router.replace({
+                    pathname: "/(tabs)/learn/subjects/[subjectId]",
+                    params: { subjectId },
+                } as any);
+                return;
+            }
+            router.replace("/(tabs)/learn");
+            return;
+        }
+
+        setContinuing(true);
+        try {
+            const nextChapterId = subjectId
+                ? await getNextSubjectChapterId(params.id, subjectId)
+                : await getNextGlobalChapterId(params.id);
+
+            if (subjectId) {
+                router.replace({
+                    pathname: "/(tabs)/learn/subjects/[subjectId]",
+                    params: {
+                        subjectId,
+                        ...(nextChapterId ? { highlightChapterId: nextChapterId } : {}),
+                    },
+                } as any);
+                return;
+            }
+
+            router.replace({
+                pathname: "/(tabs)/learn/chapters",
+                params: nextChapterId ? { highlightChapterId: nextChapterId } : {},
+            } as any);
+        } catch (error: any) {
+            Alert.alert("Error", error?.message || "Could not open the unlocked chapter list.");
+        } finally {
+            setContinuing(false);
         }
     };
 
@@ -170,9 +240,13 @@ export default function QuizResultScreen() {
             </Animated.View>
 
             <Animated.View style={[headerStyle, styles.footerSpacer]}>
-                <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+                <TouchableOpacity
+                    style={[styles.continueButton, continuing && styles.continueButtonDisabled]}
+                    onPress={() => void handleContinue()}
+                    disabled={continuing}
+                >
                     <Text style={styles.continueButtonText}>
-                        {unlockedNextChapter ? "Continue to Next Chapter" : "Back to Dashboard"}
+                        {unlockedNextChapter ? "See Unlocked Chapter" : "Back to Dashboard"}
                     </Text>
                     <Ionicons name="arrow-forward" size={20} color="#fff" />
                 </TouchableOpacity>
@@ -293,5 +367,8 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 18,
         fontWeight: "700",
+    },
+    continueButtonDisabled: {
+        opacity: 0.7,
     },
 });
