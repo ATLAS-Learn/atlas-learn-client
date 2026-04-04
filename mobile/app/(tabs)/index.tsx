@@ -100,14 +100,14 @@ export default function HomeTab() {
                     <>
                         <TouchableOpacity style={[styles.actionCard, styles.actionCardPrimary]} onPress={() => router.push("/(tabs)/classes")}>
                             <View style={[styles.actionIconWrap, styles.actionIconWarm]}>
-                                <Ionicons name="people" size={22} color="#A55A17" />
+                                <Ionicons name="people" size={22} color="#BF522A" />
                             </View>
                             <Text style={styles.actionTitle}>My Classes</Text>
                             <Text style={styles.actionText}>View students and progress</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.actionCard, styles.actionCardSecondary]} onPress={() => router.push("/(tabs)/profile")}>
                             <View style={[styles.actionIconWrap, styles.actionIconSecondary]}>
-                                <Ionicons name="settings" size={22} color="#007AFF" />
+                                <Ionicons name="settings" size={22} color="#084A59" />
                             </View>
                             <Text style={styles.actionTitle}>Profile</Text>
                             <Text style={styles.actionText}>Manage your account</Text>
@@ -117,21 +117,21 @@ export default function HomeTab() {
                     <>
                         <TouchableOpacity style={[styles.actionCard, styles.actionCardPrimary]} onPress={() => router.push("/(tabs)/learn/subjects")}>
                             <View style={[styles.actionIconWrap, styles.actionIconWarm]}>
-                                <Ionicons name="book" size={22} color="#A55A17" />
+                                <Ionicons name="book" size={22} color="#BF522A" />
                             </View>
                             <Text style={styles.actionTitle}>Continue Learning</Text>
                             <Text style={styles.actionText}>Jump back into lessons</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.actionCard, styles.actionCardSecondary]} onPress={() => router.push("/(tabs)/learn/subjects")}>
                             <View style={[styles.actionIconWrap, styles.actionIconSecondary]}>
-                                <Ionicons name="albums" size={22} color="#007AFF" />
+                                <Ionicons name="albums" size={22} color="#12A67C" />
                             </View>
                             <Text style={styles.actionTitle}>Browse Subjects</Text>
                             <Text style={styles.actionText}>Pick a new topic</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.actionCard, styles.actionCardSecondary]} onPress={() => router.push("/(tabs)/profile")}>
                             <View style={[styles.actionIconWrap, styles.actionIconSecondary]}>
-                                <Ionicons name="person" size={22} color="#007AFF" />
+                                <Ionicons name="person" size={22} color="#084A59" />
                             </View>
                             <Text style={styles.actionTitle}>Profile</Text>
                             <Text style={styles.actionText}>Update your info</Text>
@@ -144,12 +144,12 @@ export default function HomeTab() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#F5F9FF" },
+    container: { flex: 1, backgroundColor: "#F6F4EE" },
     content: { padding: 20, paddingBottom: 40 },
     heroCard: {
         position: "relative",
         overflow: "hidden",
-        backgroundColor: "#0F2D52",
+        backgroundColor: "#011C26",
         borderRadius: 28,
         padding: 22,
         marginBottom: 20,
@@ -159,8 +159,8 @@ const styles = StyleSheet.create({
         width: 180,
         height: 180,
         borderRadius: 999,
-        backgroundColor: "#14C1FA",
-        opacity: 0.2,
+        backgroundColor: "#12A67C",
+        opacity: 0.18,
         top: -60,
         right: -30,
     },
@@ -169,14 +169,14 @@ const styles = StyleSheet.create({
         width: 120,
         height: 120,
         borderRadius: 999,
-        backgroundColor: "#F2B138",
-        opacity: 0.22,
+        backgroundColor: "#BF522A",
+        opacity: 0.2,
         bottom: -26,
         left: -12,
     },
     welcome: { fontSize: 12, color: "#F2B138", fontWeight: "800", textTransform: "uppercase", letterSpacing: 1 },
     name: { fontSize: 30, fontWeight: "900", color: "#FFF8EF", marginTop: 8 },
-    subtle: { marginTop: 10, fontSize: 14, lineHeight: 20, color: "#DCEBFF", maxWidth: "88%" },
+    subtle: { marginTop: 10, fontSize: 14, lineHeight: 20, color: "#D7E2DE", maxWidth: "88%" },
     heroPills: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 18 },
     heroPill: {
         minWidth: 92,
@@ -193,23 +193,23 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 999,
-        backgroundColor: "#DCEBFF",
+        backgroundColor: "#E5F4EF",
     },
-    sectionBadgeText: { fontSize: 11, fontWeight: "800", color: "#007AFF" },
+    sectionBadgeText: { fontSize: 11, fontWeight: "800", color: "#12A67C" },
     summaryCard: {
         backgroundColor: "#FFFFFF",
         borderRadius: 24,
         padding: 18,
         borderWidth: 1,
-        borderColor: "#DCEBFF",
+        borderColor: "#D7E2DE",
         marginBottom: 20,
     },
     summaryRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
     summaryItem: { alignItems: "center", flex: 1 },
     summaryValue: { fontSize: 20, fontWeight: "900", color: "#282F2E" },
-    summaryLabel: { marginTop: 4, fontSize: 12, color: "#54708F", fontWeight: "700" },
+    summaryLabel: { marginTop: 4, fontSize: 12, color: "#084A59", fontWeight: "700" },
     actionsHeader: { marginBottom: 12 },
-    actionsHint: { marginTop: 4, fontSize: 13, color: "#54708F" },
+    actionsHint: { marginTop: 4, fontSize: 13, color: "#084A59" },
     actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
     actionCard: {
         flexGrow: 1,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
         borderColor: "rgba(31,37,36,0.06)",
     },
     actionCardPrimary: { backgroundColor: "#FFF7E1" },
-    actionCardSecondary: { backgroundColor: "#EEF6FF" },
+    actionCardSecondary: { backgroundColor: "#EEF6F3" },
     actionIconWrap: {
         width: 42,
         height: 42,
@@ -228,8 +228,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-    actionIconWarm: { backgroundColor: "rgba(165,90,23,0.12)" },
-    actionIconSecondary: { backgroundColor: "rgba(0,122,255,0.12)" },
+    actionIconWarm: { backgroundColor: "rgba(191,82,42,0.12)" },
+    actionIconSecondary: { backgroundColor: "rgba(8,74,89,0.12)" },
     actionTitle: { marginTop: 14, fontSize: 15, fontWeight: "800", color: "#1F2524" },
-    actionText: { marginTop: 4, fontSize: 12, lineHeight: 18, color: "#48617D" },
+    actionText: { marginTop: 4, fontSize: 12, lineHeight: 18, color: "#084A59" },
 });
