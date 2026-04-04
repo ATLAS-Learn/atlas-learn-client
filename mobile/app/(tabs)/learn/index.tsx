@@ -16,8 +16,8 @@ import { Subject, SubjectProgress } from "@/lib/types";
 import { useOverallProgress } from "@/lib/hooks/api";
 import { useUserStore } from "@/lib/store/user";
 
-const SURFACE_COLORS = ["#FFE8D8", "#E8F7EE", "#EAF2FF", "#FFF1C9"];
-const ACCENT_COLORS = ["#A55A17", "#20704F", "#2563C9", "#B78103"];
+const SURFACE_COLORS = ["#EEF6FF", "#FFF7E1", "#EAF4FF", "#F3FAFF"];
+const ACCENT_COLORS = ["#007AFF", "#F2B138", "#14C1FA", "#02BCF0"];
 
 const getChapterCount = (subject: Subject): number => {
     return Array.isArray(subject.chapters) ? subject.chapters.length : 0;
@@ -209,7 +209,7 @@ export default function LearnHubScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#FFF8EF",
+        backgroundColor: "#F5F9FF",
     },
     content: {
         padding: 20,
@@ -219,19 +219,19 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#FFF8EF",
+        backgroundColor: "#F5F9FF",
     },
     loadingText: {
         marginTop: 14,
         fontSize: 15,
-        color: "#7B6A58",
+        color: "#54708F",
     },
     heroCard: {
         position: "relative",
         overflow: "hidden",
         padding: 24,
         borderRadius: 30,
-        backgroundColor: "#1F2A24",
+        backgroundColor: "#0F2D52",
         marginBottom: 22,
     },
     heroGlowOne: {
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
         width: 180,
         height: 180,
         borderRadius: 90,
-        backgroundColor: "#F7B733",
+        backgroundColor: "#14C1FA",
         opacity: 0.18,
         top: -50,
         right: -40,
@@ -249,8 +249,8 @@ const styles = StyleSheet.create({
         width: 120,
         height: 120,
         borderRadius: 60,
-        backgroundColor: "#F08A5D",
-        opacity: 0.16,
+        backgroundColor: "#F2B138",
+        opacity: 0.2,
         bottom: -30,
         left: -10,
     },
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
         marginTop: 12,
         fontSize: 14,
         lineHeight: 21,
-        color: "#D8DDD8",
+        color: "#DCEBFF",
         maxWidth: "90%",
     },
     heroStatsRow: {
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
         marginTop: 4,
         fontSize: 13,
         lineHeight: 19,
-        color: "#756452",
+        color: "#54708F",
         maxWidth: 250,
     },
     sectionCountBadge: {
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
         paddingVertical: 36,
         paddingHorizontal: 20,
         borderRadius: 24,
-        backgroundColor: "#FFF1D7",
+        backgroundColor: "#EEF6FF",
     },
     emptyTitle: {
         marginTop: 12,
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
         marginTop: 6,
         fontSize: 13,
         lineHeight: 19,
-        color: "#756452",
+        color: "#54708F",
         textAlign: "center",
     },
     subjectCard: {
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     subjectCode: {
         fontSize: 11,
         fontWeight: "800",
-        color: "#5C5249",
+        color: "#44617E",
         letterSpacing: 0.8,
     },
     subjectTitle: {
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
         marginTop: 6,
         fontSize: 13,
         lineHeight: 19,
-        color: "#5F5A54",
+        color: "#48617D",
     },
     progressTrack: {
         height: 11,
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 13,
         fontWeight: "700",
-        color: "#3E403E",
+        color: "#35506B",
     },
     openChip: {
         flexDirection: "row",
