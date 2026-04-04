@@ -75,7 +75,8 @@ export default function QuizScoresScreen() {
                 ) : (
                     quizAttempts.map((attempt) => {
                         const passed = attempt.passed;
-                        const percentage = attempt.percentage;
+                        const percentage = typeof attempt.percentage === "number" ? attempt.percentage : attempt.score;
+                        const hasPassFail = typeof passed === "boolean";
                         const chapterTitle = getChapterTitle(attempt.quizId);
 
                         return (
@@ -92,21 +93,41 @@ export default function QuizScoresScreen() {
                                     <View
                                         style={[
                                             styles.statusBadge,
-                                            passed ? styles.statusBadgePassed : styles.statusBadgeFailed,
+                                            hasPassFail
+                                                ? passed
+                                                    ? styles.statusBadgePassed
+                                                    : styles.statusBadgeFailed
+                                                : styles.statusBadgeNeutral,
                                         ]}
                                     >
                                         <Ionicons
-                                            name={passed ? "checkmark-circle" : "close-circle"}
+                                            name={
+                                                hasPassFail
+                                                    ? passed
+                                                        ? "checkmark-circle"
+                                                        : "close-circle"
+                                                    : "time-outline"
+                                            }
                                             size={16}
-                                            color={passed ? "#4CAF50" : "#F44336"}
+                                            color={
+                                                hasPassFail
+                                                    ? passed
+                                                        ? "#4CAF50"
+                                                        : "#F44336"
+                                                    : "#084A59"
+                                            }
                                         />
                                         <Text
                                             style={[
                                                 styles.statusText,
-                                                passed ? styles.statusTextPassed : styles.statusTextFailed,
+                                                hasPassFail
+                                                    ? passed
+                                                        ? styles.statusTextPassed
+                                                        : styles.statusTextFailed
+                                                    : styles.statusTextNeutral,
                                             ]}
                                         >
-                                            {passed ? "Passed" : "Failed"}
+                                            {hasPassFail ? (passed ? "Passed" : "Failed") : "Completed"}
                                         </Text>
                                     </View>
                                 </View>
@@ -123,7 +144,11 @@ export default function QuizScoresScreen() {
                                         <Text
                                             style={[
                                                 styles.scorePercentage,
-                                                passed ? styles.scorePercentagePassed : styles.scorePercentageFailed,
+                                                hasPassFail
+                                                    ? passed
+                                                        ? styles.scorePercentagePassed
+                                                        : styles.scorePercentageFailed
+                                                    : styles.scorePercentageNeutral,
                                             ]}
                                         >
                                             {Math.round(percentage)}%
@@ -240,6 +265,9 @@ const styles = StyleSheet.create({
     statusBadgeFailed: {
         backgroundColor: "#FFEBEE",
     },
+    statusBadgeNeutral: {
+        backgroundColor: "#EEF6F3",
+    },
     statusText: {
         fontSize: 12,
         fontWeight: "600",
@@ -249,6 +277,9 @@ const styles = StyleSheet.create({
     },
     statusTextFailed: {
         color: "#F44336",
+    },
+    statusTextNeutral: {
+        color: "#084A59",
     },
     scoreDetails: {
         flexDirection: "row",
@@ -279,5 +310,8 @@ const styles = StyleSheet.create({
     },
     scorePercentageFailed: {
         color: "#F44336",
+    },
+    scorePercentageNeutral: {
+        color: "#084A59",
     },
 });

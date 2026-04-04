@@ -17,6 +17,7 @@ import {
     QuizSubmission,
     QuizResult,
     QuizAttempt,
+    UserQuizAttempt,
     QuizStats,
     Level,
     OverallProgressData,
@@ -1426,20 +1427,67 @@ class APIClient {
         return [];
     }
 
-    async getUserQuizAttempts(userId: string): Promise<QuizAttempt[]> {
+    async getUserQuizAttempts(userId: string): Promise<UserQuizAttempt[]> {
         const response = await this.request<
-            QuizAttempt[] | { data?: QuizAttempt[]; attempts?: QuizAttempt[] }
+            | UserQuizAttempt[]
+            | {
+                success?: boolean;
+                data?: Array<Partial<UserQuizAttempt> & { answers?: unknown }>;
+                attempts?: Array<Partial<UserQuizAttempt> & { answers?: unknown }>;
+                pagination?: {
+                    total?: number;
+                    limit?: number;
+                    offset?: number;
+                    hasMore?: boolean;
+                };
+            }
         >(`/users/${userId}/quiz-attempts`);
-        if (Array.isArray(response)) {
-            return response;
-        }
-        if (Array.isArray(response?.data)) {
-            return response.data;
-        }
-        if (Array.isArray(response?.attempts)) {
-            return response.attempts;
-        }
-        return [];
+        const rawAttempts = Array.isArray(response)
+            ? response
+            : Array.isArray(response?.data)
+                ? response.data
+                : Array.isArray(response?.attempts)
+                    ? response.attempts
+                    : [];
+
+        return rawAttempts.map((attempt, index) => {
+            const rawScore = typeof attempt?.score === "number" && Number.isFinite(attempt.score) ? attempt.score : 0;
+            const normalizedPercentage =
+                typeof attempt?.percentage === "number" && Number.isFinite(attempt.percentage)
+                    ? attempt.percentage
+                    : rawScore >= 0 && rawScore <= 100
+                        ? rawScore
+                        : undefined;
+
+            return {
+                id:
+                    typeof attempt?.id === "string" && attempt.id.trim()
+                        ? attempt.id.trim()
+                        : `attempt-${index}`,
+                quizId:
+                    typeof attempt?.quizId === "string" && attempt.quizId.trim()
+                        ? attempt.quizId.trim()
+                        : "",
+                userId:
+                    typeof attempt?.userId === "string" && attempt.userId.trim()
+                        ? attempt.userId.trim()
+                        : userId,
+                score: rawScore,
+                completedAt:
+                    typeof attempt?.completedAt === "string" && attempt.completedAt.trim()
+                        ? attempt.completedAt.trim()
+                        : new Date(0).toISOString(),
+                timeSpent:
+                    typeof attempt?.timeSpent === "number" && Number.isFinite(attempt.timeSpent)
+                        ? attempt.timeSpent
+                        : undefined,
+                answers: Array.isArray(attempt?.answers)
+                    ? attempt.answers.filter((value): value is number => typeof value === "number")
+                    : undefined,
+                percentage: normalizedPercentage,
+                passed: typeof attempt?.passed === "boolean" ? attempt.passed : undefined,
+            };
+        });
     }
 
     async getQuizStats(quizId: string): Promise<QuizStats> {

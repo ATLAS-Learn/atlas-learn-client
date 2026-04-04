@@ -1,10 +1,10 @@
 import React from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { VictoryChart, VictoryLine, VictoryAxis, VictoryTheme, VictoryArea } from "victory-native";
-import { QuizAttempt } from "@/lib/types";
+import { UserQuizAttempt } from "@/lib/types";
 
 interface QuizScoresChartProps {
-    attempts: QuizAttempt[];
+    attempts: UserQuizAttempt[];
 }
 
 export default function QuizScoresChart({ attempts }: QuizScoresChartProps) {
@@ -21,8 +21,8 @@ export default function QuizScoresChart({ attempts }: QuizScoresChartProps) {
         .sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime())
         .map((attempt, index) => ({
             x: index + 1,
-            y: attempt.percentage,
-            label: `${Math.round(attempt.percentage)}%`,
+            y: typeof attempt.percentage === "number" ? attempt.percentage : attempt.score,
+            label: `${Math.round(typeof attempt.percentage === "number" ? attempt.percentage : attempt.score)}%`,
         }));
 
     const screenWidth = Dimensions.get("window").width - 48; // Account for padding

@@ -496,6 +496,18 @@ export interface QuizAttempt {
     answers?: { questionId: string; answerIndex: number }[];
 }
 
+export interface UserQuizAttempt {
+    id: string;
+    quizId: string;
+    userId: string;
+    score: number;
+    completedAt: string;
+    timeSpent?: number;
+    answers?: number[];
+    percentage?: number;
+    passed?: boolean;
+}
+
 export interface QuizStats {
     quizId: string;
     totalAttempts: number;
