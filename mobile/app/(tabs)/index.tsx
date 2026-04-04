@@ -115,7 +115,7 @@ export default function HomeTab() {
                     </>
                 ) : (
                     <>
-                        <TouchableOpacity style={[styles.actionCard, styles.actionCardPrimary]} onPress={() => router.push("/(tabs)/learn/subjects")}>
+                        <TouchableOpacity style={[styles.actionCard, styles.actionCardPrimary]} onPress={() => router.push("/(tabs)/learn")}>
                             <View style={[styles.actionIconWrap, styles.actionIconWarm]}>
                                 <Ionicons name="book" size={22} color="#BF522A" />
                             </View>

@@ -86,9 +86,7 @@ export default function QuizResultScreen() {
     };
 
     const getNextSubjectChapterId = async (currentChapterId: string, currentSubjectId: string) => {
-        const subjectChapters = await apiClient.getSubjectChapters(currentSubjectId, {
-            includeDetails: true,
-        });
+        const subjectChapters = await apiClient.getSubjectChapters(currentSubjectId);
         const sorted = Array.isArray(subjectChapters)
             ? [...subjectChapters].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
             : [];
