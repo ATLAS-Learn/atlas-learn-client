@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -13,12 +13,34 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { apiClient } from "@/lib/api";
 import { Subject, SubjectChapter } from "@/lib/types";
+import { useOverallProgress } from "@/lib/hooks/api/useProgress";
+
+type UnknownRecord = Record<string, unknown>;
+
+const asRecord = (value: unknown): UnknownRecord | null =>
+    value && typeof value === "object" ? (value as UnknownRecord) : null;
+
+const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+const getString = (record: UnknownRecord, keys: string[]): string | undefined => {
+    for (const key of keys) {
+        const value = record[key];
+        if (typeof value === "string" && value.trim()) {
+            return value.trim();
+        }
+    }
+    return undefined;
+};
+
+const getBoolean = (record: UnknownRecord, keys: string[]): boolean =>
+    keys.some((key) => record[key] === true);
 
 export default function SubjectDetailScreen() {
     const router = useRouter();
     const { subjectId, subjectCode } = useLocalSearchParams<{ subjectId: string; subjectCode?: string }>();
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
     const subjectCodeKey = Array.isArray(subjectCode) ? subjectCode[0] : subjectCode;
+    const { data: overallProgress } = useOverallProgress();
 
     const [subject, setSubject] = useState<Subject | null>(null);
     const [chapters, setChapters] = useState<SubjectChapter[]>([]);
@@ -122,6 +144,59 @@ export default function SubjectDetailScreen() {
         } as any);
     };
 
+    const completedChapterIds = useMemo((): Set<string> => {
+        const activeSubjectId = resolvedSubjectId || subjectKey;
+        if (!activeSubjectId || !Array.isArray(overallProgress?.subjects)) {
+            return new Set();
+        }
+
+        const subjectProgress = overallProgress.subjects.find((entry) => entry.subjectId === activeSubjectId);
+        if (!subjectProgress) {
+            return new Set();
+        }
+
+        const completedIds = new Set<string>();
+
+        asArray(subjectProgress.chapterDetails).forEach((entry) => {
+            const record = asRecord(entry);
+            if (!record || !getBoolean(record, ["completed", "isCompleted"])) {
+                return;
+            }
+
+            const chapterIdValue = getString(record, ["chapterId", "id"]);
+            if (chapterIdValue) {
+                completedIds.add(chapterIdValue);
+            }
+        });
+
+        const chaptersRecord = asRecord(subjectProgress.chapters);
+        if (chaptersRecord) {
+            Object.entries(chaptersRecord).forEach(([chapterIdValue, value]) => {
+                const record = asRecord(value);
+                if (record && getBoolean(record, ["completed", "isCompleted"])) {
+                    completedIds.add(chapterIdValue);
+                }
+            });
+        }
+
+        return completedIds;
+    }, [overallProgress?.subjects, resolvedSubjectId, subjectKey]);
+
+    const isChapterLocked = useCallback(
+        (chapter: SubjectChapter, index: number): boolean => {
+            if (index === 0) return false;
+
+            const chapterRecord = chapter as UnknownRecord;
+            if (getBoolean(chapterRecord, ["unlocked", "isUnlocked"])) {
+                return false;
+            }
+
+            const previousChapter = chapters[index - 1];
+            return previousChapter ? !completedChapterIds.has(previousChapter.id) : false;
+        },
+        [chapters, completedChapterIds]
+    );
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -167,29 +242,53 @@ export default function SubjectDetailScreen() {
                         <Text style={styles.emptyText}>No chapters yet.</Text>
                     </View>
                 ) : (
-                    chapters.map((chapter) => (
-                        <TouchableOpacity
-                            key={chapter.id}
-                            style={styles.chapterCard}
-                            onPress={() => handleOpenChapter(chapter.id)}
-                        >
-                            <View style={styles.chapterInfo}>
-                                <Text style={styles.chapterTitle}>{chapter.title}</Text>
-                                {!!chapter.description && (
-                                    <Text style={styles.chapterDescription} numberOfLines={2}>
-                                        {chapter.description}
+                    chapters.map((chapter, index) => {
+                        const locked = isChapterLocked(chapter, index);
+                        const completed = completedChapterIds.has(chapter.id);
+
+                        return (
+                            <TouchableOpacity
+                                key={chapter.id}
+                                style={[
+                                    styles.chapterCard,
+                                    locked && styles.chapterCardLocked,
+                                    completed && styles.chapterCardCompleted,
+                                ]}
+                                onPress={() => !locked && handleOpenChapter(chapter.id)}
+                                disabled={locked}
+                            >
+                                <View style={styles.chapterInfo}>
+                                    <View style={styles.chapterTitleRow}>
+                                        <Text style={styles.chapterTitle}>{chapter.title}</Text>
+                                        {completed ? (
+                                            <View style={styles.completedBadge}>
+                                                <Ionicons name="checkmark-circle" size={16} color="#2E7D32" />
+                                                <Text style={styles.completedText}>Completed</Text>
+                                            </View>
+                                        ) : null}
+                                        {locked ? (
+                                            <View style={styles.lockedBadge}>
+                                                <Ionicons name="lock-closed" size={14} color="#999" />
+                                                <Text style={styles.lockedText}>Locked</Text>
+                                            </View>
+                                        ) : null}
+                                    </View>
+                                    {!!chapter.description && (
+                                        <Text style={styles.chapterDescription} numberOfLines={2}>
+                                            {chapter.description}
+                                        </Text>
+                                    )}
+                                    <Text style={styles.chapterMeta}>
+                                        {chapter.orderIndex ? `Chapter ${chapter.orderIndex}` : "Chapter"}
+                                        {chapter.estimatedMinutes
+                                            ? ` • ${chapter.estimatedMinutes} min`
+                                            : ""}
                                     </Text>
-                                )}
-                                <Text style={styles.chapterMeta}>
-                                    {chapter.orderIndex ? `Chapter ${chapter.orderIndex}` : "Chapter"}
-                                    {chapter.estimatedMinutes
-                                        ? ` • ${chapter.estimatedMinutes} min`
-                                        : ""}
-                                </Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={22} color="#999" />
-                        </TouchableOpacity>
-                    ))
+                                </View>
+                                {!locked ? <Ionicons name="chevron-forward" size={22} color="#999" /> : null}
+                            </TouchableOpacity>
+                        );
+                    })
                 )}
             </ScrollView>
         </View>
@@ -258,8 +357,43 @@ const styles = StyleSheet.create({
         borderColor: "#EAEAEA",
         marginBottom: 10,
     },
+    chapterCardLocked: {
+        opacity: 0.72,
+        backgroundColor: "#F5F5F5",
+        borderColor: "#E2E2E2",
+    },
+    chapterCardCompleted: {
+        backgroundColor: "#F8FFF6",
+        borderColor: "#DCEFD8",
+    },
     chapterInfo: { flex: 1, marginRight: 12 },
-    chapterTitle: { fontSize: 15, fontWeight: "700", color: "#222" },
+    chapterTitleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: 8,
+    },
+    chapterTitle: { flexShrink: 1, fontSize: 15, fontWeight: "700", color: "#222" },
     chapterDescription: { marginTop: 4, fontSize: 13, color: "#666" },
     chapterMeta: { marginTop: 6, fontSize: 12, color: "#777", fontWeight: "600" },
+    completedBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 999,
+        backgroundColor: "#E9F7E6",
+    },
+    completedText: { fontSize: 11, fontWeight: "700", color: "#2E7D32" },
+    lockedBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 999,
+        backgroundColor: "#ECECEC",
+    },
+    lockedText: { fontSize: 11, fontWeight: "700", color: "#777" },
 });
