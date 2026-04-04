@@ -39,16 +39,37 @@ export default function HomeTab() {
             contentContainerStyle={styles.content}
             refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
         >
-            <View style={styles.hero}>
-                <Text style={styles.welcome}>Welcome back,</Text>
+            <View style={styles.heroCard}>
+                <View style={styles.heroGlowOne} />
+                <View style={styles.heroGlowTwo} />
+                <Text style={styles.welcome}>Home</Text>
                 <Text style={styles.name}>{displayName}</Text>
                 <Text style={styles.subtle}>
                     {user?.role === UserRole.TEACHER ? "Manage your classes and track learners." : "Keep learning and track your progress."}
                 </Text>
+                <View style={styles.heroPills}>
+                    <View style={styles.heroPill}>
+                        <Text style={styles.heroPillValue}>{completion}%</Text>
+                        <Text style={styles.heroPillLabel}>overall</Text>
+                    </View>
+                    <View style={styles.heroPill}>
+                        <Text style={styles.heroPillValue}>{lessonsDone}</Text>
+                        <Text style={styles.heroPillLabel}>lessons done</Text>
+                    </View>
+                    <View style={styles.heroPill}>
+                        <Text style={styles.heroPillValue}>{quizzesPassed}</Text>
+                        <Text style={styles.heroPillLabel}>quizzes passed</Text>
+                    </View>
+                </View>
             </View>
 
             <View style={styles.summaryCard}>
-                <Text style={styles.sectionTitle}>Progress Snapshot</Text>
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Progress Snapshot</Text>
+                    <View style={styles.sectionBadge}>
+                        <Text style={styles.sectionBadgeText}>Today</Text>
+                    </View>
+                </View>
                 <ProgressBar progress={normalizedCompletion} />
                 <View style={styles.summaryRow}>
                     <View style={styles.summaryItem}>
@@ -70,35 +91,48 @@ export default function HomeTab() {
                 </View>
             </View>
 
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <View style={styles.actionsHeader}>
+                <Text style={styles.sectionTitle}>Quick Actions</Text>
+                <Text style={styles.actionsHint}>Pick a lane and jump in.</Text>
+            </View>
             <View style={styles.actionsGrid}>
                 {user?.role === UserRole.TEACHER ? (
                     <>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/classes")}>
-                            <Ionicons name="people" size={22} color="#F2B138" />
+                        <TouchableOpacity style={[styles.actionCard, styles.actionCardWarm]} onPress={() => router.push("/(tabs)/classes")}>
+                            <View style={[styles.actionIconWrap, styles.actionIconWarm]}>
+                                <Ionicons name="people" size={22} color="#A55A17" />
+                            </View>
                             <Text style={styles.actionTitle}>My Classes</Text>
                             <Text style={styles.actionText}>View students and progress</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")}>
-                            <Ionicons name="settings" size={22} color="#F2B138" />
+                        <TouchableOpacity style={[styles.actionCard, styles.actionCardCool]} onPress={() => router.push("/(tabs)/profile")}>
+                            <View style={[styles.actionIconWrap, styles.actionIconCool]}>
+                                <Ionicons name="settings" size={22} color="#246A7A" />
+                            </View>
                             <Text style={styles.actionTitle}>Profile</Text>
                             <Text style={styles.actionText}>Manage your account</Text>
                         </TouchableOpacity>
                     </>
                 ) : (
                     <>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/learn/subjects")}>
-                            <Ionicons name="book" size={22} color="#F2B138" />
+                        <TouchableOpacity style={[styles.actionCard, styles.actionCardWarm]} onPress={() => router.push("/(tabs)/learn/subjects")}>
+                            <View style={[styles.actionIconWrap, styles.actionIconWarm]}>
+                                <Ionicons name="book" size={22} color="#A55A17" />
+                            </View>
                             <Text style={styles.actionTitle}>Continue Learning</Text>
                             <Text style={styles.actionText}>Jump back into lessons</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/learn/subjects")}>
-                            <Ionicons name="albums" size={22} color="#F2B138" />
+                        <TouchableOpacity style={[styles.actionCard, styles.actionCardMint]} onPress={() => router.push("/(tabs)/learn/subjects")}>
+                            <View style={[styles.actionIconWrap, styles.actionIconMint]}>
+                                <Ionicons name="albums" size={22} color="#20704F" />
+                            </View>
                             <Text style={styles.actionTitle}>Browse Subjects</Text>
                             <Text style={styles.actionText}>Pick a new topic</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")}>
-                            <Ionicons name="person" size={22} color="#F2B138" />
+                        <TouchableOpacity style={[styles.actionCard, styles.actionCardCool]} onPress={() => router.push("/(tabs)/profile")}>
+                            <View style={[styles.actionIconWrap, styles.actionIconCool]}>
+                                <Ionicons name="person" size={22} color="#246A7A" />
+                            </View>
                             <Text style={styles.actionTitle}>Profile</Text>
                             <Text style={styles.actionText}>Update your info</Text>
                         </TouchableOpacity>
@@ -110,40 +144,94 @@ export default function HomeTab() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#FAFAFA" },
-    content: { padding: 24, paddingBottom: 40 },
-    hero: { marginBottom: 20 },
-    welcome: { fontSize: 16, color: "#666" },
-    name: { fontSize: 28, fontWeight: "800", color: "#1F2524", marginTop: 4 },
-    subtle: { marginTop: 8, fontSize: 13, color: "#777" },
-    sectionTitle: { fontSize: 18, fontWeight: "700", color: "#282F2E", marginBottom: 12 },
-    summaryCard: {
-        backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: "#F0F0F0",
+    container: { flex: 1, backgroundColor: "#FFF8EF" },
+    content: { padding: 20, paddingBottom: 40 },
+    heroCard: {
+        position: "relative",
+        overflow: "hidden",
+        backgroundColor: "#1F2A24",
+        borderRadius: 28,
+        padding: 22,
         marginBottom: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
     },
-    summaryRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
+    heroGlowOne: {
+        position: "absolute",
+        width: 180,
+        height: 180,
+        borderRadius: 999,
+        backgroundColor: "#F2B138",
+        opacity: 0.18,
+        top: -60,
+        right: -30,
+    },
+    heroGlowTwo: {
+        position: "absolute",
+        width: 120,
+        height: 120,
+        borderRadius: 999,
+        backgroundColor: "#F08A5D",
+        opacity: 0.16,
+        bottom: -26,
+        left: -12,
+    },
+    welcome: { fontSize: 12, color: "#F2B138", fontWeight: "800", textTransform: "uppercase", letterSpacing: 1 },
+    name: { fontSize: 30, fontWeight: "900", color: "#FFF8EF", marginTop: 8 },
+    subtle: { marginTop: 10, fontSize: 14, lineHeight: 20, color: "#D5DDD8", maxWidth: "88%" },
+    heroPills: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 18 },
+    heroPill: {
+        minWidth: 92,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        borderRadius: 18,
+        backgroundColor: "rgba(255,255,255,0.08)",
+    },
+    heroPillValue: { fontSize: 18, fontWeight: "800", color: "#FFF8EF" },
+    heroPillLabel: { marginTop: 2, fontSize: 12, color: "#CBD4CD" },
+    sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+    sectionTitle: { fontSize: 22, fontWeight: "900", color: "#1F2524" },
+    sectionBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: "#FDE5B5",
+    },
+    sectionBadgeText: { fontSize: 11, fontWeight: "800", color: "#8A5D00" },
+    summaryCard: {
+        backgroundColor: "#FFFCF6",
+        borderRadius: 24,
+        padding: 18,
+        borderWidth: 1,
+        borderColor: "#F2E7D6",
+        marginBottom: 20,
+    },
+    summaryRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
     summaryItem: { alignItems: "center", flex: 1 },
-    summaryValue: { fontSize: 18, fontWeight: "800", color: "#282F2E" },
-    summaryLabel: { marginTop: 4, fontSize: 12, color: "#666", fontWeight: "600" },
+    summaryValue: { fontSize: 20, fontWeight: "900", color: "#282F2E" },
+    summaryLabel: { marginTop: 4, fontSize: 12, color: "#756452", fontWeight: "700" },
+    actionsHeader: { marginBottom: 12 },
+    actionsHint: { marginTop: 4, fontSize: 13, color: "#756452" },
     actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
     actionCard: {
         flexGrow: 1,
         flexBasis: "48%",
-        backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 14,
+        borderRadius: 24,
+        padding: 16,
         borderWidth: 1,
-        borderColor: "#EAEAEA",
+        borderColor: "rgba(31,37,36,0.06)",
     },
-    actionTitle: { marginTop: 10, fontSize: 14, fontWeight: "700", color: "#1F2524" },
-    actionText: { marginTop: 4, fontSize: 12, color: "#777" },
+    actionCardWarm: { backgroundColor: "#FFE8D8" },
+    actionCardMint: { backgroundColor: "#E8F7EE" },
+    actionCardCool: { backgroundColor: "#E9F2FF" },
+    actionIconWrap: {
+        width: 42,
+        height: 42,
+        borderRadius: 14,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    actionIconWarm: { backgroundColor: "rgba(165,90,23,0.12)" },
+    actionIconMint: { backgroundColor: "rgba(32,112,79,0.12)" },
+    actionIconCool: { backgroundColor: "rgba(36,106,122,0.12)" },
+    actionTitle: { marginTop: 14, fontSize: 15, fontWeight: "800", color: "#1F2524" },
+    actionText: { marginTop: 4, fontSize: 12, lineHeight: 18, color: "#5F5A54" },
 });

@@ -16,8 +16,8 @@ import { Subject, SubjectProgress } from "@/lib/types";
 import { useOverallProgress } from "@/lib/hooks/api";
 import { useUserStore } from "@/lib/store/user";
 
-const SURFACE_COLORS = ["#FFF5D9", "#E9F7EF", "#EAF2FF", "#FFE9E1"];
-const ACCENT_COLORS = ["#C98700", "#1F7A4F", "#2563C9", "#C85A2A"];
+const SURFACE_COLORS = ["#FFE8D8", "#E8F7EE", "#EAF2FF", "#FFF1C9"];
+const ACCENT_COLORS = ["#A55A17", "#20704F", "#2563C9", "#B78103"];
 
 const getChapterCount = (subject: Subject): number => {
     return Array.isArray(subject.chapters) ? subject.chapters.length : 0;
@@ -229,9 +229,9 @@ const styles = StyleSheet.create({
     heroCard: {
         position: "relative",
         overflow: "hidden",
-        padding: 22,
-        borderRadius: 28,
-        backgroundColor: "#1E2A24",
+        padding: 24,
+        borderRadius: 30,
+        backgroundColor: "#1F2A24",
         marginBottom: 22,
     },
     heroGlowOne: {
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
         width: 180,
         height: 180,
         borderRadius: 90,
-        backgroundColor: "#F2B138",
+        backgroundColor: "#F7B733",
         opacity: 0.18,
         top: -50,
         right: -40,
@@ -263,8 +263,8 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     heroTitle: {
-        fontSize: 30,
-        lineHeight: 36,
+        fontSize: 31,
+        lineHeight: 37,
         fontWeight: "900",
         color: "#FFF8EF",
     },
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 12,
         borderRadius: 18,
-        backgroundColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "rgba(255,248,239,0.1)",
     },
     heroStatValue: {
         fontSize: 18,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
         alignItems: "flex-start",
         justifyContent: "space-between",
         gap: 12,
-        marginBottom: 14,
+        marginBottom: 16,
     },
     sectionTitle: {
         fontSize: 23,
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
         paddingVertical: 36,
         paddingHorizontal: 20,
         borderRadius: 24,
-        backgroundColor: "#FFF4DE",
+        backgroundColor: "#FFF1D7",
     },
     emptyTitle: {
         marginTop: 12,
@@ -352,11 +352,11 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     subjectCard: {
-        borderRadius: 24,
+        borderRadius: 26,
         padding: 18,
         marginBottom: 14,
         borderWidth: 1,
-        borderColor: "rgba(31,37,36,0.06)",
+        borderColor: "rgba(31,37,36,0.07)",
     },
     subjectTopRow: {
         flexDirection: "row",
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 999,
-        backgroundColor: "rgba(255,255,255,0.7)",
+        backgroundColor: "rgba(255,252,246,0.72)",
     },
     subjectCode: {
         fontSize: 11,
@@ -395,9 +395,9 @@ const styles = StyleSheet.create({
         color: "#5F5A54",
     },
     progressTrack: {
-        height: 10,
+        height: 11,
         borderRadius: 999,
-        backgroundColor: "rgba(255,255,255,0.75)",
+        backgroundColor: "rgba(255,252,246,0.8)",
         overflow: "hidden",
         marginTop: 16,
     },
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 999,
-        backgroundColor: "rgba(255,255,255,0.75)",
+        backgroundColor: "rgba(255,252,246,0.8)",
     },
     openChipText: {
         fontSize: 12,
