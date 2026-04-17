@@ -15,6 +15,7 @@ export function useAppFlow() {
     null
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [bootstrapComplete, setBootstrapComplete] = useState(false);
   const { isAuthenticated, loadAuth, token, logout } = useAuthStore();
   const { user, lastSyncedAt, setUser, loadUser } = useUserStore();
   const { loadProgress } = useProgressStore();
@@ -22,14 +23,22 @@ export function useAppFlow() {
   useEffect(() => {
     async function initialize() {
       setIsLoading(true);
-      const onboarding = await getItem("onboardingComplete");
-      setOnboardingComplete(onboarding === "true");
-      await Promise.all([loadAuth(), loadUser(), loadProgress()]);
+      try {
+        const onboarding = await getItem("onboardingComplete");
+        setOnboardingComplete(onboarding === "true");
+        await Promise.all([loadAuth(), loadUser(), loadProgress()]);
+      } finally {
+        setBootstrapComplete(true);
+      }
     }
-    initialize();
+    void initialize();
   }, [loadAuth, loadUser, loadProgress]);
 
   useEffect(() => {
+    if (!bootstrapComplete) {
+      return;
+    }
+
     async function restoreSession() {
       if (!isAuthenticated) {
         setAssessmentComplete(null);
@@ -89,11 +98,11 @@ export function useAppFlow() {
     }
 
     if (isAuthenticated !== null && isAuthenticated) {
-      restoreSession();
+      void restoreSession();
     } else if (isAuthenticated === false) {
       setIsLoading(false);
     }
-  }, [isAuthenticated, token, user, lastSyncedAt, setUser, loadProgress, logout]);
+  }, [bootstrapComplete, isAuthenticated, token, user, lastSyncedAt, setUser, logout]);
 
   return { onboardingComplete, assessmentComplete, isAuthenticated, user, isLoading };
 }
