@@ -10,17 +10,45 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { apiClient } from "@/lib/api";
 import { useUserStore } from "@/lib/store/user";
 import { useUserQuizAttempts } from "@/lib/hooks/api";
 import QuizScoresChart from "@/components/charts/QuizScoresChart";
 
+function isBackendUserId(userId: string | undefined): userId is string {
+    if (!userId) return false;
+    return /^c[a-z0-9]{8,}$/i.test(userId);
+}
+
 export default function QuizScoresScreen() {
     const router = useRouter();
-    const { user } = useUserStore();
+    const { user, setUser } = useUserStore();
     const { data: quizAttempts = [], isLoading, refetch, isRefetching } = useUserQuizAttempts(user?.id, {
         limit: 20,
         offset: 0,
     });
+
+    React.useEffect(() => {
+        if (isBackendUserId(user?.id)) {
+            return;
+        }
+
+        let active = true;
+        void (async () => {
+            try {
+                const freshUser = await apiClient.getCurrentUser();
+                if (active) {
+                    setUser(freshUser);
+                }
+            } catch {
+                // Keep existing state if identity refresh fails.
+            }
+        })();
+
+        return () => {
+            active = false;
+        };
+    }, [user?.id, setUser]);
 
     const handleRefresh = () => {
         refetch();

@@ -94,8 +94,13 @@ export default function VerifyOTPScreen() {
                 await setCookieAuth();
                 apiClient.setToken(null);
             }
-            // Mark OTP payload as provisional; app flow will refresh /auth/me.
-            setUser(response.user, { markSynced: false });
+            try {
+                const freshUser = await apiClient.getCurrentUser();
+                setUser(freshUser);
+            } catch {
+                // Keep provisional user data if /auth/me is briefly unavailable.
+                setUser(response.user, { markSynced: false });
+            }
 
             // Check if assessment is complete
             const assessmentComplete = await getItem("assessmentComplete");

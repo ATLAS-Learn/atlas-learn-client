@@ -2,6 +2,11 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { QuizSubmission, UserQuizAttempt, UserQuizAttemptsQueryParams } from "@/lib/types";
 
+function isBackendUserId(userId: string | undefined): userId is string {
+    if (!userId) return false;
+    return /^c[a-z0-9]{8,}$/i.test(userId);
+}
+
 export function useQuizzes(limit?: number) {
     return useQuery({
         queryKey: ["quizzes", limit ?? "all"],
@@ -28,10 +33,12 @@ export function useUserQuizAttempts(
     userId: string | undefined,
     params: UserQuizAttemptsQueryParams = {}
 ) {
+    const canFetchAttempts = isBackendUserId(userId);
+
     return useQuery<UserQuizAttempt[]>({
         queryKey: ["users", userId, "quiz-attempts", params.quizId ?? "all", params.limit ?? 10, params.offset ?? 0],
         queryFn: () => apiClient.getUserQuizAttempts(userId!, params),
-        enabled: !!userId,
+        enabled: canFetchAttempts,
     });
 }
 
