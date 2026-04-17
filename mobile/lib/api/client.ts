@@ -467,9 +467,12 @@ class APIClient {
         throw new Error(`Invalid user response (keys: ${payloadKeys}; data keys: ${dataKeys})`);
     }
 
-    private buildSubjectQueryParams(options: SubjectQueryOptions = {}) {
+    private buildSubjectQueryParams(options: SubjectQueryOptions = {}, config: { allowChapterDetails?: boolean } = {}) {
         const includeChapters = options.includeChapters === true;
-        const includeChapterDetails = includeChapters && options.includeChapterDetails === true;
+        const includeChapterDetails =
+            config.allowChapterDetails !== false &&
+            includeChapters &&
+            options.includeChapterDetails === true;
         const params: Record<string, string> = {};
         if (includeChapters) {
             params.includeChapters = "true";
@@ -930,7 +933,7 @@ class APIClient {
         >(
             `/subjects/${subjectId}`,
             {
-                params: this.buildSubjectQueryParams(options),
+                params: this.buildSubjectQueryParams(options, { allowChapterDetails: false }),
             }
         );
         return this.unwrapData<Subject>(response);
@@ -968,7 +971,7 @@ class APIClient {
         >(
             `/subjects/code/${encodeURIComponent(normalizedCode)}`,
             {
-                params: this.buildSubjectQueryParams(options),
+                params: this.buildSubjectQueryParams(options, { allowChapterDetails: false }),
             }
         );
         return this.unwrapData<Subject>(response);

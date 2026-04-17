@@ -67,7 +67,7 @@ export default function SubjectDetailScreen() {
         return value.filter((item): item is SubjectChapter => Boolean(item && typeof item === "object"));
     };
 
-    const loadFromSubjectsFallback = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
+    const loadSubjectAndChapters = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
         const allSubjects = await apiClient.getSubjects({
             includeChapters: true,
         });
@@ -83,31 +83,11 @@ export default function SubjectDetailScreen() {
             throw new Error("Subject not found");
         }
 
-        setResolvedSubjectId(matched.id);
-        setSubject(matched);
-        const sorted = [...toSubjectChapterArray(matched.chapters)].sort(
-            (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)
-        );
-        setChapters(sorted);
-    }, []);
-
-    const loadSubjectAndChapters = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
-        let subjectResponse: Subject;
-        if (targetSubjectCode) {
-            subjectResponse = await apiClient.getSubjectByCode(targetSubjectCode, {
-                includeChapters: true,
-            });
-        } else {
-            subjectResponse = await apiClient.getSubjectById(targetSubjectId, {
-                includeChapters: true,
-            });
-        }
-
-        const canonicalSubjectId = subjectResponse.id || targetSubjectId;
+        const canonicalSubjectId = matched.id || targetSubjectId;
         setResolvedSubjectId(canonicalSubjectId);
-        setSubject(subjectResponse);
+        setSubject(matched);
 
-        const embeddedChapters = toSubjectChapterArray(subjectResponse.chapters);
+        const embeddedChapters = toSubjectChapterArray(matched.chapters);
         if (embeddedChapters.length > 0) {
             const sorted = [...embeddedChapters].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
             setChapters(sorted);
@@ -126,18 +106,14 @@ export default function SubjectDetailScreen() {
         setLoading(true);
         setRefreshing(false);
         try {
-            try {
-                await loadSubjectAndChapters(subjectKey, subjectCodeKey);
-            } catch {
-                await loadFromSubjectsFallback(subjectKey, subjectCodeKey);
-            }
+            await loadSubjectAndChapters(subjectKey, subjectCodeKey);
         } catch (error: any) {
             Alert.alert("Error", error?.message || "Subject not found.");
             router.back();
         } finally {
             setLoading(false);
         }
-    }, [loadFromSubjectsFallback, loadSubjectAndChapters, router, subjectCodeKey, subjectKey]);
+    }, [loadSubjectAndChapters, router, subjectCodeKey, subjectKey]);
 
     useEffect(() => {
         initialize();
