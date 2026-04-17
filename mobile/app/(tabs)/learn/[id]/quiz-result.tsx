@@ -12,7 +12,6 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import QuizCelebration from "@/components/quizzes/quiz-celebration";
-import { apiClient } from "@/lib/api";
 
 export default function QuizResultScreen() {
     const router = useRouter();
@@ -85,30 +84,6 @@ export default function QuizResultScreen() {
         ],
     };
 
-    const getNextSubjectChapterId = async (currentChapterId: string, currentSubjectId: string) => {
-        const subjectChapters = await apiClient.getSubjectChapters(currentSubjectId);
-        const sorted = Array.isArray(subjectChapters)
-            ? [...subjectChapters].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-            : [];
-        const currentIndex = sorted.findIndex((chapter) => chapter.id === currentChapterId);
-        if (currentIndex < 0 || currentIndex >= sorted.length - 1) {
-            return undefined;
-        }
-        return sorted[currentIndex + 1]?.id;
-    };
-
-    const getNextGlobalChapterId = async (currentChapterId: string) => {
-        const chapters = await apiClient.getChapters();
-        const sorted = Array.isArray(chapters)
-            ? [...chapters].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-            : [];
-        const currentIndex = sorted.findIndex((chapter) => chapter.id === currentChapterId);
-        if (currentIndex < 0 || currentIndex >= sorted.length - 1) {
-            return undefined;
-        }
-        return sorted[currentIndex + 1]?.id;
-    };
-
     const handleContinue = async () => {
         if (!params.id) {
             router.replace("/(tabs)/learn");
@@ -134,16 +109,13 @@ export default function QuizResultScreen() {
 
         setContinuing(true);
         try {
-            const nextChapterId = subjectId
-                ? await getNextSubjectChapterId(params.id, subjectId)
-                : await getNextGlobalChapterId(params.id);
-
             if (subjectId) {
                 router.replace({
                     pathname: "/(tabs)/learn/subjects/[subjectId]",
                     params: {
                         subjectId,
-                        ...(nextChapterId ? { highlightChapterId: nextChapterId } : {}),
+                        fromChapterId: params.id,
+                        highlightUnlocked: "true",
                     },
                 } as any);
                 return;
@@ -151,7 +123,10 @@ export default function QuizResultScreen() {
 
             router.replace({
                 pathname: "/(tabs)/learn/chapters",
-                params: nextChapterId ? { highlightChapterId: nextChapterId } : {},
+                params: {
+                    fromChapterId: params.id,
+                    highlightUnlocked: "true",
+                },
             } as any);
         } catch (error: any) {
             Alert.alert("Error", error?.message || "Could not open the unlocked chapter list.");

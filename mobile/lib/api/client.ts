@@ -1406,8 +1406,9 @@ class APIClient {
             pastPaperReference:
                 typeof result.pastPaperReference === "string" ? result.pastPaperReference : undefined,
             unlockedNextChapter:
-                result.unlockedNextChapter !== null &&
-                result.unlockedNextChapter !== undefined,
+                result.unlockedNextChapter === true ||
+                result.unlockedNextChapter === "true" ||
+                result.unlockedNextChapter === 1,
         };
     }
 

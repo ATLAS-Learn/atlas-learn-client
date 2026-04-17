@@ -38,14 +38,18 @@ const getBoolean = (record: UnknownRecord, keys: string[]): boolean =>
 
 export default function SubjectDetailScreen() {
     const router = useRouter();
-    const { subjectId, subjectCode, highlightChapterId } = useLocalSearchParams<{
+    const { subjectId, subjectCode, highlightChapterId, fromChapterId, highlightUnlocked } = useLocalSearchParams<{
         subjectId: string;
         subjectCode?: string;
         highlightChapterId?: string;
+        fromChapterId?: string;
+        highlightUnlocked?: string;
     }>();
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
     const subjectCodeKey = Array.isArray(subjectCode) ? subjectCode[0] : subjectCode;
-    const highlightedChapterId = Array.isArray(highlightChapterId) ? highlightChapterId[0] : highlightChapterId;
+    const explicitHighlightedChapterId = Array.isArray(highlightChapterId) ? highlightChapterId[0] : highlightChapterId;
+    const fromChapterKey = Array.isArray(fromChapterId) ? fromChapterId[0] : fromChapterId;
+    const shouldHighlightUnlocked = (Array.isArray(highlightUnlocked) ? highlightUnlocked[0] : highlightUnlocked) === "true";
     const { data: overallProgress } = useOverallProgress();
     const scrollViewRef = useRef<ScrollView | null>(null);
     const chapterOffsetsRef = useRef<Record<string, number>>({});
@@ -207,16 +211,30 @@ export default function SubjectDetailScreen() {
         [chapters, completedChapterIds]
     );
 
+    const derivedHighlightedChapterId = useMemo(() => {
+        if (explicitHighlightedChapterId && chapters.some((chapter) => chapter.id === explicitHighlightedChapterId)) {
+            return explicitHighlightedChapterId;
+        }
+        if (!shouldHighlightUnlocked || !fromChapterKey) {
+            return undefined;
+        }
+        const currentIndex = chapters.findIndex((chapter) => chapter.id === fromChapterKey);
+        if (currentIndex < 0 || currentIndex >= chapters.length - 1) {
+            return undefined;
+        }
+        return chapters[currentIndex + 1]?.id;
+    }, [chapters, explicitHighlightedChapterId, fromChapterKey, shouldHighlightUnlocked]);
+
     useEffect(() => {
-        if (!highlightedChapterId || !chapters.some((chapter) => chapter.id === highlightedChapterId)) {
+        if (!derivedHighlightedChapterId || !chapters.some((chapter) => chapter.id === derivedHighlightedChapterId)) {
             return;
         }
 
-        setActiveHighlightChapterId(highlightedChapterId);
+        setActiveHighlightChapterId(derivedHighlightedChapterId);
         highlightAnimation.setValue(1);
 
         const scrollTimeout = setTimeout(() => {
-            const offsetY = chapterOffsetsRef.current[highlightedChapterId];
+            const offsetY = chapterOffsetsRef.current[derivedHighlightedChapterId];
             if (typeof offsetY === "number") {
                 scrollViewRef.current?.scrollTo({
                     y: Math.max(0, offsetY - 24),
@@ -252,7 +270,7 @@ export default function SubjectDetailScreen() {
             clearTimeout(clearTimeoutId);
             loop.stop();
         };
-    }, [chapters, highlightAnimation, highlightedChapterId]);
+    }, [chapters, derivedHighlightedChapterId, highlightAnimation]);
 
     if (loading) {
         return (

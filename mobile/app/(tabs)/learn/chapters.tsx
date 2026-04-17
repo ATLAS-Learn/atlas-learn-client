@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Animated,
     View,
@@ -18,8 +18,14 @@ import { useUserStore } from "@/lib/store/user";
 
 export default function ChaptersListScreen() {
     const router = useRouter();
-    const { highlightChapterId } = useLocalSearchParams<{ highlightChapterId?: string }>();
-    const highlightedChapterId = Array.isArray(highlightChapterId) ? highlightChapterId[0] : highlightChapterId;
+    const { highlightChapterId, fromChapterId, highlightUnlocked } = useLocalSearchParams<{
+        highlightChapterId?: string;
+        fromChapterId?: string;
+        highlightUnlocked?: string;
+    }>();
+    const explicitHighlightedChapterId = Array.isArray(highlightChapterId) ? highlightChapterId[0] : highlightChapterId;
+    const fromChapterKey = Array.isArray(fromChapterId) ? fromChapterId[0] : fromChapterId;
+    const shouldHighlightUnlocked = (Array.isArray(highlightUnlocked) ? highlightUnlocked[0] : highlightUnlocked) === "true";
     const { user } = useUserStore();
     const scrollViewRef = useRef<ScrollView | null>(null);
     const chapterOffsetsRef = useRef<Record<string, number>>({});
@@ -67,16 +73,30 @@ export default function ChaptersListScreen() {
         loadChapters();
     }, [loadChapters]);
 
+    const derivedHighlightedChapterId = useMemo(() => {
+        if (explicitHighlightedChapterId && chapters.some((chapter) => chapter.id === explicitHighlightedChapterId)) {
+            return explicitHighlightedChapterId;
+        }
+        if (!shouldHighlightUnlocked || !fromChapterKey) {
+            return undefined;
+        }
+        const currentIndex = chapters.findIndex((chapter) => chapter.id === fromChapterKey);
+        if (currentIndex < 0 || currentIndex >= chapters.length - 1) {
+            return undefined;
+        }
+        return chapters[currentIndex + 1]?.id;
+    }, [chapters, explicitHighlightedChapterId, fromChapterKey, shouldHighlightUnlocked]);
+
     useEffect(() => {
-        if (!highlightedChapterId || !chapters.some((chapter) => chapter.id === highlightedChapterId)) {
+        if (!derivedHighlightedChapterId || !chapters.some((chapter) => chapter.id === derivedHighlightedChapterId)) {
             return;
         }
 
-        setActiveHighlightChapterId(highlightedChapterId);
+        setActiveHighlightChapterId(derivedHighlightedChapterId);
         highlightAnimation.setValue(1);
 
         const scrollTimeout = setTimeout(() => {
-            const offsetY = chapterOffsetsRef.current[highlightedChapterId];
+            const offsetY = chapterOffsetsRef.current[derivedHighlightedChapterId];
             if (typeof offsetY === "number") {
                 scrollViewRef.current?.scrollTo({
                     y: Math.max(0, offsetY - 24),
@@ -112,7 +132,7 @@ export default function ChaptersListScreen() {
             clearTimeout(clearTimeoutId);
             loop.stop();
         };
-    }, [chapters, highlightAnimation, highlightedChapterId]);
+    }, [chapters, derivedHighlightedChapterId, highlightAnimation]);
 
     const handleRefresh = () => {
         setRefreshing(true);
