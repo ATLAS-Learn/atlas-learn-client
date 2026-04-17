@@ -297,11 +297,15 @@ export default function SubjectDetailScreen() {
                         const isHighlighted = activeHighlightChapterId === chapter.id;
                         const highlightedBackground = highlightAnimation.interpolate({
                             inputRange: [0, 1],
-                            outputRange: ["#FFFFFF", "#FFF7E1"],
+                            outputRange: ["#FFFFFF", "#FDE7A8"],
                         });
                         const highlightedBorder = highlightAnimation.interpolate({
                             inputRange: [0, 1],
-                            outputRange: ["#EAEAEA", "#F2B138"],
+                            outputRange: ["#EAEAEA", "#BF522A"],
+                        });
+                        const highlightedScale = highlightAnimation.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [1, 1.015],
                         });
 
                         return (
@@ -311,6 +315,14 @@ export default function SubjectDetailScreen() {
                                     styles.chapterCard,
                                     locked && styles.chapterCardLocked,
                                     completed && styles.chapterCardCompleted,
+                                    isHighlighted && {
+                                        transform: [{ scale: highlightedScale }],
+                                        shadowColor: "#BF522A",
+                                        shadowOffset: { width: 0, height: 8 },
+                                        shadowOpacity: 0.18,
+                                        shadowRadius: 18,
+                                        elevation: 6,
+                                    },
                                     isHighlighted && {
                                         backgroundColor: highlightedBackground,
                                         borderColor: highlightedBorder,
@@ -480,7 +492,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 999,
-        backgroundColor: "#FDE5B5",
+        backgroundColor: "#FDE7A8",
     },
     unlockedText: { fontSize: 11, fontWeight: "700", color: "#8A5D00" },
 });

@@ -1,16 +1,46 @@
 import { MiddleSection } from "@/components/intro/middle-section";
-import { TopBanner } from "@/components/intro/top-banner";
+import { ONBOARDING_IMAGE_MODULES, TopBanner } from "@/components/intro/top-banner";
 import { INTRO_STEPS } from "@/lib/constants";
 import { setItem } from "@/lib/utils/storage";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { ActivityIndicator, Image, Text, TouchableHighlight, View, useWindowDimensions } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Image as RNImage, Text, TouchableHighlight, View, useWindowDimensions } from "react-native";
+
+const ONBOARDING_ARROW_IMAGE = require("@/assets/images/icons/arrow-right.png");
 
 export default function Intro() {
   const [currentStep, setCurrentStep] = useState(1);
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(false);
+  const [assetsReady, setAssetsReady] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const preloadAssets = async () => {
+      try {
+        const preloadUris = [...ONBOARDING_IMAGE_MODULES, ONBOARDING_ARROW_IMAGE]
+          .map((asset) => RNImage.resolveAssetSource(asset)?.uri)
+          .filter((uri): uri is string => Boolean(uri));
+        if (preloadUris.length > 0) {
+          await Image.prefetch(preloadUris, "memory-disk");
+        }
+      } finally {
+        if (isMounted) {
+          setAssetsReady(true);
+        }
+      }
+    };
+
+    void preloadAssets();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const completeOnboarding = async () => {
     if (isLoading) return;
     await setItem("onboardingComplete", "true");
@@ -25,6 +55,17 @@ export default function Intro() {
   const containerPadding = width < 390 ? 16 : 25;
   const gapSize = width < 390 ? 20 : 28;
   const topPadding = Math.max(16, Math.floor(height * 0.05));
+
+  if (!assetsReady) {
+    return (
+      <View
+        className="flex-1 justify-center items-center"
+        style={{ padding: containerPadding, paddingTop: topPadding }}
+      >
+        <ActivityIndicator color="#F2B138" />
+      </View>
+    );
+  }
 
   return (
     <View
@@ -66,12 +107,15 @@ export default function Intro() {
           ) : (
             <View className="w-full flex flex-row h-full justify-center items-center gap-[8px]">
               <Text className="text-white text-[16px] font-semibold">
-                {currentStep === INTRO_STEPS ? "Start your Journey!" : "Next"}
+              {currentStep === INTRO_STEPS ? "Start your Journey!" : "Next"}
               </Text>
               {currentStep !== INTRO_STEPS && (
                 <Image
-                  source={require("@/assets/images/icons/arrow-right.png")}
-                  resizeMode="contain"
+                  source={ONBOARDING_ARROW_IMAGE}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                  transition={80}
+                  style={{ width: 20, height: 20 }}
                 />
               )}
             </View>
