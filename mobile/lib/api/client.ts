@@ -167,6 +167,11 @@ class APIClient {
         );
     }
 
+    private isBackendUserId(userId: string | undefined | null): userId is string {
+        if (!userId) return false;
+        return /^c[a-z0-9]{8,}$/i.test(userId);
+    }
+
     private async request<T>(
         endpoint: string,
         options: {
@@ -1436,6 +1441,10 @@ class APIClient {
         userId: string,
         params: UserQuizAttemptsQueryParams = {}
     ): Promise<UserQuizAttempt[]> {
+        if (!this.isBackendUserId(userId)) {
+            return [];
+        }
+
         const response = await this.request<
             | UserQuizAttempt[]
             | {

@@ -7,6 +7,11 @@ import { apiClient } from "@/lib/api";
 
 const USER_CACHE_MAX_AGE_MS = 1000 * 60 * 15;
 
+function isBackendUserId(userId: string | undefined | null): userId is string {
+  if (!userId) return false;
+  return /^c[a-z0-9]{8,}$/i.test(userId);
+}
+
 export function useAppFlow() {
   const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(
     null
@@ -50,7 +55,9 @@ export function useAppFlow() {
         // Token sessions use Authorization header, cookie sessions rely on HTTP-only cookie.
         apiClient.setToken(token || null);
 
-        const hasUserIdentity = Boolean(user?.id && user?.email && user?.name?.trim());
+        const hasUserIdentity = Boolean(
+          isBackendUserId(user?.id) && user?.email && user?.name?.trim()
+        );
         const isFreshCache =
           typeof lastSyncedAt === "number" &&
           Date.now() - lastSyncedAt < USER_CACHE_MAX_AGE_MS;
