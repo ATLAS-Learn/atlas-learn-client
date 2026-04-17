@@ -70,7 +70,6 @@ export default function SubjectDetailScreen() {
     const loadFromSubjectsFallback = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
         const allSubjects = await apiClient.getSubjects({
             includeChapters: true,
-            includeChapterDetails: true,
         });
         const code = targetSubjectCode?.trim().toUpperCase();
         const matched = allSubjects.find((item) => {
@@ -97,12 +96,10 @@ export default function SubjectDetailScreen() {
         if (targetSubjectCode) {
             subjectResponse = await apiClient.getSubjectByCode(targetSubjectCode, {
                 includeChapters: true,
-                includeChapterDetails: true,
             });
         } else {
             subjectResponse = await apiClient.getSubjectById(targetSubjectId, {
                 includeChapters: true,
-                includeChapterDetails: true,
             });
         }
 
