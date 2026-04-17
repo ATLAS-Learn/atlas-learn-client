@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
-import { VictoryAxis, VictoryArea, VictoryChart, VictoryLine, VictoryScatter } from "victory-native";
+import { VictoryAxis, VictoryBar, VictoryChart } from "victory-native";
 import { UserQuizAttempt } from "@/lib/types";
 
 interface QuizScoresChartProps {
@@ -16,25 +16,37 @@ export default function QuizScoresChart({ attempts }: QuizScoresChartProps) {
         );
     }
 
-    // Sort attempts by date and prepare data for chart
-    const chartData = [...attempts]
+    const orderedAttempts = [...attempts]
         .sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime())
-        .map((attempt, index) => ({
-            x: index + 1,
-            y: typeof attempt.percentage === "number" ? attempt.percentage : attempt.score,
-            label: `${Math.round(typeof attempt.percentage === "number" ? attempt.percentage : attempt.score)}%`,
-        }));
+        .slice(-6);
 
-    const screenWidth = Dimensions.get("window").width - 48; // Account for padding
+    const chartData = orderedAttempts.map((attempt, index) => ({
+        x: index + 1,
+        y: Math.max(
+            0,
+            Math.min(100, Math.round(typeof attempt.percentage === "number" ? attempt.percentage : attempt.score))
+        ),
+        label: new Date(attempt.completedAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+        }),
+        fill: index === orderedAttempts.length - 1 ? "#F2B138" : "#12A67C",
+    }));
+
+    const screenWidth = Dimensions.get("window").width - 48;
     const latestScore = chartData[chartData.length - 1]?.y ?? 0;
     const highestScore = chartData.reduce((max, point) => Math.max(max, point.y), 0);
+    const averageScore =
+        chartData.length > 0
+            ? Math.round(chartData.reduce((sum, point) => sum + point.y, 0) / chartData.length)
+            : 0;
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <View>
                     <Text style={styles.title}>Progress Trend</Text>
-                    <Text style={styles.subtitle}>A simple view of how your recent quiz scores are moving.</Text>
+                    <Text style={styles.subtitle}>Your last {chartData.length} quiz attempts at a glance.</Text>
                 </View>
                 <View style={styles.summaryPill}>
                     <Text style={styles.summaryValue}>{Math.round(latestScore)}%</Text>
@@ -51,67 +63,52 @@ export default function QuizScoresChart({ attempts }: QuizScoresChartProps) {
                     <Text style={styles.summaryCardLabel}>Attempts</Text>
                     <Text style={styles.summaryCardValue}>{chartData.length}</Text>
                 </View>
+                <View style={styles.summaryCard}>
+                    <Text style={styles.summaryCardLabel}>Average</Text>
+                    <Text style={styles.summaryCardValue}>{averageScore}%</Text>
+                </View>
             </View>
 
-            <VictoryChart
-                width={screenWidth}
-                height={250}
-                domain={{ y: [0, 100] }}
-                padding={{ left: 44, right: 18, top: 24, bottom: 42 }}
-            >
-                <VictoryAxis
-                    tickValues={chartData.map((point) => point.x)}
-                    style={{
-                        axis: { stroke: "#D9E4E1" },
-                        grid: { stroke: "transparent" },
-                        ticks: { stroke: "#D9E4E1", size: 4 },
-                        tickLabels: { fontSize: 10, fill: "#6E7E7A", padding: 6 },
-                    }}
-                />
-                <VictoryAxis
-                    dependentAxis
-                    tickValues={[0, 25, 50, 75, 100]}
-                    style={{
-                        axis: { stroke: "transparent" },
-                        grid: { stroke: "#E9EFED", strokeDasharray: "6, 6" },
-                        ticks: { stroke: "transparent" },
-                        tickLabels: { fontSize: 10, fill: "#6E7E7A", padding: 6 },
-                    }}
-                />
-                <VictoryArea
-                    data={chartData}
-                    interpolation="monotoneX"
-                    style={{
-                        data: {
-                            fill: "#F2B138",
-                            fillOpacity: 0.18,
-                            stroke: "transparent",
-                        },
-                    }}
-                />
-                <VictoryLine
-                    data={chartData}
-                    interpolation="monotoneX"
-                    style={{
-                        data: {
-                            stroke: "#084A59",
-                            strokeWidth: 3,
-                            strokeLinecap: "round",
-                        },
-                    }}
-                />
-                <VictoryScatter
-                    data={chartData}
-                    size={4.5}
-                    style={{
-                        data: {
-                            fill: "#12A67C",
-                            stroke: "#FFFFFF",
-                            strokeWidth: 2,
-                        },
-                    }}
-                />
-            </VictoryChart>
+            <View style={styles.chartPanel}>
+                <VictoryChart
+                    width={screenWidth}
+                    height={260}
+                    domain={{ y: [0, 100] }}
+                    padding={{ left: 48, right: 20, top: 20, bottom: 50 }}
+                >
+                    <VictoryAxis
+                        tickValues={chartData.map((point) => point.x)}
+                        tickFormat={chartData.map((point) => point.label)}
+                        style={{
+                            axis: { stroke: "#D7E5E1" },
+                            grid: { stroke: "transparent" },
+                            ticks: { stroke: "#D7E5E1", size: 4 },
+                            tickLabels: { fontSize: 10, fill: "#5F7470", padding: 8 },
+                        }}
+                    />
+                    <VictoryAxis
+                        dependentAxis
+                        tickValues={[0, 25, 50, 75, 100]}
+                        tickFormat={(value) => `${value}%`}
+                        style={{
+                            axis: { stroke: "transparent" },
+                            grid: { stroke: "#E5EFEC", strokeDasharray: "4, 6" },
+                            ticks: { stroke: "transparent" },
+                            tickLabels: { fontSize: 10, fill: "#5F7470", padding: 8 },
+                        }}
+                    />
+                    <VictoryBar
+                        data={chartData}
+                        cornerRadius={{ top: 8 }}
+                        barRatio={0.62}
+                        style={{
+                            data: {
+                                fill: ({ datum }) => datum.fill,
+                            },
+                        }}
+                    />
+                </VictoryChart>
+            </View>
         </View>
     );
 }
@@ -167,7 +164,7 @@ const styles = StyleSheet.create({
     summaryRow: {
         flexDirection: "row",
         gap: 10,
-        marginBottom: 6,
+        marginBottom: 12,
     },
     summaryCard: {
         flex: 1,
@@ -185,6 +182,13 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "800",
         color: "#011C26",
+    },
+    chartPanel: {
+        borderRadius: 18,
+        backgroundColor: "#F8FBFA",
+        borderWidth: 1,
+        borderColor: "#E6EFEC",
+        overflow: "hidden",
     },
     emptyContainer: {
         padding: 40,

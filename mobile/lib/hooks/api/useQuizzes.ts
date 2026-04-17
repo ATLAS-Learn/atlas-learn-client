@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import { QuizSubmission, UserQuizAttempt } from "@/lib/types";
+import { QuizSubmission, UserQuizAttempt, UserQuizAttemptsQueryParams } from "@/lib/types";
 
 export function useQuizzes(limit?: number) {
     return useQuery({
@@ -24,10 +24,13 @@ export function useSubmitQuiz() {
     });
 }
 
-export function useUserQuizAttempts(userId: string | undefined) {
+export function useUserQuizAttempts(
+    userId: string | undefined,
+    params: UserQuizAttemptsQueryParams = {}
+) {
     return useQuery<UserQuizAttempt[]>({
-        queryKey: ["users", userId, "quiz-attempts"],
-        queryFn: () => apiClient.getUserQuizAttempts(userId!),
+        queryKey: ["users", userId, "quiz-attempts", params.quizId ?? "all", params.limit ?? 10, params.offset ?? 0],
+        queryFn: () => apiClient.getUserQuizAttempts(userId!, params),
         enabled: !!userId,
     });
 }

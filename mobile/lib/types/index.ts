@@ -508,6 +508,12 @@ export interface UserQuizAttempt {
     passed?: boolean;
 }
 
+export interface UserQuizAttemptsQueryParams {
+    quizId?: string;
+    limit?: number;
+    offset?: number;
+}
+
 export interface QuizStats {
     quizId: string;
     totalAttempts: number;

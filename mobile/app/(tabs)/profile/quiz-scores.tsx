@@ -17,7 +17,10 @@ import QuizScoresChart from "@/components/charts/QuizScoresChart";
 export default function QuizScoresScreen() {
     const router = useRouter();
     const { user } = useUserStore();
-    const { data: quizAttempts = [], isLoading, refetch, isRefetching } = useUserQuizAttempts(user?.id);
+    const { data: quizAttempts = [], isLoading, refetch, isRefetching } = useUserQuizAttempts(user?.id, {
+        limit: 20,
+        offset: 0,
+    });
 
     const handleRefresh = () => {
         refetch();
@@ -51,6 +54,10 @@ export default function QuizScoresScreen() {
         return `${minutes} min`;
     };
 
+    const sortedAttempts = [...quizAttempts].sort(
+        (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+    );
+
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
@@ -75,7 +82,7 @@ export default function QuizScoresScreen() {
                 contentContainerStyle={styles.content}
                 refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
             >
-                {quizAttempts.length > 0 && <QuizScoresChart attempts={quizAttempts} />}
+                {quizAttempts.length > 0 && <QuizScoresChart attempts={sortedAttempts} />}
                 
                 {quizAttempts.length === 0 ? (
                     <View style={styles.emptyContainer}>
@@ -86,13 +93,11 @@ export default function QuizScoresScreen() {
                         </Text>
                     </View>
                 ) : (
-                    [...quizAttempts]
-                    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
-                    .map((attempt, index) => {
+                    sortedAttempts.map((attempt, index) => {
                         const passed = attempt.passed;
                         const percentage = typeof attempt.percentage === "number" ? attempt.percentage : attempt.score;
                         const hasPassFail = typeof passed === "boolean";
-                        const attemptTitle = `Attempt ${quizAttempts.length - index}`;
+                        const attemptTitle = index === 0 ? "Latest attempt" : `Attempt ${sortedAttempts.length - index}`;
                         const scoreOutOf = typeof attempt.answers?.length === "number" && attempt.answers.length > 0
                             ? `out of ${attempt.answers.length}`
                             : "points";
@@ -108,7 +113,7 @@ export default function QuizScoresScreen() {
                                             {formatDate(attempt.completedAt)}
                                         </Text>
                                         <Text style={styles.quizMeta}>
-                                            Taken {formatShortDate(attempt.completedAt)} • {formatTimeSpent(attempt.timeSpent)}
+                                            {formatShortDate(attempt.completedAt)} • {formatTimeSpent(attempt.timeSpent)}
                                         </Text>
                                     </View>
                                     <View

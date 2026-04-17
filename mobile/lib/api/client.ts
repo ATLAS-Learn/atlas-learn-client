@@ -18,6 +18,7 @@ import {
     QuizResult,
     QuizAttempt,
     UserQuizAttempt,
+    UserQuizAttemptsQueryParams,
     QuizStats,
     Level,
     OverallProgressData,
@@ -1431,7 +1432,10 @@ class APIClient {
         return [];
     }
 
-    async getUserQuizAttempts(userId: string): Promise<UserQuizAttempt[]> {
+    async getUserQuizAttempts(
+        userId: string,
+        params: UserQuizAttemptsQueryParams = {}
+    ): Promise<UserQuizAttempt[]> {
         const response = await this.request<
             | UserQuizAttempt[]
             | {
@@ -1445,7 +1449,13 @@ class APIClient {
                     hasMore?: boolean;
                 };
             }
-        >(`/users/${userId}/quiz-attempts`);
+        >(`/users/${userId}/quiz-attempts`, {
+            params: {
+                quizId: params.quizId,
+                limit: params.limit,
+                offset: params.offset,
+            },
+        });
         const rawAttempts = Array.isArray(response)
             ? response
             : Array.isArray(response?.data)
