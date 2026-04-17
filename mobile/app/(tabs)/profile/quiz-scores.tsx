@@ -34,8 +34,21 @@ export default function QuizScoresScreen() {
         });
     };
 
-    const getChapterTitle = (quizId: string): string => {
-        return `Quiz ${quizId.slice(0, 8)}`;
+    const formatShortDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        });
+    };
+
+    const formatTimeSpent = (timeSpent?: number) => {
+        if (typeof timeSpent !== "number" || !Number.isFinite(timeSpent) || timeSpent <= 0) {
+            return "Time not recorded";
+        }
+        const minutes = Math.max(1, Math.round(timeSpent / 60));
+        return `${minutes} min`;
     };
 
     if (isLoading) {
@@ -73,21 +86,29 @@ export default function QuizScoresScreen() {
                         </Text>
                     </View>
                 ) : (
-                    quizAttempts.map((attempt) => {
+                    [...quizAttempts]
+                    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+                    .map((attempt, index) => {
                         const passed = attempt.passed;
                         const percentage = typeof attempt.percentage === "number" ? attempt.percentage : attempt.score;
                         const hasPassFail = typeof passed === "boolean";
-                        const chapterTitle = getChapterTitle(attempt.quizId);
+                        const attemptTitle = `Attempt ${quizAttempts.length - index}`;
+                        const scoreOutOf = typeof attempt.answers?.length === "number" && attempt.answers.length > 0
+                            ? `out of ${attempt.answers.length}`
+                            : "points";
 
                         return (
                             <View key={attempt.id} style={styles.scoreCard}>
                                 <View style={styles.scoreHeader}>
                                     <View style={styles.scoreInfo}>
                                         <Text style={styles.quizTitle}>
-                                            {chapterTitle}
+                                            {attemptTitle}
                                         </Text>
                                         <Text style={styles.quizDate}>
                                             {formatDate(attempt.completedAt)}
+                                        </Text>
+                                        <Text style={styles.quizMeta}>
+                                            Taken {formatShortDate(attempt.completedAt)} • {formatTimeSpent(attempt.timeSpent)}
                                         </Text>
                                     </View>
                                     <View
@@ -136,7 +157,7 @@ export default function QuizScoresScreen() {
                                     <View style={styles.scoreItem}>
                                         <Text style={styles.scoreLabel}>Score</Text>
                                         <Text style={styles.scoreValue}>
-                                            {attempt.score}
+                                            {attempt.score} <Text style={styles.scoreValueMuted}>{scoreOutOf}</Text>
                                         </Text>
                                     </View>
                                     <View style={styles.scoreItem}>
@@ -251,6 +272,12 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: "#999",
     },
+    quizMeta: {
+        marginTop: 4,
+        fontSize: 12,
+        color: "#084A59",
+        fontWeight: "500",
+    },
     statusBadge: {
         flexDirection: "row",
         alignItems: "center",
@@ -300,6 +327,11 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "700",
         color: "#282F2E",
+    },
+    scoreValueMuted: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: "#999",
     },
     scorePercentage: {
         fontSize: 18,
