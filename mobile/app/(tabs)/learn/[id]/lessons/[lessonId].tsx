@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { Lesson, LessonWithProgress } from "@/lib/types";
 
@@ -38,6 +39,7 @@ const normalizeStringArray = (value: unknown): string[] => {
 
 export default function LessonDetailScreen() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { id, lessonId, subjectId } = useLocalSearchParams<{
         id: string;
         lessonId: string;
@@ -126,6 +128,7 @@ export default function LessonDetailScreen() {
                 }
             );
             setStatusMessage(response.message || "Progress updated.");
+            await queryClient.invalidateQueries({ queryKey: ["progress"] });
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to update lesson progress.");
         } finally {
@@ -140,6 +143,8 @@ export default function LessonDetailScreen() {
         try {
             const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey);
             setStatusMessage(response.message || "Lesson marked as completed.");
+            await queryClient.invalidateQueries({ queryKey: ["progress"] });
+            loadLesson();
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to complete lesson.");
         } finally {

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import QuestionCard from "@/components/quizzes/question-card";
 import QuizProgress from "@/components/quizzes/quiz-progress";
 import { apiClient } from "@/lib/api";
@@ -17,6 +18,7 @@ import { Quiz } from "@/lib/types";
 
 export default function QuizScreen() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { id } = useLocalSearchParams<{ id: string }>();
     const chapterId = Array.isArray(id) ? id[0] : id;
     const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -94,6 +96,7 @@ export default function QuizScreen() {
             };
 
             const result = await apiClient.submitQuiz(quiz.id, submission);
+            await queryClient.invalidateQueries({ queryKey: ["progress"] });
 
             router.push({
                 pathname: "/(tabs)/learn/[id]/quiz-result",
