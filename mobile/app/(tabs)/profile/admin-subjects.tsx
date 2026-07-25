@@ -342,7 +342,7 @@ export default function AdminSubjectsScreen() {
     setLessonTitle(lesson.title || "");
     setLessonContent(lesson.content || "");
     setLessonOrderIndex(lesson.orderIndex !== undefined ? String(lesson.orderIndex) : "");
-    setLessonEstimatedMinutes(lesson.estimatedMinutes !== undefined ? String(lesson.estimatedMinutes) : "");
+    setLessonEstimatedMinutes(lesson.durationMinutes !== undefined ? String(lesson.durationMinutes) : "");
     setLessonVideoUrl(lesson.videoUrl || "");
     setLessonPdfUrl(lesson.pdfUrl || "");
     setLessonExamples(lesson.examples ? JSON.stringify(lesson.examples, null, 2) : "");
@@ -464,11 +464,11 @@ export default function AdminSubjectsScreen() {
         title: lessonTitle.trim(),
         content: lessonContent.trim() || undefined,
         orderIndex: parseOptionalInteger(lessonOrderIndex),
-        estimatedMinutes: parseOptionalInteger(lessonEstimatedMinutes),
+        durationMinutes: parseOptionalInteger(lessonEstimatedMinutes),
         videoUrl: lessonVideoUrl.trim() || undefined,
         pdfUrl: lessonPdfUrl.trim() || undefined,
         examples: parsedExamples,
-        keyPoints: parsedKeyPoints,
+        keyPoints: Array.isArray(parsedKeyPoints) ? parsedKeyPoints.map(String) : undefined,
       };
 
       if (editingLessonId) {
@@ -1072,7 +1072,7 @@ export default function AdminSubjectsScreen() {
                     <Text style={styles.cardTitle}>{lesson.title || "Untitled Lesson"}</Text>
                     <Text style={styles.metaText}>ID: {lesson.id}</Text>
                     <Text style={styles.metaText}>Order: {lesson.orderIndex ?? "-"}</Text>
-                    <Text style={styles.metaText}>Minutes: {lesson.estimatedMinutes ?? "-"}</Text>
+                    <Text style={styles.metaText}>Minutes: {lesson.durationMinutes ?? "-"}</Text>
 
                     <View style={styles.cardActions}>
                       <TouchableOpacity style={styles.smallButton} onPress={() => openEditLesson(lesson)}>

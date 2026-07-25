@@ -20,10 +20,10 @@ export default function QuestionCard({
             return selectedAnswer === index ? styles.optionSelected : styles.option;
         }
 
-        if (index === question.correctAnswer) {
+        if (index === question.correctAnswerIndex) {
             return styles.optionCorrect;
         }
-        if (selectedAnswer === index && index !== question.correctAnswer) {
+        if (selectedAnswer === index && index !== question.correctAnswerIndex) {
             return styles.optionIncorrect;
         }
         return styles.option;
@@ -31,7 +31,7 @@ export default function QuestionCard({
 
     return (
         <View style={styles.container}>
-            <Text style={styles.questionText}>{question.question}</Text>
+            <Text style={styles.questionText}>{question.questionText}</Text>
             <View style={styles.optionsContainer}>
                 {question.options.map((option, index) => (
                     <TouchableOpacity
@@ -44,13 +44,13 @@ export default function QuestionCard({
                             style={[
                                 styles.optionText,
                                 selectedAnswer === index && styles.optionTextSelected,
-                                showResult && index === question.correctAnswer && styles.optionTextCorrect,
-                                showResult && selectedAnswer === index && index !== question.correctAnswer && styles.optionTextIncorrect,
+                                showResult && index === question.correctAnswerIndex && styles.optionTextCorrect,
+                                showResult && selectedAnswer === index && index !== question.correctAnswerIndex && styles.optionTextIncorrect,
                             ]}
                         >
                             {option}
                         </Text>
-                        {showResult && index === question.correctAnswer && (
+                        {showResult && index === question.correctAnswerIndex && (
                             <Text style={styles.correctBadge}>✓ Correct</Text>
                         )}
                     </TouchableOpacity>

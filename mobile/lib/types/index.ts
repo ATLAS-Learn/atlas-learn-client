@@ -30,19 +30,21 @@ export interface RoleUpgradeDecisionResponse {
 }
 
 export interface PendingRoleUpgradeRequest {
-    id: string;
-    userId: string;
-    reason: string;
-    school: string;
-    status: RoleUpgradeStatus;
-    createdAt: string;
-    updatedAt: string;
-    user?: {
+    requestId: string;
+    user: {
         id: string;
         email: string;
         name: string;
         role: string;
+        school?: string;
     };
+    details: {
+        requestedRole: string;
+        reason?: string;
+        school?: string;
+    };
+    requestedAt: string;
+    expiresAt: string;
 }
 
 export enum Level {
@@ -273,10 +275,11 @@ export interface SubjectChapterUnlockResponse {
 
 export interface SubjectExamHint {
     id: string;
-    title?: string;
-    hint?: string;
+    chapterId: string;
+    paperCode: string;
+    paperName: string;
+    questionRef?: string;
     description?: string;
-    [key: string]: unknown;
 }
 
 export interface ChapterPdfMaterial {
@@ -295,52 +298,67 @@ export interface ChapterLesson {
 
 export interface Lesson {
     id: string;
-    title?: string;
+    title: string;
     content?: string;
-    orderIndex?: number;
-    estimatedMinutes?: number;
+    orderIndex: number;
     videoUrl?: string;
-    durationSeconds?: number;
+    durationMinutes: number;
+    isFree: boolean;
+    requiredScoreToUnlock: number;
     pdfUrl?: string;
+    externalLinks?: ExternalLink[];
     examples?: unknown;
-    keyPoints?: unknown;
-    chapterId?: string;
+    keyPoints?: string[];
+    chapterId: string;
     createdAt?: string;
     updatedAt?: string;
-    [key: string]: unknown;
 }
 
 export interface CreateLessonPayload {
     title: string;
     content?: string;
     orderIndex?: number;
-    estimatedMinutes?: number;
     videoUrl?: string;
-    durationSeconds?: number;
+    durationMinutes?: number;
+    isFree?: boolean;
+    requiredScoreToUnlock?: number;
     pdfUrl?: string;
+    externalLinks?: ExternalLink[];
     examples?: unknown;
-    keyPoints?: unknown;
-    [key: string]: unknown;
+    keyPoints?: string[];
 }
 
 export interface UpdateLessonPayload {
     title?: string;
     content?: string;
     orderIndex?: number;
-    estimatedMinutes?: number;
     videoUrl?: string;
-    durationSeconds?: number;
+    durationMinutes?: number;
+    isFree?: boolean;
+    requiredScoreToUnlock?: number;
     pdfUrl?: string;
+    externalLinks?: ExternalLink[];
     examples?: unknown;
-    keyPoints?: unknown;
-    [key: string]: unknown;
+    keyPoints?: string[];
 }
 
 export interface LessonProgressUpdatePayload {
-    watchTimeSeconds?: number;
-    positionSeconds?: number;
-    progressPercent?: number;
-    [key: string]: unknown;
+    timeSpent: number;
+    isCompleted?: boolean;
+}
+
+export interface LessonProgressEntry {
+    id: string;
+    userId: string;
+    lessonId: string;
+    isCompleted: boolean;
+    timeSpent: number;
+    lastAccessedAt?: string;
+}
+
+export interface LessonWithProgress extends Lesson {
+    LessonProgress?: LessonProgressEntry[];
+    isCompleted?: boolean;
 }
 
 export interface LessonCompletionResponse {
@@ -373,30 +391,32 @@ export interface ChapterUnlockResponse {
 
 export interface ChapterExamHint {
     id: string;
-    title?: string;
-    hint?: string;
+    chapterId: string;
+    paperCode: string;
+    paperName: string;
+    questionRef?: string;
     description?: string;
-    [key: string]: unknown;
 }
 
 // Chapter and Content Types
 export interface Chapter {
     id: string;
     title: string;
-    description: string;
-    level: Level;
-    order: number;
-    content: ChapterSection[];
-    subject: string;
-    subjectId?: string;
-    estimatedTime: number; // in minutes
+    description?: string;
+    orderIndex: number;
+    unlockThreshold: number;
+    estimatedMinutes: number;
+    pdfUrl?: string;
+    externalLinks?: ExternalLink[];
+    subjectId: string;
 }
 
 export interface ExternalLink {
-    id: string;
+    id?: string;
     title: string;
     url: string;
-    type: "video" | "document" | "article" | "other";
+    type: string;
+    description?: string;
 }
 
 export interface ChapterSection {
@@ -411,30 +431,51 @@ export interface ChapterSection {
 // Quiz Types
 export interface QuizQuestion {
     id: string;
-    question: string;
+    questionText: string;
     options: string[];
-    correctAnswer: number;
+    correctAnswerIndex: number;
     explanation?: string;
+    points: number;
+    quizId: string;
 }
 
 export interface Quiz {
     id: string;
+    title: string;
+    description?: string;
+    isSkipQuiz: boolean;
+    timeLimit?: number;
     chapterId: string;
-    questions: QuizQuestion[];
-    passingScore: number; // percentage, e.g., 80
+    questions?: QuizQuestion[];
 }
 
 export interface QuizSubmission {
-    answers: { questionId: string; answerIndex: number }[];
+    answers: number[];
+    timeSpent?: number;
 }
 
 export interface QuizResult {
+    attemptId: string;
     score: number;
+    correctAnswers: number;
     totalQuestions: number;
-    percentage: number;
+    earnedPoints: number;
+    totalPoints: number;
     passed: boolean;
-    pastPaperReference?: string; // e.g., "9708/12, Q3"
-    unlockedNextChapter: boolean;
+    unlockedNextChapter: {
+        id: string;
+        title: string;
+        description?: string;
+        orderIndex: number;
+        estimatedMinutes: number;
+        lessonCount: number;
+        quizCount: number;
+        firstLesson?: {
+            id: string;
+            title: string;
+            isFree: boolean;
+        };
+    } | null;
 }
 
 // Progress Types
@@ -496,23 +537,32 @@ export interface ChapterProgress {
 
 export interface QuizAttempt {
     id: string;
-    quizId: string;
-    userId: string;
     score: number;
-    percentage: number;
-    passed: boolean;
+    answers: number[];
+    timeSpent?: number;
     completedAt: string;
-    answers?: { questionId: string; answerIndex: number }[];
+    userId: string;
+    quizId: string;
+    // Computed fields (not from backend, calculated by frontend)
+    percentage?: number;
+    passed?: boolean;
 }
 
 export interface QuizStats {
-    quizId: string;
-    totalAttempts: number;
-    averageScore: number;
-    averagePercentage: number;
-    passRate: number;
-    totalUsers: number;
-    attempts: QuizAttempt[];
+    quiz: {
+        id: string;
+        title: string;
+        description?: string;
+    };
+    stats: {
+        totalAttempts: number;
+        totalQuestions: number;
+        averageScore: number;
+        highestScore: number;
+        lowestScore: number;
+        averageTimeSpent: number;
+        passRate: number;
+    };
 }
 
 // Dashboard Types
@@ -658,4 +708,113 @@ export interface TeacherStudentQuizAttemptsResponse {
         hasMore: boolean;
     };
     data: TeacherStudentQuizAttemptApiItem[];
+}
+
+// Admin Types
+export interface AdminUser {
+    id: string;
+    email: string;
+    name: string;
+    username?: string;
+    role: UserRole;
+    level?: Level;
+    school?: string;
+    examYear?: number;
+    isActive: boolean;
+    emailVerified?: boolean;
+    image?: string;
+    createdAt: string;
+    lastLoginAt?: string;
+}
+
+export interface AdminUsersListResponse {
+    success: boolean;
+    count: number;
+    total: number;
+    pagination: {
+        limit: number;
+        offset: number;
+        hasMore: boolean;
+    };
+    data: AdminUser[];
+}
+
+export interface AdminPlatformOverview {
+    users: {
+        total: number;
+        students: number;
+        teachers: number;
+        admins: number;
+        deactivated: number;
+    };
+    activeUsers: {
+        weekly: number;
+        monthly: number;
+    };
+    content: {
+        subjects: number;
+        chapters: number;
+        lessons: number;
+        quizzes: number;
+    };
+    quizzes: {
+        totalAttempts: number;
+        averageScore: number;
+    };
+}
+
+export interface AdminChapterCompletion {
+    primaryMetric: {
+        label: string;
+        chapter1CompletionRate: number;
+        chapter1QuizPassRate: number;
+    };
+    allChapters: {
+        chapterId: string;
+        title: string;
+        completionRate: number;
+        quizPassRate: number;
+        enrolledStudents: number;
+    }[];
+}
+
+export interface AdminQuizStats {
+    totalAttempts: number;
+    passRate: number;
+    averageScore: number;
+    byChapter: {
+        chapterId: string;
+        title: string;
+        attempts: number;
+        passRate: number;
+    }[];
+}
+
+export interface AdminWAU {
+    weeks: {
+        weekStart: string;
+        activeUsers: number;
+    }[];
+    currentWAU: number;
+    previousWAU: number;
+    growthPercent: number;
+}
+
+export interface AdminTeacherActivity {
+    teachers: {
+        teacherId: string;
+        name: string;
+        email: string;
+        studentCount: number;
+        lastActiveAt?: string;
+    }[];
+    totalActiveTeachers: number;
+}
+
+export interface AdminSignupTrend {
+    signups: {
+        date: string;
+        count: number;
+    }[];
+    totalSignups: number;
 }

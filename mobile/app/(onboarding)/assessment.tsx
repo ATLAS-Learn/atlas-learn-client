@@ -219,7 +219,14 @@ export default function AssessmentScreen() {
                 />
 
                 <QuestionCard
-                    question={currentQuestion}
+                    question={{
+                        id: currentQuestion.id,
+                        questionText: currentQuestion.question,
+                        options: currentQuestion.options,
+                        correctAnswerIndex: -1,
+                        points: 1,
+                        quizId: "",
+                    }}
                     selectedAnswer={answers[currentQuestion.id] ?? null}
                     onSelectAnswer={handleSelectAnswer}
                 />

@@ -12,7 +12,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { Chapter, Lesson } from "@/lib/types";
+import { Chapter, Lesson, LessonWithProgress } from "@/lib/types";
 import ChapterHeader from "@/components/lessons/chapter-header";
 import ContentSection from "@/components/lessons/content-section";
 
@@ -24,7 +24,7 @@ export default function ChapterScreen() {
     const [chapter, setChapter] = useState<Chapter | null>(null);
     const [resolvedSubjectId, setResolvedSubjectId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    const [lessons, setLessons] = useState<Lesson[]>([]);
+    const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
     const [lessonsLoading, setLessonsLoading] = useState(false);
     const [insightModalVisible, setInsightModalVisible] = useState(false);
     const [insightTitle, setInsightTitle] = useState("");
@@ -62,12 +62,6 @@ export default function ChapterScreen() {
             setLoading(false);
         }
     }, [chapterId, loadChapter]);
-
-    useEffect(() => {
-        if (chapterId && chapter) {
-            loadLessons();
-        }
-    }, [chapter, chapterId, loadLessons]);
 
     const handleStartQuiz = () => {
         if (!chapterId) return;
@@ -135,15 +129,21 @@ export default function ChapterScreen() {
                 resolvedSubjectId: subjectIdForRequest,
             });
             const data = subjectIdForRequest
-                ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId)
-                : await apiClient.getChapterLessons(chapterId);
-            setLessons(Array.isArray(data) ? data : []);
+                ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, true)
+                : await apiClient.getChapterLessons(chapterId, true);
+            setLessons(Array.isArray(data) ? (data as LessonWithProgress[]) : []);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to fetch chapter lessons.");
         } finally {
             setLessonsLoading(false);
         }
     }, [chapter, chapterId, resolvedSubjectId, resolveSubjectIdFromSubjects, subjectKey]);
+
+    useEffect(() => {
+        if (chapterId && chapter) {
+            loadLessons();
+        }
+    }, [chapter, chapterId, loadLessons]);
 
     const handleViewProgress = async () => {
         if (!chapterId) return;
@@ -249,7 +249,7 @@ export default function ChapterScreen() {
             </View>
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-                <ChapterHeader chapter={chapter} />
+                <ChapterHeader chapter={chapter} lessons={lessons} />
                 <View style={styles.actionRow}>
                     <TouchableOpacity style={styles.actionButton} onPress={handleViewPdf} disabled={loadingInsight}>
                         <Text style={styles.actionButtonText}>PDF</Text>
@@ -294,35 +294,48 @@ export default function ChapterScreen() {
                         <Text style={styles.emptyLessonsText}>No lessons yet.</Text>
                     </View>
                 ) : (
-                    lessons.map((lesson, index) => (
-                        <TouchableOpacity
-                            key={lesson.id}
-                            style={styles.lessonCard}
-                            onPress={() => handleOpenLesson(lesson.id)}
-                        >
-                            <View style={styles.lessonRow}>
-                                <Text style={styles.lessonIndex}>{lesson.orderIndex ?? index + 1}</Text>
-                                <View style={styles.lessonInfo}>
-                                    <Text style={styles.lessonTitle} numberOfLines={2}>
-                                        {lesson.title || "Untitled lesson"}
-                                    </Text>
-                                    <Text style={styles.lessonMeta}>
-                                        {lesson.estimatedMinutes
-                                            ? `${lesson.estimatedMinutes} min`
-                                            : lesson.durationSeconds
-                                              ? `${Math.ceil(lesson.durationSeconds / 60)} min`
-                                              : "Time n/a"}
-                                    </Text>
+                    lessons.map((lesson, index) => {
+                        const isCompleted = lesson.isCompleted || (lesson.LessonProgress && lesson.LessonProgress.length > 0 && lesson.LessonProgress[0]?.isCompleted);
+                        return (
+                            <TouchableOpacity
+                                key={lesson.id}
+                                style={[
+                                    styles.lessonCard,
+                                    isCompleted && styles.lessonCardCompleted,
+                                ]}
+                                onPress={() => handleOpenLesson(lesson.id)}
+                            >
+                                <View style={styles.lessonRow}>
+                                    {isCompleted ? (
+                                        <View style={styles.lessonIndexCompleted}>
+                                            <Ionicons name="checkmark" size={14} color="#fff" />
+                                        </View>
+                                    ) : (
+                                        <Text style={styles.lessonIndex}>{lesson.orderIndex ?? index + 1}</Text>
+                                    )}
+                                    <View style={styles.lessonInfo}>
+                                        <Text
+                                            style={[
+                                                styles.lessonTitle,
+                                                isCompleted && styles.lessonTitleCompleted,
+                                            ]}
+                                            numberOfLines={2}
+                                        >
+                                            {lesson.title || "Untitled lesson"}
+                                        </Text>
+                                        <Text style={styles.lessonMeta}>
+                                            {lesson.durationMinutes
+                                                ? `${lesson.durationMinutes} min`
+                                                : "Time n/a"}
+                                            {isCompleted ? " \u2022 Completed" : ""}
+                                        </Text>
+                                    </View>
                                 </View>
-                            </View>
-                            <Ionicons name="chevron-forward" size={20} color="#999" />
-                        </TouchableOpacity>
-                    ))
+                                <Ionicons name="chevron-forward" size={20} color={isCompleted ? "#4CAF50" : "#999"} />
+                            </TouchableOpacity>
+                        );
+                    })
                 )}
-
-                {(chapter.content || []).map((section) => (
-                    <ContentSection key={section.id} section={section} />
-                ))}
             </ScrollView>
 
             <View style={styles.footer}>
@@ -489,6 +502,10 @@ const styles = StyleSheet.create({
         borderColor: "#EAEAEA",
         marginBottom: 10,
     },
+    lessonCardCompleted: {
+        backgroundColor: "#E8F5E9",
+        borderColor: "#4CAF50",
+    },
     lessonRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -506,6 +523,14 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         fontSize: 13,
     },
+    lessonIndexCompleted: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: "#4CAF50",
+        alignItems: "center",
+        justifyContent: "center",
+    },
     lessonInfo: {
         flex: 1,
     },
@@ -513,6 +538,9 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "700",
         color: "#222",
+    },
+    lessonTitleCompleted: {
+        color: "#2E7D32",
     },
     lessonMeta: {
         marginTop: 4,

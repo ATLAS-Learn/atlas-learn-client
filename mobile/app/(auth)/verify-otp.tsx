@@ -27,7 +27,7 @@ export default function VerifyOTPScreen() {
     const params = useLocalSearchParams<{ email?: string; mode?: string; fullName?: string }>();
     const { setAuth, setCookieAuth } = useAuthStore();
     const { setUser } = useUserStore();
-    
+
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
@@ -61,7 +61,7 @@ export default function VerifyOTPScreen() {
                 return prev - 1;
             });
         }, 1000);
-        cooldownIntervalRef.current = interval;
+        cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
 
         return () => clearInterval(interval);
     }, []);
@@ -81,7 +81,7 @@ export default function VerifyOTPScreen() {
         setLoading(true);
         try {
             const response = await apiClient.verifyOTP(email, code);
-            
+
             // Set auth token and user
             if (response.token) {
                 await setAuth(response.token);
@@ -130,7 +130,7 @@ export default function VerifyOTPScreen() {
                 await apiClient.requestOTP(email);
             }
             Alert.alert("Success", "Verification code has been resent to your email.");
-            
+
             // Start 60s cooldown timer
             setCooldown(60);
             if (cooldownIntervalRef.current) {
@@ -145,7 +145,7 @@ export default function VerifyOTPScreen() {
                     return prev - 1;
                 });
             }, 1000);
-            cooldownIntervalRef.current = interval;
+            cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to resend verification code.");
         } finally {
@@ -234,8 +234,8 @@ export default function VerifyOTPScreen() {
 
                     <View style={styles.resendContainer}>
                         <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
-                        <TouchableOpacity 
-                            onPress={handleResend} 
+                        <TouchableOpacity
+                            onPress={handleResend}
                             disabled={resending || cooldown > 0}
                         >
                             {resending ? (

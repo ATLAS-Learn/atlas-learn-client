@@ -34,7 +34,7 @@ export default function ChaptersListScreen() {
                 apiClient.getOverallProgress(),
             ]);
 
-            const sortedAllChapters = [...data].sort((a, b) => a.order - b.order);
+            const sortedAllChapters = [...data].sort((a, b) => a.orderIndex - b.orderIndex);
             const completedCount = Math.max(
                 0,
                 Math.min(progressData?.overall?.chapters?.completed || 0, sortedAllChapters.length)
@@ -45,11 +45,8 @@ export default function ChaptersListScreen() {
 
             // Filter chapters by user level if set
             let filteredChapters = data;
-            if (user?.level) {
-                filteredChapters = data.filter((chapter) => chapter.level === user.level);
-            }
-            // Sort by order
-            filteredChapters.sort((a, b) => a.order - b.order);
+            // Sort by orderIndex
+            filteredChapters.sort((a, b) => a.orderIndex - b.orderIndex);
             setChapters(filteredChapters);
             setCompletedChapters(completedChapterIds);
         } catch (error: any) {
@@ -140,7 +137,6 @@ export default function ChaptersListScreen() {
                     chapters.map((chapter, index) => {
                         const completed = isChapterCompleted(chapter.id);
                         const locked = isChapterLocked(chapter, index);
-                        const levelColor = getLevelColor(chapter.level);
 
                         return (
                             <TouchableOpacity
@@ -156,7 +152,7 @@ export default function ChaptersListScreen() {
                                 <View style={styles.chapterHeader}>
                                     <View style={styles.chapterInfo}>
                                         <View style={styles.chapterTitleRow}>
-                                            <Text style={styles.chapterNumber}>Chapter {chapter.order}</Text>
+                                            <Text style={styles.chapterNumber}>Chapter {chapter.orderIndex}</Text>
                                             {completed && (
                                                 <View style={styles.completedBadge}>
                                                     <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
@@ -181,18 +177,9 @@ export default function ChaptersListScreen() {
                                 </View>
 
                                 <View style={styles.chapterFooter}>
-                                    <View style={[styles.levelBadge, { backgroundColor: `${levelColor}20` }]}>
-                                        <Text style={[styles.levelText, { color: levelColor }]}>
-                                            {getLevelLabel(chapter.level)}
-                                        </Text>
-                                    </View>
                                     <View style={styles.metaInfo}>
                                         <Ionicons name="time-outline" size={14} color="#666" />
-                                        <Text style={styles.metaText}>{chapter.estimatedTime} min</Text>
-                                    </View>
-                                    <View style={styles.metaInfo}>
-                                        <Ionicons name="book-outline" size={14} color="#666" />
-                                        <Text style={styles.metaText}>{chapter.subject}</Text>
+                                        <Text style={styles.metaText}>{chapter.estimatedMinutes} min</Text>
                                     </View>
                                 </View>
                             </TouchableOpacity>

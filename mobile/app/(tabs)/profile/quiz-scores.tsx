@@ -74,8 +74,8 @@ export default function QuizScoresScreen() {
                     </View>
                 ) : (
                     quizAttempts.map((attempt) => {
-                        const passed = attempt.passed;
-                        const percentage = attempt.percentage;
+                        const passed = attempt.passed ?? false;
+                        const percentage = attempt.percentage ?? 0;
                         const chapterTitle = getChapterTitle(attempt.quizId);
 
                         return (

@@ -94,8 +94,8 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
         // Count total lessons across all chapters
         let totalLessons = 0;
         allChapters.forEach((chapter) => {
-            if (chapter.content && Array.isArray(chapter.content)) {
-                totalLessons += chapter.content.length;
+            if (chapter.lessons && Array.isArray(chapter.lessons)) {
+                totalLessons += chapter.lessons.length;
             }
         });
 

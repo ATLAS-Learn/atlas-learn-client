@@ -56,7 +56,7 @@ export default function VerifyEmailScreen() {
                 return prev - 1;
             });
         }, 1000);
-        cooldownIntervalRef.current = interval;
+        cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
 
         return () => clearInterval(interval);
     }, []);
@@ -75,18 +75,18 @@ export default function VerifyEmailScreen() {
             if (pendingToken) {
                 apiClient.setToken(pendingToken);
             }
-            
+
             await apiClient.verifyEmail(code);
-            
+
             // After successful verification, retrieve stored token and user from signup
             const storedToken = await getItem("pendingAuthToken");
             const pendingUserStr = await getItem("pendingUser");
-            
+
             if (storedToken) {
                 // Set auth token and user
                 setAuth(storedToken);
                 apiClient.setToken(storedToken);
-                
+
                 // Parse and set user if available
                 if (pendingUserStr) {
                     try {
@@ -102,7 +102,7 @@ export default function VerifyEmailScreen() {
                     const user = await apiClient.getCurrentUser();
                     setUser(user);
                 }
-                
+
                 // Clean up temporary storage
                 await removeItem("pendingAuthToken");
                 await removeItem("pendingUser");
@@ -126,7 +126,7 @@ export default function VerifyEmailScreen() {
                     return;
                 }
             }
-            
+
             Alert.alert(
                 "Email Verified",
                 "Your email has been verified successfully!",
@@ -156,10 +156,10 @@ export default function VerifyEmailScreen() {
             if (pendingToken) {
                 apiClient.setToken(pendingToken);
             }
-            
+
             await apiClient.resendVerification();
             Alert.alert("Success", "Verification code has been resent to your email.");
-            
+
             // Start 60s cooldown timer
             setCooldown(60);
             if (cooldownIntervalRef.current) {
@@ -174,7 +174,7 @@ export default function VerifyEmailScreen() {
                     return prev - 1;
                 });
             }, 1000);
-            cooldownIntervalRef.current = interval;
+            cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to resend verification code.");
         } finally {
@@ -261,8 +261,8 @@ export default function VerifyEmailScreen() {
 
                     <View style={styles.resendContainer}>
                         <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
-                        <TouchableOpacity 
-                            onPress={handleResend} 
+                        <TouchableOpacity
+                            onPress={handleResend}
                             disabled={resending || cooldown > 0}
                         >
                             {resending ? (

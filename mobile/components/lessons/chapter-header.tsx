@@ -1,26 +1,33 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Chapter } from "@/lib/types";
+import { Chapter, LessonWithProgress } from "@/lib/types";
 
 interface ChapterHeaderProps {
     chapter: Chapter;
+    lessons?: LessonWithProgress[];
 }
 
-export default function ChapterHeader({ chapter }: ChapterHeaderProps) {
+export default function ChapterHeader({ chapter, lessons }: ChapterHeaderProps) {
+    const totalMinutes = lessons && lessons.length > 0
+        ? lessons.reduce((sum, l) => sum + (l.durationMinutes || 0), 0)
+        : chapter.estimatedMinutes ?? 15;
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>{chapter.title}</Text>
-            <Text style={styles.description}>{chapter.description}</Text>
+            {chapter.description ? <Text style={styles.description}>{chapter.description}</Text> : null}
             <View style={styles.metaContainer}>
                 <View style={styles.metaItem}>
                     <Ionicons name="time-outline" size={16} color="#666" />
-                    <Text style={styles.metaText}>{chapter.estimatedTime} min read</Text>
+                    <Text style={styles.metaText}>{totalMinutes} min</Text>
                 </View>
-                <View style={styles.metaItem}>
-                    <Ionicons name="layers-outline" size={16} color="#666" />
-                    <Text style={styles.metaText}>{(chapter.content || []).length} sections</Text>
-                </View>
+                {lessons && lessons.length > 0 && (
+                    <View style={styles.metaItem}>
+                        <Ionicons name="document-text-outline" size={16} color="#666" />
+                        <Text style={styles.metaText}>{lessons.length} lessons</Text>
+                    </View>
+                )}
             </View>
         </View>
     );

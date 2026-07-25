@@ -50,7 +50,7 @@ export default function LessonsListScreen() {
             const data = resolvedSubjectId
                 ? await apiClient.getSubjectChapterLessons(resolvedSubjectId, chapterId)
                 : await apiClient.getChapterLessons(chapterId);
-            setLessons(Array.isArray(data) ? data : []);
+            setLessons(Array.isArray(data) ? (data as any[]) : []);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to load lessons.");
         }
@@ -115,7 +115,7 @@ export default function LessonsListScreen() {
                 {chapter && (
                     <View style={styles.chapterCard}>
                         <Text style={styles.chapterTitle}>{chapter.title}</Text>
-                        <Text style={styles.chapterMeta}>Chapter {chapter.order}</Text>
+                        <Text style={styles.chapterMeta}>Chapter {chapter.orderIndex}</Text>
                     </View>
                 )}
 
@@ -138,11 +138,9 @@ export default function LessonsListScreen() {
                                         {lesson.title || "Untitled lesson"}
                                     </Text>
                                     <Text style={styles.lessonMeta}>
-                                        {lesson.estimatedMinutes
-                                            ? `${lesson.estimatedMinutes} min`
-                                            : lesson.durationSeconds
-                                              ? `${Math.ceil(lesson.durationSeconds / 60)} min`
-                                              : "Time n/a"}
+                                        {lesson.durationMinutes
+                                            ? `${lesson.durationMinutes} min`
+                                            : "Time n/a"}
                                     </Text>
                                 </View>
                             </View>

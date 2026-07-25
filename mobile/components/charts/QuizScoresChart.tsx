@@ -21,8 +21,8 @@ export default function QuizScoresChart({ attempts }: QuizScoresChartProps) {
         .sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime())
         .map((attempt, index) => ({
             x: index + 1,
-            y: attempt.percentage,
-            label: `${Math.round(attempt.percentage)}%`,
+            y: attempt.percentage ?? 0,
+            label: `${Math.round(attempt.percentage ?? 0)}%`,
         }));
 
     const screenWidth = Dimensions.get("window").width - 48; // Account for padding
