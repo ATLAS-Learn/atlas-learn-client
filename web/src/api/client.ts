@@ -52,7 +52,7 @@ class WebAPIClient {
     return response.data;
   }
 
-  private unwrap<T>(res: any): T {
+  private unwrap<T = any>(res: any): T {
     return res?.data ?? res;
   }
 
@@ -99,7 +99,7 @@ class WebAPIClient {
     return this.unwrap(res);
   }
 
-  async getQuizStats() {
+  async getQuizAnalytics() {
     const res = await this.request<any>("/admin/analytics/quiz-stats");
     return this.unwrap(res);
   }
@@ -228,7 +228,7 @@ class WebAPIClient {
     return res;
   }
 
-  async getQuizStats(quizId: string) {
+  async getSingleQuizStats(quizId: string) {
     const res = await this.request<any>(`/quizzes/${quizId}/stats`);
     return this.unwrap(res);
   }

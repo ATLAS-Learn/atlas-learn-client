@@ -1,25 +1,19 @@
 @import "tailwindcss";
 
-:root {
-  --amber: #F2B138;
-  --amber-light: #FFF8E1;
-  --amber-dark: #D49A2E;
-  --dark: #282F2E;
-  --darker: #1F2524;
-  --bg: #FAFAFA;
-}
+@layer base {
+  :root {
+    --amber: #F2B138;
+    --amber-light: #FFF8E1;
+    --amber-dark: #D49A2E;
+    --dark: #282F2E;
+    --darker: #1F2524;
+    --bg: #FAFAFA;
+  }
 
-body {
-  margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: var(--bg);
-  color: var(--dark);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-a {
-  text-decoration: none;
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: var(--bg);
+    color: var(--dark);
+  }
 }

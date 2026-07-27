@@ -15,7 +15,7 @@ export default function AdminDashboard() {
         const [ov, cc, qs, w, st] = await Promise.allSettled([
           api.getAnalyticsOverview(),
           api.getChapterCompletion(),
-          api.getQuizStats(),
+          api.getQuizAnalytics(),
           api.getWAU(),
           api.getSignupTrend(),
         ])

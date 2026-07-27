@@ -17,7 +17,7 @@ export default function TeacherQuizzes() {
 
   const loadSubjects = async () => {
     try {
-      const res = await api.getSubjects({ includeChapters: true })
+      const res: any = await api.getSubjects({ includeChapters: true })
       setSubjects(Array.isArray(res) ? res : res?.data || [])
     } catch {} finally { setLoading(false) }
   }
@@ -30,7 +30,7 @@ export default function TeacherQuizzes() {
 
   const loadQuizzes = async (chapterId: string) => {
     try {
-      const res = await api.getChapterQuizzes(chapterId)
+      const res: any = await api.getChapterQuizzes(chapterId)
       setQuizzes(Array.isArray(res) ? res : res?.data || [])
     } catch { setQuizzes([]) }
   }

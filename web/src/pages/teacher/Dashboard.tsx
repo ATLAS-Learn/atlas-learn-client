@@ -16,7 +16,7 @@ export default function TeacherDashboard() {
         api.getSubjects(),
       ])
       const studentList = students?.data?.students || students?.students || students?.data || students || []
-      const subjectList = subjects?.data || subjects || []
+      const subjectList: any = subjects?.data || subjects || []
       setStats({
         totalStudents: Array.isArray(studentList) ? studentList.length : 0,
         totalSubjects: Array.isArray(subjectList) ? subjectList.length : 0,

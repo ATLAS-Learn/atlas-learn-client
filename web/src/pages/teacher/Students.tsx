@@ -62,7 +62,7 @@ export default function TeacherStudents() {
                   </td>
                   <td className="px-4 py-3 text-gray-500">{s.school || '-'}</td>
                   <td className="px-4 py-3">
-                    <Link to={`/teacher/students/${s.id}`} className="text-[#F2B138] hover:underline font-medium text-xs">
+                    <Link to={`/teacher/students/${s.id}`} className="text-[#F2B138] font-medium text-xs">
                       View Progress
                     </Link>
                   </td>

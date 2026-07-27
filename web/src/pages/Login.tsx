@@ -107,7 +107,7 @@ export default function Login() {
         </form>
 
         <p className="text-center text-sm text-gray-400 mt-6">
-          <Link to="/" className="text-[#F2B138] hover:underline font-semibold">Back to home</Link>
+          <Link to="/" className="text-[#F2B138] font-semibold">Back to home</Link>
         </p>
       </div>
     </div>

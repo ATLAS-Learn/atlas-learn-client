@@ -16,14 +16,14 @@ export default function TeacherContent() {
 
   const loadSubjects = async () => {
     try {
-      const res = await api.getSubjects()
+      const res: any = await api.getSubjects()
       setSubjects(Array.isArray(res) ? res : res?.data || [])
     } catch {} finally { setLoading(false) }
   }
 
   const loadChapters = async (subjectId: string) => {
     try {
-      const res = await api.getSubjects({ includeChapters: true })
+      const res: any = await api.getSubjects({ includeChapters: true })
       const subject = (Array.isArray(res) ? res : res?.data || []).find((s: any) => s.id === subjectId)
       setChapters(prev => ({ ...prev, [subjectId]: subject?.chapters || [] }))
     } catch {}
@@ -162,7 +162,7 @@ export default function TeacherContent() {
                           <p className="text-sm font-medium text-[#282F2E]">{ch.title}</p>
                           <p className="text-xs text-gray-500">Order {ch.orderIndex} &middot; {ch.estimatedMinutes || '?'} min &middot; Threshold: {ch.unlockThreshold}%</p>
                         </div>
-                        <button onClick={() => handleDeleteChapter(ch.id, subject.id)} className="text-xs text-red-600 hover:underline">Delete</button>
+                        <button onClick={() => handleDeleteChapter(ch.id, subject.id)} className="text-xs text-red-600">Delete</button>
                       </div>
                     ))}
                   </div>

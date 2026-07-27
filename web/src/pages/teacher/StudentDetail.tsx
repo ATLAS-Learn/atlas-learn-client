@@ -33,7 +33,7 @@ export default function StudentDetail() {
   return (
     <div>
       <div className="mb-6">
-        <Link to="/teacher/students" className="text-sm text-[#F2B138] hover:underline mb-2 inline-block">&larr; Back to Students</Link>
+        <Link to="/teacher/students" className="text-sm text-[#F2B138] mb-2 inline-block">&larr; Back to Students</Link>
         <h1 className="text-2xl font-bold text-[#1F2524]">Student Progress</h1>
         <p className="text-sm text-gray-500 mt-1">ID: {studentId}</p>
       </div>
