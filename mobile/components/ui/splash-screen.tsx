@@ -17,7 +17,7 @@ export function SplashScreen() {
         }}
       >
         <Image
-          source={require("@/assets/images/intro.png")}
+          source={require("@/assets/images/logo/Blue atlas icon.png")}
           resizeMode="contain"
           style={styles.logo}
         />

@@ -58,6 +58,7 @@ import {
     ChapterProgressData,
     ChapterUnlockResponse,
     ChapterExamHint,
+    StreakData,
 } from "@/lib/types";
 
 // API Client class using Axios
@@ -337,8 +338,45 @@ class APIClient {
         return this.normalizeUserPayload(response);
     }
 
-    async updateCurrentUserProfile(_data: any): Promise<User> {
-        throw new Error("Profile update is not yet supported by the server. Please contact support.");
+    async updateCurrentUserProfile(data: {
+        name?: string;
+        username?: string;
+        bio?: string;
+        school?: string;
+        examYear?: number;
+        image?: string;
+    }): Promise<User> {
+        const response = await this.request<User>("/auth/me", {
+            method: "PATCH",
+            data,
+        });
+        return this.normalizeUserPayload(response);
+    }
+
+    async getPreferredSubjects(): Promise<string[]> {
+        const response = await this.request<{ subjectIds?: string[] }>("/auth/preferred-subjects");
+        return response?.subjectIds ?? [];
+    }
+
+    async updatePreferredSubjects(subjectIds: string[]): Promise<string[]> {
+        const response = await this.request<{ subjectIds?: string[] }>("/auth/preferred-subjects", {
+            method: "PUT",
+            data: { subjectIds },
+        });
+        return response?.subjectIds ?? subjectIds;
+    }
+
+    async uploadProfileImage(uri: string): Promise<string> {
+        const formData = new FormData();
+        const filename = uri.split("/").pop() || "photo.jpg";
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : "image/jpeg";
+        formData.append("image", { uri, name: filename, type } as any);
+        const response = await this.request<{ url?: string }>("/auth/upload-image", {
+            method: "POST",
+            data: formData,
+        } as any);
+        return response?.url ?? "";
     }
 
     async forgotPassword(_email: string): Promise<{ message: string }> {
@@ -538,6 +576,13 @@ class APIClient {
             OverallProgressData | { success?: boolean; data?: OverallProgressData }
         >("/progress/overall");
         return this.unwrapData<OverallProgressData>(response);
+    }
+
+    async getStreak(): Promise<StreakData> {
+        const response = await this.request<
+            { success?: boolean; data?: StreakData } | StreakData
+        >("/progress/streak");
+        return this.unwrapData<StreakData>(response);
     }
 
     // Assessment management endpoints (Admin/Teacher)
@@ -1055,7 +1100,8 @@ class APIClient {
 
     async getUserQuizAttempts(userId: string): Promise<QuizAttempt[]> {
         // Get all quiz attempts by a user
-        return this.request<QuizAttempt[]>(`/users/${userId}/quiz-attempts`);
+        const response = await this.request<{ success?: boolean; data?: QuizAttempt[] }>(`/users/${userId}/quiz-attempts`);
+        return this.unwrapData<QuizAttempt[]>(response) || [];
     }
 
     async getQuizStats(quizId: string): Promise<QuizStats> {
@@ -1281,4 +1327,4 @@ function mapTeacherAttemptToQuizAttempt(
 }
 
 // Export singleton instance
-export const apiClient = new APIClient(API_BASE_URL || "http://localhost:3000/api/v1");
+export const apiClient = new APIClient(API_BASE_URL as string);

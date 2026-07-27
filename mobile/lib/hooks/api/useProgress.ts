@@ -10,3 +10,12 @@ export function useOverallProgress() {
         refetchOnWindowFocus: true,
     });
 }
+
+export function useStreak() {
+    return useQuery({
+        queryKey: ["progress", "streak"],
+        queryFn: () => apiClient.getStreak(),
+        staleTime: 1000 * 60,
+        refetchOnMount: true,
+    });
+}

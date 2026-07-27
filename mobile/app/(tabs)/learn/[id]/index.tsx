@@ -10,6 +10,7 @@ import {
     Modal,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { Chapter, Lesson, LessonWithProgress } from "@/lib/types";
@@ -65,7 +66,11 @@ export default function ChapterScreen() {
 
     const handleStartQuiz = () => {
         if (!chapterId) return;
-        router.push(`/(tabs)/learn/${chapterId}/quiz`);
+        const subjectIdForRoute = resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
+        router.push({
+            pathname: `/(tabs)/learn/${chapterId}/quiz`,
+            params: { subjectId: subjectIdForRoute || "" },
+        } as any);
     };
 
     const showInsight = (title: string, data: unknown) => {
@@ -144,6 +149,14 @@ export default function ChapterScreen() {
             loadLessons();
         }
     }, [chapter, chapterId, loadLessons]);
+
+    useFocusEffect(
+        useCallback(() => {
+            if (chapter && !loading) {
+                loadLessons();
+            }
+        }, [chapter, loading, loadLessons])
+    );
 
     const handleViewProgress = async () => {
         if (!chapterId) return;
@@ -250,23 +263,6 @@ export default function ChapterScreen() {
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
                 <ChapterHeader chapter={chapter} lessons={lessons} />
-                <View style={styles.actionRow}>
-                    <TouchableOpacity style={styles.actionButton} onPress={handleViewPdf} disabled={loadingInsight}>
-                        <Text style={styles.actionButtonText}>PDF</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton} onPress={handleOpenLessonsList}>
-                        <Text style={styles.actionButtonText}>All Lessons</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton} onPress={handleViewProgress} disabled={loadingInsight}>
-                        <Text style={styles.actionButtonText}>Progress</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton} onPress={handleViewExamHints} disabled={loadingInsight}>
-                        <Text style={styles.actionButtonText}>Exam Hints</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton} onPress={handleUnlockChapter} disabled={loadingInsight}>
-                        <Text style={styles.actionButtonText}>Unlock</Text>
-                    </TouchableOpacity>
-                </View>
 
                 <View style={styles.lessonsHeader}>
                     <View>

@@ -47,7 +47,7 @@ export default function RootLayout() {
     }, minDisplayTime); // Show splash for at least 5 seconds
 
     return () => clearTimeout(timer);
-  }, [fadeAnim, isAuthenticated, assessmentComplete, isLoading]);
+  }, [fadeAnim, isAuthenticated, assessmentComplete, isLoading, router]);
 
 
   return (

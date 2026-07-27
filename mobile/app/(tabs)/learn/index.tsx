@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useOverallProgress } from "@/lib/hooks/api";
 import { SubjectProgress } from "@/lib/types";
+import { apiClient } from "@/lib/api";
 
 function SubjectCard({ subject }: { subject: SubjectProgress }) {
     const router = useRouter();
@@ -62,6 +63,11 @@ function SubjectCard({ subject }: { subject: SubjectProgress }) {
 export default function LearnScreen() {
     const router = useRouter();
     const { data: progressData, isLoading, error } = useOverallProgress();
+    const [preferredIds, setPreferredIds] = useState<string[] | null>(null);
+
+    useEffect(() => {
+        apiClient.getPreferredSubjects().then(setPreferredIds).catch(() => setPreferredIds([]));
+    }, []);
 
     if (isLoading) {
         return (
@@ -80,7 +86,10 @@ export default function LearnScreen() {
         );
     }
 
-    const subjects = progressData.subjects || [];
+    const allSubjects = progressData.subjects || [];
+    const subjects = preferredIds && preferredIds.length > 0
+        ? allSubjects.filter((s) => preferredIds.includes(s.subjectId))
+        : allSubjects;
 
     return (
         <View style={styles.container}>

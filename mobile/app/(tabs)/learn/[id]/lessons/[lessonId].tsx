@@ -53,9 +53,16 @@ export default function LessonDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [updatingProgress, setUpdatingProgress] = useState(false);
     const [completingLesson, setCompletingLesson] = useState(false);
-    const [watchTime, setWatchTime] = useState("300");
+    const [watchTime, setWatchTime] = useState("");
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const watchTimePresets = [300, 600, 1200, 1800];
+
+    // Set default watch time from lesson's estimated duration
+    useEffect(() => {
+        if (lesson?.durationMinutes && !watchTime) {
+            setWatchTime(String(lesson.durationMinutes * 60));
+        }
+    }, [lesson?.durationMinutes]);
 
     const isLessonCompleted = lesson?.isCompleted ||
         (lesson?.LessonProgress && lesson.LessonProgress.length > 0 && lesson.LessonProgress[0]?.isCompleted) || false;
@@ -141,6 +148,20 @@ export default function LessonDetailScreen() {
         setCompletingLesson(true);
         setStatusMessage(null);
         try {
+            // Auto-save progress with estimated time before completing
+            const timeSpent = safeNumber(watchTime) || (lesson?.durationMinutes ? lesson.durationMinutes * 60 : 0);
+            if (timeSpent > 0) {
+                try {
+                    await apiClient.updateSubjectChapterLessonProgress(
+                        subjectKey,
+                        chapterId,
+                        lessonKey,
+                        { timeSpent }
+                    );
+                } catch {
+                    // Progress save is best-effort; continue with completion
+                }
+            }
             const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey);
             setStatusMessage(response.message || "Lesson marked as completed.");
             await queryClient.invalidateQueries({ queryKey: ["progress"] });

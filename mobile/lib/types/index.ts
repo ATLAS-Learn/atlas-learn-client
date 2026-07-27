@@ -66,6 +66,7 @@ export interface User {
     school?: string;
     examYear?: number;
     level?: Level;
+    preferredSubjects?: string[];
     createdAt: string;
     updatedAt?: string;
     lastLoginAt?: string;
@@ -528,6 +529,11 @@ export interface OverallProgressData {
     subjects: SubjectProgress[];
 }
 
+export interface StreakData {
+    streak: number;
+    lastActiveDate: string | null;
+}
+
 export interface ChapterProgress {
     chapterId: string;
     completed: boolean;
@@ -543,6 +549,15 @@ export interface QuizAttempt {
     completedAt: string;
     userId: string;
     quizId: string;
+    quiz?: {
+        id: string;
+        title: string;
+        chapterId: string;
+        chapter?: {
+            unlockThreshold: number;
+            subjectId: string;
+        };
+    };
     // Computed fields (not from backend, calculated by frontend)
     percentage?: number;
     passed?: boolean;

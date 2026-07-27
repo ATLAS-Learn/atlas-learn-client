@@ -34,10 +34,6 @@ export default function QuizScoresScreen() {
         });
     };
 
-    const getChapterTitle = (quizId: string): string => {
-        return `Quiz ${quizId.slice(0, 8)}`;
-    };
-
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
@@ -74,16 +70,17 @@ export default function QuizScoresScreen() {
                     </View>
                 ) : (
                     quizAttempts.map((attempt) => {
-                        const passed = attempt.passed ?? false;
-                        const percentage = attempt.percentage ?? 0;
-                        const chapterTitle = getChapterTitle(attempt.quizId);
+                        const threshold = attempt.quiz?.chapter?.unlockThreshold ?? 70;
+                        const passed = attempt.score >= threshold;
+                        const percentage = attempt.score ?? 0;
+                        const quizTitle = attempt.quiz?.title || `Quiz ${attempt.quizId.slice(0, 8)}`;
 
                         return (
                             <View key={attempt.id} style={styles.scoreCard}>
                                 <View style={styles.scoreHeader}>
                                     <View style={styles.scoreInfo}>
                                         <Text style={styles.quizTitle}>
-                                            {chapterTitle}
+                                            {quizTitle}
                                         </Text>
                                         <Text style={styles.quizDate}>
                                             {formatDate(attempt.completedAt)}

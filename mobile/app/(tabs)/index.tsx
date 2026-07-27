@@ -1,16 +1,61 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useUserStore } from "@/lib/store/user";
-import { UserRole } from "@/lib/types";
-import { useOverallProgress } from "@/lib/hooks/api";
+import { UserRole, SubjectProgress } from "@/lib/types";
+import { useOverallProgress, useStreak,  useUserQuizAttempts} from "@/lib/hooks/api";
+
+function SubjectProgressCard({ subject }: { subject: SubjectProgress }) {
+    const router = useRouter();
+    const chapters = subject.chapters as unknown as { total: number; completed: number };
+    const lessons = subject.lessons as unknown as { total: number; completed: number };
+
+    return (
+        <TouchableOpacity
+            style={styles.subjectCard}
+            onPress={() =>
+                router.push({
+                    pathname: "/(tabs)/learn/subjects/[subjectId]",
+                    params: { subjectId: subject.subjectId, subjectCode: subject.code },
+                } as any)
+            }
+        >
+            <View style={styles.subjectInfo}>
+                <Text style={styles.subjectName}>{subject.name}</Text>
+                <Text style={styles.subjectCode}>{subject.code}</Text>
+                <View style={styles.subjectMetaRow}>
+                    <Text style={styles.subjectMeta}>
+                        {chapters.completed}/{chapters.total} chapters
+                    </Text>
+                    <Text style={styles.subjectMetaDot}>{" "}</Text>
+                    <Text style={styles.subjectMeta}>
+                        {lessons.completed}/{lessons.total} lessons
+                    </Text>
+                </View>
+                <View style={styles.progressBarBg}>
+                    <View
+                        style={[
+                            styles.progressBarFill,
+                            { width: `${Math.min(subject.completionPercentage, 100)}%` },
+                        ]}
+                    />
+                </View>
+                <Text style={styles.progressPercent}>{subject.completionPercentage}% complete</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#999" />
+        </TouchableOpacity>
+    );
+}
 
 export default function HomeTab() {
     const router = useRouter();
     const { user } = useUserStore();
     const { data: overallProgress } = useOverallProgress();
+    const { data: streakData } = useStreak();
+    const { data: quizAttempts = [] } = useUserQuizAttempts(user?.id);
 
+    const isStudent = user?.role === UserRole.STUDENT;
     const displayName =
         user?.name || user?.email?.split("@")[0] || (user?.role === UserRole.TEACHER ? "Teacher" : "Student");
 
@@ -19,6 +64,24 @@ export default function HomeTab() {
     const lessonsTotal = overallProgress?.overall?.lessons?.total ?? 0;
     const quizzesPassed = overallProgress?.overall?.quizzes?.passed ?? 0;
     const quizzesTotal = overallProgress?.overall?.quizzes?.total ?? 0;
+    const totalTimeSpent = overallProgress?.overall?.totalTimeSpent ?? 0;
+    const streak = streakData?.streak ?? 0;
+
+    const averageScore = useMemo(() => {
+        if (!Array.isArray(quizAttempts) || quizAttempts.length === 0) return 0;
+        const total = quizAttempts.reduce((sum, a) => sum + (a.score ?? 0), 0);
+        return Math.round(total / quizAttempts.length);
+    }, [quizAttempts]);
+
+    const formatTimeSpent = (seconds: number): string => {
+        if (seconds < 60) return `${seconds}s`;
+        if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.round((seconds % 3600) / 60);
+        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    };
+
+    const subjects = overallProgress?.subjects || [];
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -26,10 +89,22 @@ export default function HomeTab() {
                 <Text style={styles.welcome}>Welcome back,</Text>
                 <Text style={styles.name}>{displayName}</Text>
                 <Text style={styles.subtle}>
-                    {user?.role === UserRole.TEACHER ? "Manage your classes and track learners." : "Keep learning and track your progress."}
+                    {isStudent ? "Keep learning and track your progress." : "Manage your classes and track learners."}
                 </Text>
             </View>
 
+            {/* Streak Banner */}
+            {isStudent && streak > 0 && (
+                <View style={styles.streakBanner}>
+                    <Text style={styles.streakEmoji}>{"\uD83D\uDD25"}</Text>
+                    <View style={styles.streakInfo}>
+                        <Text style={styles.streakValue}>{streak} day streak</Text>
+                        <Text style={styles.streakLabel}>Keep it going!</Text>
+                    </View>
+                </View>
+            )}
+
+            {/* Progress Snapshot */}
             <View style={styles.summaryCard}>
                 <Text style={styles.sectionTitle}>Progress Snapshot</Text>
                 <View style={styles.summaryRow}>
@@ -37,12 +112,14 @@ export default function HomeTab() {
                         <Text style={styles.summaryValue}>{completion}%</Text>
                         <Text style={styles.summaryLabel}>Overall</Text>
                     </View>
+                    <View style={styles.summaryDivider} />
                     <View style={styles.summaryItem}>
                         <Text style={styles.summaryValue}>
                             {lessonsDone}/{lessonsTotal}
                         </Text>
                         <Text style={styles.summaryLabel}>Lessons</Text>
                     </View>
+                    <View style={styles.summaryDivider} />
                     <View style={styles.summaryItem}>
                         <Text style={styles.summaryValue}>
                             {quizzesPassed}/{quizzesTotal}
@@ -52,11 +129,65 @@ export default function HomeTab() {
                 </View>
             </View>
 
+            {/* Stats Row for Students */}
+            {isStudent && (
+                <View style={styles.statsRow}>
+                    <View style={styles.statCard}>
+                        <Ionicons name="time-outline" size={20} color="#F2B138" />
+                        <Text style={styles.statValue}>{formatTimeSpent(totalTimeSpent)}</Text>
+                        <Text style={styles.statLabel}>Time Spent</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Ionicons name="trophy-outline" size={20} color="#F2B138" />
+                        <Text style={styles.statValue}>{averageScore}%</Text>
+                        <Text style={styles.statLabel}>Avg Quiz Score</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Ionicons name="checkmark-circle-outline" size={20} color="#F2B138" />
+                        <Text style={styles.statValue}>{quizzesPassed}</Text>
+                        <Text style={styles.statLabel}>Quizzes Passed</Text>
+                    </View>
+                </View>
+            )}
+
+            {/* Subject Progress */}
+            {isStudent && subjects.length > 0 && (
+                <>
+                    <Text style={styles.sectionTitle}>Your Subjects</Text>
+                    {subjects.slice(0, 3).map((subject) => (
+                        <SubjectProgressCard key={subject.subjectId} subject={subject} />
+                    ))}
+                    {subjects.length > 3 && (
+                        <TouchableOpacity
+                            style={styles.viewAllButton}
+                            onPress={() => router.push("/(tabs)/learn")}
+                        >
+                            <Text style={styles.viewAllText}>View all {subjects.length} subjects</Text>
+                            <Ionicons name="arrow-forward" size={14} color="#F2B138" />
+                        </TouchableOpacity>
+                    )}
+                </>
+            )}
+
+            {/* Quick Actions */}
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.actionsGrid}>
-                {user?.role === UserRole.TEACHER ? (
+                {isStudent ? (
                     <>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/classes")}>
+                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/learn")}>
+                            <Ionicons name="book" size={22} color="#F2B138" />
+                            <Text style={styles.actionTitle}>Continue Learning</Text>
+                            <Text style={styles.actionText}>Jump back into lessons</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")}>
+                            <Ionicons name="person" size={22} color="#F2B138" />
+                            <Text style={styles.actionTitle}>Profile</Text>
+                            <Text style={styles.actionText}>Update your info</Text>
+                        </TouchableOpacity>
+                    </>
+                ) : (
+                    <>
+                        <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/classes")}>
                             <Ionicons name="people" size={22} color="#F2B138" />
                             <Text style={styles.actionTitle}>My Classes</Text>
                             <Text style={styles.actionText}>View students and progress</Text>
@@ -65,24 +196,6 @@ export default function HomeTab() {
                             <Ionicons name="settings" size={22} color="#F2B138" />
                             <Text style={styles.actionTitle}>Profile</Text>
                             <Text style={styles.actionText}>Manage your account</Text>
-                        </TouchableOpacity>
-                    </>
-                ) : (
-                    <>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/learn")}>
-                            <Ionicons name="book" size={22} color="#F2B138" />
-                            <Text style={styles.actionTitle}>Continue Learning</Text>
-                            <Text style={styles.actionText}>Jump back into lessons</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/learn/subjects")}>
-                            <Ionicons name="albums" size={22} color="#F2B138" />
-                            <Text style={styles.actionTitle}>Browse Subjects</Text>
-                            <Text style={styles.actionText}>Pick a new topic</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")}>
-                            <Ionicons name="person" size={22} color="#F2B138" />
-                            <Text style={styles.actionTitle}>Profile</Text>
-                            <Text style={styles.actionText}>Update your info</Text>
                         </TouchableOpacity>
                     </>
                 )}
@@ -98,14 +211,32 @@ const styles = StyleSheet.create({
     welcome: { fontSize: 16, color: "#666" },
     name: { fontSize: 28, fontWeight: "800", color: "#1F2524", marginTop: 4 },
     subtle: { marginTop: 8, fontSize: 13, color: "#777" },
-    sectionTitle: { fontSize: 18, fontWeight: "700", color: "#282F2E", marginBottom: 12 },
+    sectionTitle: { fontSize: 18, fontWeight: "700", color: "#282F2E", marginBottom: 12, marginTop: 8 },
+
+    // Streak
+    streakBanner: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFF3E0",
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: "#FFE0B2",
+    },
+    streakEmoji: { fontSize: 32, marginRight: 12 },
+    streakInfo: { flex: 1 },
+    streakValue: { fontSize: 18, fontWeight: "800", color: "#E65100" },
+    streakLabel: { fontSize: 12, color: "#BF360C", marginTop: 2 },
+
+    // Summary
     summaryCard: {
         backgroundColor: "#fff",
         borderRadius: 16,
         padding: 16,
         borderWidth: 1,
         borderColor: "#F0F0F0",
-        marginBottom: 20,
+        marginBottom: 16,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -116,6 +247,68 @@ const styles = StyleSheet.create({
     summaryItem: { alignItems: "center", flex: 1 },
     summaryValue: { fontSize: 18, fontWeight: "800", color: "#282F2E" },
     summaryLabel: { marginTop: 4, fontSize: 12, color: "#666", fontWeight: "600" },
+    summaryDivider: { width: 1, backgroundColor: "#F0F0F0" },
+
+    // Stats Row
+    statsRow: {
+        flexDirection: "row",
+        gap: 10,
+        marginBottom: 16,
+    },
+    statCard: {
+        flex: 1,
+        backgroundColor: "#fff",
+        borderRadius: 14,
+        padding: 12,
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#F0F0F0",
+    },
+    statValue: { fontSize: 16, fontWeight: "800", color: "#282F2E", marginTop: 6 },
+    statLabel: { fontSize: 10, color: "#999", fontWeight: "600", marginTop: 2, textAlign: "center" },
+
+    // Subject Cards
+    subjectCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: 14,
+        backgroundColor: "#fff",
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: "#EAEAEA",
+        marginBottom: 10,
+    },
+    subjectInfo: { flex: 1, marginRight: 12 },
+    subjectName: { fontSize: 15, fontWeight: "700", color: "#1F2524" },
+    subjectCode: { marginTop: 2, fontSize: 11, color: "#999", fontWeight: "700" },
+    subjectMetaRow: { flexDirection: "row", marginTop: 6 },
+    subjectMeta: { fontSize: 11, color: "#666" },
+    subjectMetaDot: { fontSize: 11, color: "#666" },
+    progressBarBg: {
+        height: 5,
+        backgroundColor: "#EEE",
+        borderRadius: 3,
+        marginTop: 8,
+        overflow: "hidden",
+    },
+    progressBarFill: {
+        height: "100%",
+        backgroundColor: "#F2B138",
+        borderRadius: 3,
+    },
+    progressPercent: { marginTop: 4, fontSize: 11, color: "#999", fontWeight: "600" },
+    viewAllButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        paddingVertical: 10,
+        marginBottom: 8,
+    },
+    viewAllText: { fontSize: 13, fontWeight: "700", color: "#F2B138" },
+
+    // Actions
     actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
     actionCard: {
         flexGrow: 1,

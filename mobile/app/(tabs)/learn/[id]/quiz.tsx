@@ -19,8 +19,9 @@ import { Quiz } from "@/lib/types";
 export default function QuizScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { id, subjectId } = useLocalSearchParams<{ id: string; subjectId?: string }>();
     const chapterId = Array.isArray(id) ? id[0] : id;
+    const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -103,6 +104,7 @@ export default function QuizScreen() {
                 params: {
                     id: chapterId!,
                     quizId: quiz.id,
+                    subjectId: subjectKey || "",
                     score: result.score.toString(),
                     correctAnswers: result.correctAnswers.toString(),
                     totalQuestions: result.totalQuestions.toString(),
