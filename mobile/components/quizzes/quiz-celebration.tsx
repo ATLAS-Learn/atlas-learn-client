@@ -44,7 +44,7 @@ export default function QuizCelebration({
             <View style={styles.messageContainer}>
                 <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
                 <Text style={styles.messageText}>
-                    Great work! You've unlocked the next chapter.
+                    Great work! You&aposve unlocked the next chapter.
                 </Text>
             </View>
         </View>

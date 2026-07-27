@@ -105,14 +105,14 @@ class APIClient {
                 } else {
                     errorMessage = error.message || "An unexpected error occurred";
                 }
-                // console.error(`API Error [${error.response?.status || 'N/A'}]:`, error.config?.url, errorMessage);
-                // console.error(
-                //             `API Error [${error.response?.status || 'N/A'}]`,
-                //             `| Code: ${error.code}`,
-                //             `| BaseURL: ${this.axiosInstance.defaults.baseURL}`,
-                //             `| Path: ${error.config?.url}`,
-                //             `| Message: ${errorMessage}`
-                //             );
+                console.error(`API Error [${error.response?.status || 'N/A'}]:`, error.config?.url, errorMessage);
+                console.error(
+                            `API Error [${error.response?.status || 'N/A'}]`,
+                            `| Code: ${error.code}`,
+                            `| BaseURL: ${this.axiosInstance.defaults.baseURL}`,
+                            `| Path: ${error.config?.url}`,
+                            `| Message: ${errorMessage}`
+                            );
                 return Promise.reject(new Error(errorMessage));
             }
         );
