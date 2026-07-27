@@ -19,7 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
-import { getItem } from "@/lib/utils/storage";
+import { getItem, setItem } from "@/lib/utils/storage";
 
 export default function VerifyOTPScreen() {
     const router = useRouter();
@@ -93,13 +93,19 @@ export default function VerifyOTPScreen() {
             // Mark OTP payload as provisional; app flow will refresh /auth/me.
             setUser(response.user, { markSynced: false });
 
-            // Check if assessment is complete
-            const assessmentComplete = await getItem("assessmentComplete");
-            if (assessmentComplete === "true") {
-                router.replace("/(tabs)");
-            } else {
-                // Route to onboarding if assessment not complete
+            // New signups always go through onboarding (select subjects + assessment)
+            // Only check stored flag for returning users (login mode)
+            if (mode === "signup") {
+                // Clear assessment flag so useAppFlow doesn't override onboarding navigation
+                await setItem("assessmentComplete", "false");
                 router.replace("/(onboarding)");
+            } else {
+                const assessmentComplete = await getItem("assessmentComplete");
+                if (assessmentComplete === "true") {
+                    router.replace("/(tabs)");
+                } else {
+                    router.replace("/(onboarding)");
+                }
             }
         } catch (error: any) {
             setError(error.message || "Invalid verification code. Please try again.");

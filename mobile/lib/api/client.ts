@@ -372,11 +372,10 @@ class APIClient {
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : "image/jpeg";
         formData.append("image", { uri, name: filename, type } as any);
-        const response = await this.request<{ url?: string }>("/auth/upload-image", {
-            method: "POST",
-            data: formData,
-        } as any);
-        return response?.url ?? "";
+        const response = await this.axiosInstance.post<{ url?: string }>("/auth/upload-image", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+        return response.data?.url ?? "";
     }
 
     async forgotPassword(_email: string): Promise<{ message: string }> {

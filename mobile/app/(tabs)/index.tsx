@@ -2,9 +2,11 @@ import React, { useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { useUserStore } from "@/lib/store/user";
 import { UserRole, SubjectProgress } from "@/lib/types";
-import { useOverallProgress, useStreak,  useUserQuizAttempts} from "@/lib/hooks/api";
+import { useOverallProgress, useStreak, useUserQuizAttempts } from "@/lib/hooks/api";
+import { apiClient } from "@/lib/api";
 
 function SubjectProgressCard({ subject }: { subject: SubjectProgress }) {
     const router = useRouter();
@@ -73,6 +75,15 @@ export default function HomeTab() {
         return Math.round(total / quizAttempts.length);
     }, [quizAttempts]);
 
+    // Refresh user data when screen gains focus (e.g. after adding subjects)
+    useFocusEffect(
+        React.useCallback(() => {
+            apiClient.getCurrentUser().then((freshUser) => {
+                useUserStore.getState().setUser(freshUser);
+            }).catch(() => {});
+        }, [])
+    );
+
     const formatTimeSpent = (seconds: number): string => {
         if (seconds < 60) return `${seconds}s`;
         if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
@@ -81,7 +92,12 @@ export default function HomeTab() {
         return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
     };
 
-    const subjects = overallProgress?.subjects || [];
+    const subjects = useMemo(() => {
+        const all = overallProgress?.subjects || [];
+        const preferred = user?.preferredSubjects;
+        if (!preferred || preferred.length === 0) return all;
+        return all.filter((s) => preferred.includes(s.subjectId));
+    }, [overallProgress, user?.preferredSubjects]);
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -159,13 +175,20 @@ export default function HomeTab() {
                     ))}
                     {subjects.length > 3 && (
                         <TouchableOpacity
-                            style={styles.viewAllButton}
-                            onPress={() => router.push("/(tabs)/learn")}
+                            style={styles.browseAllButton}
+                            onPress={() => router.push("/(tabs)/learn/browse-subjects")}
                         >
-                            <Text style={styles.viewAllText}>View all {subjects.length} subjects</Text>
+                            <Text style={styles.browseAllText}>View all {subjects.length} subjects</Text>
                             <Ionicons name="arrow-forward" size={14} color="#F2B138" />
                         </TouchableOpacity>
                     )}
+                    <TouchableOpacity
+                        style={styles.addSubjectButton}
+                        onPress={() => router.push("/(tabs)/learn/browse-subjects")}
+                    >
+                        <Ionicons name="add-circle-outline" size={18} color="#F2B138" />
+                        <Text style={styles.addSubjectText}>Browse All Subjects</Text>
+                    </TouchableOpacity>
                 </>
             )}
 
@@ -307,6 +330,32 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     viewAllText: { fontSize: 13, fontWeight: "700", color: "#F2B138" },
+    browseAllButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        paddingVertical: 12,
+        backgroundColor: "#FFF9E6",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#FFE082",
+        marginTop: 4,
+    },
+    browseAllText: { fontSize: 13, fontWeight: "700", color: "#F2B138" },
+    addSubjectButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        paddingVertical: 12,
+        backgroundColor: "#FFF9E6",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#FFE082",
+        marginTop: 4,
+    },
+    addSubjectText: { fontSize: 14, fontWeight: "700", color: "#F2B138" },
 
     // Actions
     actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
