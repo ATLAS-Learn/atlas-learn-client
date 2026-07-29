@@ -155,7 +155,7 @@ export default function AdminRoleUpgradesScreen() {
                     disabled={busy}
                   >
                     {busy ? (
-                      <ActivityIndicator size="small" color="#EF9A9A" />
+                      <ActivityIndicator size="small" color="#E57373" />
                     ) : (
                       <Text style={styles.rejectButtonText}>Reject</Text>
                     )}
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   rejectButtonText: {
-    color: "#EF9A9A",
+    color: "#E57373",
     fontWeight: "700",
   },
   approveButton: {

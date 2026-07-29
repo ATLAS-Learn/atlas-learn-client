@@ -59,7 +59,7 @@ export default function QuizScoresScreen() {
                 refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
             >
                 {quizAttempts.length > 0 && <QuizScoresChart attempts={quizAttempts} />}
-                
+
                 {quizAttempts.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="document-text-outline" size={64} color="#CCC" />
@@ -105,7 +105,7 @@ export default function QuizScoresScreen() {
                                         <Ionicons
                                             name={passed ? "checkmark-circle" : "close-circle"}
                                             size={16}
-                                            color={passed ? "#4CAF50" : "#EF9A9A"}
+                                            color={passed ? "#4CAF50" : "#E57373"}
                                         />
                                         <Text
                                             style={[
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
         color: "#4CAF50",
     },
     statusTextFailed: {
-        color: "#EF9A9A",
+        color: "#E57373",
     },
     scoreDetails: {
         flexDirection: "row",
@@ -292,6 +292,6 @@ const styles = StyleSheet.create({
         color: "#4CAF50",
     },
     scorePercentageFailed: {
-        color: "#EF9A9A",
+        color: "#E57373",
     },
 });

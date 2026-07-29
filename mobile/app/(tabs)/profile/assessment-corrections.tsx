@@ -126,7 +126,7 @@ export default function AssessmentCorrectionsScreen() {
                                         {option}
                                     </Text>
                                     {isUserAnswer && !correction.isCorrect && (
-                                        <Ionicons name="close-circle" size={18} color="#EF9A9A" />
+                                        <Ionicons name="close-circle" size={18} color="#E57373" />
                                     )}
                                     {isCorrectAnswer && (
                                         <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     correctBadgeText: {
         fontSize: 11,
         fontWeight: "700",
-        color: "#EF9A9A",
+        color: "#E57373",
     },
     correctBadgeTextPassed: {
         color: "#4CAF50",
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     optionLetterWrong: {
-        backgroundColor: "#EF9A9A",
+        backgroundColor: "#E57373",
     },
     optionLetterCorrect: {
         backgroundColor: "#4CAF50",

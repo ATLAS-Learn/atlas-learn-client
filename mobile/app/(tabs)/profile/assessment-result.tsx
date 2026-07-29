@@ -36,7 +36,7 @@ export default function ProfileAssessmentResultScreen() {
     const getScoreColor = (score: number) => {
         if (score >= 70) return "#4CAF50";
         if (score >= 40) return "#FF9800";
-        return "#EF9A9A";
+        return "#E57373";
     };
 
     if (loading) {
@@ -59,7 +59,7 @@ export default function ProfileAssessmentResultScreen() {
                     <View style={styles.backButton} />
                 </View>
                 <View style={styles.errorContainer}>
-                    <Ionicons name="alert-circle-outline" size={64} color="#EF9A9A" />
+                    <Ionicons name="alert-circle-outline" size={64} color="#E57373" />
                     <Text style={styles.errorText}>{error || "No assessment result found."}</Text>
                 </View>
             </View>

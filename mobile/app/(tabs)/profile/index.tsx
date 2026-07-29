@@ -471,7 +471,7 @@ export default function ProfileScreen() {
             )}
 
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <Ionicons name="log-out-outline" size={24} color="#EF9A9A" />
+                <Ionicons name="log-out-outline" size={24} color="#E57373" />
                 <Text style={styles.logoutText}>Sign Out</Text>
             </TouchableOpacity>
             </ScrollView>
@@ -696,10 +696,10 @@ export default function ProfileScreen() {
                                             disabled={revokingSessionId === session.id}
                                         >
                                             {revokingSessionId === session.id ? (
-                                                <ActivityIndicator size="small" color="#EF9A9A" />
+                                                <ActivityIndicator size="small" color="#E57373" />
                                             ) : (
                                                 <>
-                                                    <Ionicons name="trash-outline" size={18} color="#EF9A9A" />
+                                                    <Ionicons name="trash-outline" size={18} color="#E57373" />
                                                     <Text style={styles.revokeButtonText}>Revoke</Text>
                                                 </>
                                             )}
@@ -911,7 +911,7 @@ const styles = StyleSheet.create({
         color: "#4CAF50",
     },
     statusRejected: {
-        color: "#EF9A9A",
+        color: "#E57373",
     },
     logoutButton: {
         flexDirection: "row",
@@ -928,7 +928,7 @@ const styles = StyleSheet.create({
     logoutText: {
         fontSize: 16,
         fontWeight: "700",
-        color: "#EF9A9A",
+        color: "#E57373",
     },
     requestModalOverlay: {
         flex: 1,
@@ -1079,7 +1079,7 @@ const styles = StyleSheet.create({
     revokeButtonText: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#EF9A9A",
+        color: "#E57373",
     },
     emptyContainer: {
         alignItems: "center",

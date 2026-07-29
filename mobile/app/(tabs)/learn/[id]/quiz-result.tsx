@@ -70,7 +70,7 @@ export default function QuizResultScreen() {
                     <View style={styles.failureContainer}>
                         <View style={styles.iconContainer}>
                             <View style={styles.iconCircle}>
-                                <Ionicons name="refresh" size={60} color="#EF9A9A" />
+                                <Ionicons name="refresh" size={60} color="#E57373" />
                             </View>
                         </View>
 

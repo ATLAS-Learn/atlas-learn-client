@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FAFAFA",
     },
     loadingText: { marginTop: 16, fontSize: 16, color: "#666" },
-    errorText: { fontSize: 16, color: "#EF9A9A" },
+    errorText: { fontSize: 16, color: "#E57373" },
     header: {
         flexDirection: "row",
         alignItems: "center",

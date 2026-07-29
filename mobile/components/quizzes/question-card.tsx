@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     },
     optionIncorrect: {
         borderWidth: 2,
-        borderColor: "#EF9A9A",
+        borderColor: "#E57373",
         backgroundColor: "#FFEBEE",
         borderRadius: 12,
         padding: 16,

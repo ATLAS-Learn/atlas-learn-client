@@ -46,7 +46,7 @@ export default function SignIn() {
         });
       } catch (error: any) {
         const errorMessage = error.message || "Failed to send OTP. Please try again.";
-        
+
         if (errorMessage.toLowerCase().includes("no account found") || errorMessage.toLowerCase().includes("please sign up")) {
           Alert.alert(
             "Account Not Found",
@@ -118,7 +118,7 @@ export default function SignIn() {
             />
           </View>
           {errors.email && (
-            <Text style={{ color: "#EF9A9A", marginBottom: 10 }}>{errors.email}</Text>
+            <Text style={{ color: "#E57373", marginBottom: 10 }}>{errors.email}</Text>
           )}
 
           <TouchableOpacity

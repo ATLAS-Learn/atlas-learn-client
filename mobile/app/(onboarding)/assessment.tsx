@@ -40,7 +40,7 @@ export default function AssessmentScreen() {
             console.error("Assessment load error:", error);
             const errorMessage = error?.message || "Failed to load assessment questions. Please try again.";
             const normalizedErrorMessage = errorMessage.toLowerCase();
-            
+
             // Provide more user-friendly error messages for common scenarios
             let userMessage = errorMessage;
             if (
@@ -63,14 +63,14 @@ export default function AssessmentScreen() {
                 userMessage = "You have already completed the assessment.";
             }
 
-            if (normalizedErrorMessage.includes("no active assessment") || 
+            if (normalizedErrorMessage.includes("no active assessment") ||
                 normalizedErrorMessage.includes("not available")) {
                 userMessage = "Assessment is not available at this time. Please contact support or try again later.";
             } else if (normalizedErrorMessage.includes("exactly 5 questions")) {
                 userMessage =
                     "Assessment is temporarily misconfigured on the server (must contain exactly 5 questions). Please try again later or contact support.";
             }
-            
+
             setError(userMessage);
         } finally {
             setLoading(false);
@@ -170,7 +170,7 @@ export default function AssessmentScreen() {
                     <View style={styles.backButton} />
                 </View>
                 <View style={styles.errorContainer}>
-                    <Ionicons name="alert-circle-outline" size={64} color="#EF9A9A" />
+                    <Ionicons name="alert-circle-outline" size={64} color="#E57373" />
                     <Text style={styles.errorTitle}>Assessment Unavailable</Text>
                     <Text style={styles.errorMessage}>{error}</Text>
                     <View style={styles.errorActions}>
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 16,
-        color: "#EF9A9A",
+        color: "#E57373",
     },
     errorContainer: {
         flex: 1,

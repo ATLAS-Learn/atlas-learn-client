@@ -45,7 +45,7 @@ export default function StudentDetailScreen() {
             case StudentStatus.BEHIND:
                 return "#FF9800";
             case StudentStatus.AT_RISK:
-                return "#EF9A9A";
+                return "#E57373";
             default:
                 return "#9E9E9E";
         }
@@ -193,7 +193,7 @@ export default function StudentDetailScreen() {
                                         style={[
                                             styles.attemptBadgeText,
                                             {
-                                                color: attempt.passed ? "#4CAF50" : "#EF9A9A",
+                                                color: attempt.passed ? "#4CAF50" : "#E57373",
                                             },
                                         ]}
                                     >
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 16,
-        color: "#EF9A9A",
+        color: "#E57373",
     },
     header: {
         flexDirection: "row",

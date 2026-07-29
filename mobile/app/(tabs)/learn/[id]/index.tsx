@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 16,
-        color: "#EF9A9A",
+        color: "#E57373",
     },
     header: {
         flexDirection: "row",
