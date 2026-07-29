@@ -1315,6 +1315,20 @@ class APIClient {
     async getAdminAnalyticsSignups(): Promise<any> {
         return this.request<any>("/admin/analytics/signups");
     }
+
+    // Feedback
+    async submitFeedback(data: { category: string; subject: string; message: string; rating?: number }): Promise<{ id: string }> {
+        const response = await this.request<{ success: boolean; data: { id: string } }>("/feedback", {
+            method: "POST",
+            data,
+        });
+        return response?.data || { id: "" };
+    }
+
+    async getMyFeedback(): Promise<any[]> {
+        const response = await this.request<{ success: boolean; data: any[] }>("/feedback");
+        return response?.data || [];
+    }
 }
 
 function mapStatusFromProgress(overallProgress: number): StudentStatus {

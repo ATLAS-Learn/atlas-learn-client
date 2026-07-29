@@ -880,3 +880,16 @@ export interface AdminSignupTrend {
     }[];
     totalSignups: number;
 }
+
+export interface Feedback {
+    id: string;
+    userId: string;
+    category: "bug" | "feature_request" | "general" | "complaint" | "suggestion";
+    subject: string;
+    message: string;
+    rating: number | null;
+    status: "pending" | "reviewed" | "resolved";
+    adminReply: string | null;
+    createdAt: string;
+    updatedAt: string;
+}

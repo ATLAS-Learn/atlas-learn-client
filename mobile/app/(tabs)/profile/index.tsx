@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions, Image } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions, Image, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -59,6 +59,12 @@ export default function ProfileScreen() {
     const [editExamYear, setEditExamYear] = useState("");
     const [editPickedImage, setEditPickedImage] = useState<string | null>(null);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+    const [submittingFeedback, setSubmittingFeedback] = useState(false);
+    const [feedbackCategory, setFeedbackCategory] = useState<string>("general");
+    const [feedbackSubject, setFeedbackSubject] = useState("");
+    const [feedbackMessage, setFeedbackMessage] = useState("");
+    const [feedbackRating, setFeedbackRating] = useState<number>(0);
 
     const refreshUser = useCallback(async () => {
         try {
@@ -259,6 +265,53 @@ export default function ProfileScreen() {
         return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     };
 
+    const handleSubmitFeedback = async () => {
+        if (!feedbackSubject.trim()) {
+            Alert.alert("Missing Subject", "Please enter a subject for your feedback.");
+            return;
+        }
+        if (!feedbackMessage.trim()) {
+            Alert.alert("Missing Message", "Please enter your feedback message.");
+            return;
+        }
+
+        setSubmittingFeedback(true);
+        try {
+            await apiClient.submitFeedback({
+                category: feedbackCategory,
+                subject: feedbackSubject.trim(),
+                message: feedbackMessage.trim(),
+                rating: feedbackRating > 0 ? feedbackRating : undefined,
+            });
+            setFeedbackModalVisible(false);
+            setFeedbackSubject("");
+            setFeedbackMessage("");
+            setFeedbackRating(0);
+            setFeedbackCategory("general");
+            Alert.alert("Thank You!", "Your feedback has been submitted successfully.");
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to submit feedback. Please try again.");
+        } finally {
+            setSubmittingFeedback(false);
+        }
+    };
+
+    const handleWhatsApp = () => {
+        const phoneNumber = "237600000000";
+        const message = encodeURIComponent("Hello! I need help with Atlas Learn.");
+        const url = `https://wa.me/${phoneNumber}?text=${message}`;
+        Linking.openURL(url).catch(() => {
+            Alert.alert("Error", "WhatsApp is not installed on this device.");
+        });
+    };
+
+    const handleJoinWhatsAppChannel = () => {
+        const channelUrl = "https://chat.whatsapp.com/YOUR_GROUP_LINK";
+        Linking.openURL(channelUrl).catch(() => {
+            Alert.alert("Error", "WhatsApp is not installed on this device.");
+        });
+    };
+
     return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -325,6 +378,11 @@ export default function ProfileScreen() {
                     <Text style={styles.menuText}>Edit Profile</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={() => setFeedbackModalVisible(true)}>
+                    <Ionicons name="chatbubble-outline" size={24} color="#666" />
+                    <Text style={styles.menuText}>Send Feedback</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.menuItem} disabled>
                     <Ionicons name="notifications-outline" size={24} color="#666" />
                     <Text style={styles.menuText}>Notifications</Text>
@@ -333,6 +391,20 @@ export default function ProfileScreen() {
                 <TouchableOpacity style={styles.menuItem} onPress={handleOpenSessions}>
                     <Ionicons name="phone-portrait-outline" size={24} color="#666" />
                     <Text style={styles.menuText}>Active Sessions</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Support</Text>
+                <TouchableOpacity style={styles.menuItem} onPress={handleWhatsApp}>
+                    <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+                    <Text style={styles.menuText}>Contact on WhatsApp</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={handleJoinWhatsAppChannel}>
+                    <Ionicons name="people-outline" size={24} color="#25D366" />
+                    <Text style={styles.menuText}>Join WhatsApp Channel</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
             </View>
@@ -636,6 +708,97 @@ export default function ProfileScreen() {
                             })
                         )}
                     </ScrollView>
+                </View>
+            </Modal>
+
+            {/* Feedback Modal */}
+            <Modal
+                visible={feedbackModalVisible}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setFeedbackModalVisible(false)}
+            >
+                <View style={styles.requestModalOverlay}>
+                    <View style={styles.requestModalCard}>
+                        <Text style={styles.requestModalTitle}>Send Feedback</Text>
+                        <Text style={styles.requestModalSubtitle}>
+                            Help us improve Atlas Learn. Your feedback is sent to our team.
+                        </Text>
+
+                        <Text style={styles.requestFieldLabel}>Category</Text>
+                        <View style={styles.categoryRow}>
+                            {(["general", "bug", "feature_request", "suggestion", "complaint"] as const).map((cat) => (
+                                <TouchableOpacity
+                                    key={cat}
+                                    style={[styles.categoryChip, feedbackCategory === cat && styles.categoryChipActive]}
+                                    onPress={() => setFeedbackCategory(cat)}
+                                    disabled={submittingFeedback}
+                                >
+                                    <Text style={[styles.categoryChipText, feedbackCategory === cat && styles.categoryChipTextActive]}>
+                                        {cat.replace(/_/g, " ")}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <Text style={styles.requestFieldLabel}>Rating (optional)</Text>
+                        <View style={styles.ratingRow}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <TouchableOpacity
+                                    key={star}
+                                    onPress={() => setFeedbackRating(star === feedbackRating ? 0 : star)}
+                                    disabled={submittingFeedback}
+                                >
+                                    <Ionicons
+                                        name={star <= feedbackRating ? "star" : "star-outline"}
+                                        size={32}
+                                        color={star <= feedbackRating ? "#F2B138" : "#CCC"}
+                                    />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <Text style={styles.requestFieldLabel}>Subject</Text>
+                        <TextInput
+                            style={styles.requestInput}
+                            placeholder="Brief summary of your feedback"
+                            value={feedbackSubject}
+                            onChangeText={setFeedbackSubject}
+                            editable={!submittingFeedback}
+                        />
+
+                        <Text style={styles.requestFieldLabel}>Message</Text>
+                        <TextInput
+                            style={[styles.requestInput, styles.requestInputMultiline]}
+                            placeholder="Describe your feedback in detail..."
+                            value={feedbackMessage}
+                            onChangeText={setFeedbackMessage}
+                            multiline
+                            numberOfLines={5}
+                            editable={!submittingFeedback}
+                        />
+
+                        <View style={styles.requestActions}>
+                            <TouchableOpacity
+                                style={styles.requestCancelButton}
+                                onPress={() => setFeedbackModalVisible(false)}
+                                disabled={submittingFeedback}
+                            >
+                                <Text style={styles.requestCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.requestSubmitButton}
+                                onPress={handleSubmitFeedback}
+                                disabled={submittingFeedback}
+                            >
+                                {submittingFeedback ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.requestSubmitText}>Submit</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
             </Modal>
         </View>
@@ -982,5 +1145,37 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
         color: "#333",
+    },
+    categoryRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+        marginBottom: 8,
+    },
+    categoryChip: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+        backgroundColor: "#FAFAFA",
+    },
+    categoryChipActive: {
+        backgroundColor: "#FFF3E0",
+        borderColor: "#F2B138",
+    },
+    categoryChipText: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: "#666",
+        textTransform: "capitalize",
+    },
+    categoryChipTextActive: {
+        color: "#F2B138",
+    },
+    ratingRow: {
+        flexDirection: "row",
+        gap: 8,
+        marginBottom: 8,
     },
 });
