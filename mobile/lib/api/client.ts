@@ -556,6 +556,7 @@ class APIClient {
                 subjectBreakdown?: { subjectId: string; subjectName: string; correct: number; total: number; score: number }[];
                 recommendedChapter?: { id: string; title: string; subjectName?: string } | null;
                 perSubjectRecommendations?: { subjectId: string; subjectName: string; score: number; recommendedChapter: { id: string; title: string } | null; unlockedChapterIds: string[] }[];
+                corrections?: { questionIndex: number; questionText: string; options: string[]; userAnswer: number | null; correctAnswer: number; isCorrect: boolean; explanation: string | null; subjectName: string; points: number }[];
                 completedAt: string;
             };
         }>("/assessment/result");
@@ -567,6 +568,7 @@ class APIClient {
             subjectBreakdown: response.data.subjectBreakdown,
             recommendedChapter: response.data.recommendedChapter,
             perSubjectRecommendations: response.data.perSubjectRecommendations,
+            corrections: response.data.corrections,
         };
     }
 

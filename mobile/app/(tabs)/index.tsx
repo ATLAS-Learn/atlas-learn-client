@@ -130,8 +130,8 @@ export default function HomeTab() {
                                 style={styles.pathCard}
                                     onPress={() =>
                                         router.push({
-                                            pathname: "/(tabs)/learn/[id]",
-                                            params: { id: next.id, subjectId: subject.subjectId },
+                                            pathname: "/(tabs)/learn/subjects/[subjectId]",
+                                            params: { subjectId: subject.subjectId },
                                         } as any)
                                 }
                             >

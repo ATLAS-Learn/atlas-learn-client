@@ -149,7 +149,20 @@ export interface AssessmentResult {
     subjectBreakdown?: SubjectBreakdown[];
     recommendedChapter?: { id: string; title: string; subjectName?: string } | null;
     perSubjectRecommendations?: PerSubjectRecommendation[];
+    corrections?: AssessmentCorrection[];
     unlockedChapters?: { subjectId: string; subjectName: string; chapterId: string; chapterTitle: string }[];
+}
+
+export interface AssessmentCorrection {
+    questionIndex: number;
+    questionText: string;
+    options: string[];
+    userAnswer: number | null;
+    correctAnswer: number;
+    isCorrect: boolean;
+    explanation: string | null;
+    subjectName: string;
+    points: number;
 }
 
 export interface PerSubjectRecommendation {
