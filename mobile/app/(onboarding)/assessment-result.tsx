@@ -69,7 +69,7 @@ export default function AssessmentResultScreen() {
     const getScoreColor = (s: number) => {
         if (s >= 70) return "#4CAF50";
         if (s >= 40) return "#FF9800";
-        return "#F44336";
+        return "#EF9A9A";
     };
 
     const iconSize = width < 390 ? 48 : 60;

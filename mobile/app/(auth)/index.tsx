@@ -118,7 +118,7 @@ export default function SignIn() {
             />
           </View>
           {errors.email && (
-            <Text style={{ color: "red", marginBottom: 10 }}>{errors.email}</Text>
+            <Text style={{ color: "#EF9A9A", marginBottom: 10 }}>{errors.email}</Text>
           )}
 
           <TouchableOpacity

@@ -784,7 +784,7 @@ export default function AdminSubjectsScreen() {
                   disabled={deleteSubjectMutation.isPending}
                 >
                   {deleteSubjectMutation.isPending ? (
-                    <ActivityIndicator size="small" color="#F44336" />
+                    <ActivityIndicator size="small" color="#EF9A9A" />
                   ) : (
                     <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
                   )}
@@ -969,7 +969,7 @@ export default function AdminSubjectsScreen() {
                         disabled={deletingChapterId === chapter.id}
                       >
                         {deletingChapterId === chapter.id ? (
-                          <ActivityIndicator size="small" color="#F44336" />
+                          <ActivityIndicator size="small" color="#EF9A9A" />
                         ) : (
                           <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
                         )}
@@ -1084,7 +1084,7 @@ export default function AdminSubjectsScreen() {
                         disabled={deletingLessonId === lesson.id}
                       >
                         {deletingLessonId === lesson.id ? (
-                          <ActivityIndicator size="small" color="#F44336" />
+                          <ActivityIndicator size="small" color="#EF9A9A" />
                         ) : (
                           <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
                         )}
@@ -1158,7 +1158,7 @@ export default function AdminSubjectsScreen() {
                         disabled={deletingQuizId === quiz.id}
                       >
                         {deletingQuizId === quiz.id ? (
-                          <ActivityIndicator size="small" color="#F44336" />
+                          <ActivityIndicator size="small" color="#EF9A9A" />
                         ) : (
                           <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
                         )}
@@ -1301,8 +1301,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   smallButtonText: { fontSize: 12, color: "#333", fontWeight: "600" },
-  deleteButton: { borderColor: "#FFCDD2" },
-  deleteButtonText: { color: "#F44336" },
+  deleteButton: { borderColor: "#FFEBEE" },
+  deleteButtonText: { color: "#EF9A9A" },
   fetchingIndicator: { marginTop: 8 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", padding: 16 },
   modalCard: { backgroundColor: "#fff", borderRadius: 16, padding: 16 },

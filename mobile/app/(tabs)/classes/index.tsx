@@ -221,7 +221,7 @@ export default function TeacherDashboardScreen() {
                                     setStatusFilter("all");
                                 }}
                             >
-                                <Ionicons name="close-circle" size={16} color="#F44336" />
+                                <Ionicons name="close-circle" size={16} color="#EF9A9A" />
                                 <Text style={styles.clearFiltersText}>Clear Filters</Text>
                             </TouchableOpacity>
                         )}
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 16,
-        color: "#F44336",
+        color: "#EF9A9A",
     },
     filtersSection: {
         marginTop: 8,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     clearFiltersText: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#F44336",
+        color: "#EF9A9A",
     },
     lessonSummaryCard: {
         backgroundColor: "#fff",

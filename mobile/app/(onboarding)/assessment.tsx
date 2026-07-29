@@ -170,7 +170,7 @@ export default function AssessmentScreen() {
                     <View style={styles.backButton} />
                 </View>
                 <View style={styles.errorContainer}>
-                    <Ionicons name="alert-circle-outline" size={64} color="#F44336" />
+                    <Ionicons name="alert-circle-outline" size={64} color="#EF9A9A" />
                     <Text style={styles.errorTitle}>Assessment Unavailable</Text>
                     <Text style={styles.errorMessage}>{error}</Text>
                     <View style={styles.errorActions}>
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 16,
-        color: "#F44336",
+        color: "#EF9A9A",
     },
     errorContainer: {
         flex: 1,

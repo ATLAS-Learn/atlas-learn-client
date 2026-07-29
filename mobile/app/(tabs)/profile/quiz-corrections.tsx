@@ -7,22 +7,48 @@ import {
     ActivityIndicator,
     TouchableOpacity,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { AssessmentCorrection } from "@/lib/types";
 
-export default function AssessmentCorrectionsScreen() {
+interface QuizCorrection {
+    questionIndex: number;
+    questionText: string;
+    options: string[];
+    userAnswer: number | null;
+    correctAnswer: number;
+    isCorrect: boolean;
+    explanation: string | null;
+    points: number;
+}
+
+interface QuizCorrectionsData {
+    attemptId: string;
+    quizTitle: string;
+    chapterTitle: string;
+    subjectName: string;
+    score: number;
+    corrections: QuizCorrection[];
+}
+
+export default function QuizCorrectionsScreen() {
     const router = useRouter();
-    const [corrections, setCorrections] = useState<AssessmentCorrection[]>([]);
+    const { attemptId } = useLocalSearchParams<{ attemptId: string }>();
+    const [data, setData] = useState<QuizCorrectionsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!attemptId) {
+            setError("No attempt ID provided.");
+            setLoading(false);
+            return;
+        }
+
         const loadCorrections = async () => {
             try {
-                const result = await apiClient.getAssessmentResult();
-                setCorrections(result.corrections || []);
+                const result = await apiClient.getQuizAttemptCorrections(attemptId);
+                setData(result);
             } catch (err: any) {
                 setError(err.message || "Failed to load corrections.");
             } finally {
@@ -30,7 +56,7 @@ export default function AssessmentCorrectionsScreen() {
             }
         };
         loadCorrections();
-    }, []);
+    }, [attemptId]);
 
     if (loading) {
         return (
@@ -41,14 +67,14 @@ export default function AssessmentCorrectionsScreen() {
         );
     }
 
-    if (error || corrections.length === 0) {
+    if (error || !data) {
         return (
             <View style={styles.container}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Corrections</Text>
+                    <Text style={styles.headerTitle}>Quiz Corrections</Text>
                     <View style={styles.backButton} />
                 </View>
                 <View style={styles.errorContainer}>
@@ -59,7 +85,7 @@ export default function AssessmentCorrectionsScreen() {
         );
     }
 
-    const correctCount = corrections.filter((c) => c.isCorrect).length;
+    const correctCount = data.corrections.filter((c) => c.isCorrect).length;
 
     return (
         <View style={styles.container}>
@@ -67,22 +93,22 @@ export default function AssessmentCorrectionsScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#000" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Corrections</Text>
+                <Text style={styles.headerTitle}>Quiz Corrections</Text>
                 <View style={styles.backButton} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.summaryCard}>
-                    <Text style={styles.summaryText}>
-                        {correctCount} / {corrections.length} Passed
-                    </Text>
+                    <Text style={styles.quizTitle}>{data.quizTitle}</Text>
+                    <Text style={styles.chapterTitle}>{data.chapterTitle}</Text>
+                    <Text style={styles.subjectName}>{data.subjectName}</Text>
+                    <Text style={styles.scoreText}>{data.score}% — {correctCount}/{data.corrections.length} correct</Text>
                 </View>
 
-                {corrections.map((correction) => (
+                {data.corrections.map((correction) => (
                     <View key={correction.questionIndex} style={styles.correctionCard}>
                         <View style={styles.correctionHeader}>
                             <Text style={styles.questionNumber}>Question {correction.questionIndex + 1}</Text>
-                            <Text style={styles.questionSubject}>{correction.subjectName}</Text>
                             <View style={[styles.correctBadge, correction.isCorrect && styles.correctBadgePassed]}>
                                 <Text style={[styles.correctBadgeText, correction.isCorrect && styles.correctBadgeTextPassed]}>
                                     {correction.isCorrect ? "Passed" : "Failed"}
@@ -208,10 +234,26 @@ const styles = StyleSheet.create({
         borderColor: "#EAEAEA",
         alignItems: "center",
     },
-    summaryText: {
+    quizTitle: {
         fontSize: 18,
         fontWeight: "700",
         color: "#282F2E",
+        marginBottom: 4,
+    },
+    chapterTitle: {
+        fontSize: 14,
+        color: "#666",
+        marginBottom: 2,
+    },
+    subjectName: {
+        fontSize: 12,
+        color: "#999",
+        marginBottom: 8,
+    },
+    scoreText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#1F2524",
     },
     correctionCard: {
         backgroundColor: "#fff",
@@ -231,11 +273,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "700",
         color: "#282F2E",
-    },
-    questionSubject: {
-        fontSize: 12,
-        color: "#999",
-        flex: 1,
     },
     correctBadge: {
         paddingHorizontal: 8,

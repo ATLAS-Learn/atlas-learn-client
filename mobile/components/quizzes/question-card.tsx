@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     },
     optionIncorrect: {
         borderWidth: 2,
-        borderColor: "#F44336",
+        borderColor: "#EF9A9A",
         backgroundColor: "#FFEBEE",
         borderRadius: 12,
         padding: 16,
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     optionTextIncorrect: {
-        color: "#C62828",
+        color: "#E57373",
         fontWeight: "600",
     },
     correctBadge: {

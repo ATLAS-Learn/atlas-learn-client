@@ -1331,6 +1331,27 @@ class APIClient {
         const response = await this.request<{ success: boolean; data: any[] }>("/feedback");
         return response?.data || [];
     }
+
+    async getQuizAttemptCorrections(attemptId: string): Promise<{
+        attemptId: string;
+        quizTitle: string;
+        chapterTitle: string;
+        subjectName: string;
+        score: number;
+        corrections: {
+            questionIndex: number;
+            questionText: string;
+            options: string[];
+            userAnswer: number | null;
+            correctAnswer: number;
+            isCorrect: boolean;
+            explanation: string | null;
+            points: number;
+        }[];
+    }> {
+        const response = await this.request<{ success: boolean; data: any }>(`/quiz-attempts/${attemptId}/corrections`);
+        return response?.data;
+    }
 }
 
 function mapStatusFromProgress(overallProgress: number): StudentStatus {

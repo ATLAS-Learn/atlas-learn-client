@@ -119,7 +119,7 @@ export default function SignUpScreen() {
             />
           </View>
           {errors.email && (
-            <Text style={{ color: "red", marginBottom: 10 }}>{errors.email}</Text>
+            <Text style={{ color: "#EF9A9A", marginBottom: 10 }}>{errors.email}</Text>
           )
           }
           {/* Name Input */}
@@ -135,7 +135,7 @@ export default function SignUpScreen() {
             />
           </View>
           {errors.fullName && (
-            <Text style={{ color: "red", marginBottom: 10 }}>{errors.fullName}</Text>
+            <Text style={{ color: "#EF9A9A", marginBottom: 10 }}>{errors.fullName}</Text>
           )
           }
 

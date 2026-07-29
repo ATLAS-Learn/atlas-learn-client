@@ -526,6 +526,6 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 16,
-        color: "#F44336",
+        color: "#EF9A9A",
     },
 });

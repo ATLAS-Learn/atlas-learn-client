@@ -15,7 +15,7 @@ const getStatusColor = (status: StudentStatus): string => {
         case StudentStatus.BEHIND:
             return "#FF9800"; // Yellow/Orange
         case StudentStatus.AT_RISK:
-            return "#F44336"; // Red
+            return "#EF9A9A"; // Red
         default:
             return "#9E9E9E"; // Gray
     }

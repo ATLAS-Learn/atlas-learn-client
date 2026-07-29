@@ -76,7 +76,12 @@ export default function QuizScoresScreen() {
                         const quizTitle = attempt.quiz?.title || `Quiz ${attempt.quizId.slice(0, 8)}`;
 
                         return (
-                            <View key={attempt.id} style={styles.scoreCard}>
+                            <TouchableOpacity
+                                key={attempt.id}
+                                style={styles.scoreCard}
+                                onPress={() => router.push(`/(tabs)/profile/quiz-corrections?attemptId=${attempt.id}`)}
+                                activeOpacity={0.7}
+                            >
                                 <View style={styles.scoreHeader}>
                                     <View style={styles.scoreInfo}>
                                         <Text style={styles.quizTitle}>
@@ -100,7 +105,7 @@ export default function QuizScoresScreen() {
                                         <Ionicons
                                             name={passed ? "checkmark-circle" : "close-circle"}
                                             size={16}
-                                            color={passed ? "#4CAF50" : "#F44336"}
+                                            color={passed ? "#4CAF50" : "#EF9A9A"}
                                         />
                                         <Text
                                             style={[
@@ -111,6 +116,7 @@ export default function QuizScoresScreen() {
                                             {passed ? "Passed" : "Failed"}
                                         </Text>
                                     </View>
+                                    <Ionicons name="chevron-forward" size={20} color="#CCC" />
                                 </View>
 
                                 <View style={styles.scoreDetails}>
@@ -132,9 +138,9 @@ export default function QuizScoresScreen() {
                                         </Text>
                                     </View>
                                 </View>
-                            </View>
-                        );
-                    })
+                                </TouchableOpacity>
+                            );
+                        })
                 )}
             </ScrollView>
         </View>
@@ -256,7 +262,7 @@ const styles = StyleSheet.create({
         color: "#4CAF50",
     },
     statusTextFailed: {
-        color: "#F44336",
+        color: "#EF9A9A",
     },
     scoreDetails: {
         flexDirection: "row",
@@ -286,6 +292,6 @@ const styles = StyleSheet.create({
         color: "#4CAF50",
     },
     scorePercentageFailed: {
-        color: "#F44336",
+        color: "#EF9A9A",
     },
 });

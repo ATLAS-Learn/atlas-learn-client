@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     errorText: {
-        color: "red",
+        color: "#EF9A9A",
         marginBottom: 10,
         fontSize: 12,
         textAlign: "center",

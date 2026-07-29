@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     View,
     Text,
@@ -69,6 +69,12 @@ export default function LearnScreen() {
         apiClient.getPreferredSubjects().then(setPreferredIds).catch(() => setPreferredIds([]));
     }, []);
 
+    const subjects = useMemo(() => {
+        const allSubjects = progressData?.subjects || [];
+        if (!preferredIds || preferredIds.length === 0) return [];
+        return allSubjects.filter((s) => preferredIds.includes(s.subjectId));
+    }, [progressData, preferredIds]);
+
     if (isLoading || preferredIds === null) {
         return (
             <View style={styles.loadingContainer}>
@@ -85,11 +91,6 @@ export default function LearnScreen() {
             </View>
         );
     }
-
-    const allSubjects = progressData.subjects || [];
-    const subjects = preferredIds.length > 0
-        ? allSubjects.filter((s) => preferredIds.includes(s.subjectId))
-        : [];
 
     return (
         <View style={styles.container}>
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FAFAFA",
     },
     loadingText: { marginTop: 16, fontSize: 16, color: "#666" },
-    errorText: { fontSize: 16, color: "#F44336" },
+    errorText: { fontSize: 16, color: "#EF9A9A" },
     header: {
         flexDirection: "row",
         alignItems: "center",

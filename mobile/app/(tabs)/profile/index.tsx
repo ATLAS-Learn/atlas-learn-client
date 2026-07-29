@@ -6,6 +6,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useUserStore } from "@/lib/store/user";
 import { useAuthStore } from "@/lib/store/auth";
 import { apiClient } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/constants/api";
 import { UserRole } from "@/lib/types";
 import { useOverallProgress } from "@/lib/hooks/api";
 import ProgressBar from "@/components/progress/progress-bar";
@@ -318,7 +319,7 @@ export default function ProfileScreen() {
             <View style={[styles.header, { paddingHorizontal: width < 390 ? 16 : 24 }]}>
                 <View style={styles.avatarContainer}>
                     {user?.image ? (
-                        <Image source={{ uri: user.image.startsWith("http") ? user.image : `http://10.245.44.60:4000${user.image}` }} style={styles.avatarImage} />
+                        <Image source={{ uri: user.image.startsWith("http") ? user.image : `${API_BASE_URL}${user.image}` }} style={styles.avatarImage} />
                     ) : (
                         <Ionicons name="person" size={48} color="#666" />
                     )}
@@ -470,7 +471,7 @@ export default function ProfileScreen() {
             )}
 
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <Ionicons name="log-out-outline" size={24} color="#F44336" />
+                <Ionicons name="log-out-outline" size={24} color="#EF9A9A" />
                 <Text style={styles.logoutText}>Sign Out</Text>
             </TouchableOpacity>
             </ScrollView>
@@ -511,7 +512,7 @@ export default function ProfileScreen() {
                                 {editPickedImage ? (
                                     <Image source={{ uri: editPickedImage }} style={styles.imagePreview} />
                                 ) : user?.image ? (
-                                    <Image source={{ uri: user.image.startsWith("http") ? user.image : `http://10.245.44.60:4000${user.image}` }} style={styles.imagePreview} />
+                                    <Image source={{ uri: user.image.startsWith("http") ? user.image : `${API_BASE_URL}${user.image}` }} style={styles.imagePreview} />
                                 ) : (
                                     <View style={styles.imagePreviewPlaceholder}>
                                         <Ionicons name="person" size={32} color="#999" />
@@ -695,10 +696,10 @@ export default function ProfileScreen() {
                                             disabled={revokingSessionId === session.id}
                                         >
                                             {revokingSessionId === session.id ? (
-                                                <ActivityIndicator size="small" color="#F44336" />
+                                                <ActivityIndicator size="small" color="#EF9A9A" />
                                             ) : (
                                                 <>
-                                                    <Ionicons name="trash-outline" size={18} color="#F44336" />
+                                                    <Ionicons name="trash-outline" size={18} color="#EF9A9A" />
                                                     <Text style={styles.revokeButtonText}>Revoke</Text>
                                                 </>
                                             )}
@@ -910,7 +911,7 @@ const styles = StyleSheet.create({
         color: "#4CAF50",
     },
     statusRejected: {
-        color: "#F44336",
+        color: "#EF9A9A",
     },
     logoutButton: {
         flexDirection: "row",
@@ -927,7 +928,7 @@ const styles = StyleSheet.create({
     logoutText: {
         fontSize: 16,
         fontWeight: "700",
-        color: "#F44336",
+        color: "#EF9A9A",
     },
     requestModalOverlay: {
         flex: 1,
@@ -1078,7 +1079,7 @@ const styles = StyleSheet.create({
     revokeButtonText: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#F44336",
+        color: "#EF9A9A",
     },
     emptyContainer: {
         alignItems: "center",
