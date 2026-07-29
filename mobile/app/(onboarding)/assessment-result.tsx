@@ -63,25 +63,7 @@ export default function AssessmentResultScreen() {
 
     const handleStartLearning = async () => {
         await setItem("assessmentComplete", "true");
-        // Navigate to first recommended subject's recommended chapter
-        if (perSubjectRecommendations.length > 0) {
-            const first = perSubjectRecommendations[0];
-            if (first.recommendedChapter) {
-                router.replace({
-                    pathname: "/(tabs)/learn/[id]",
-                    params: { id: first.recommendedChapter.id, subjectId: first.subjectId },
-                });
-                return;
-            }
-        }
-        if (recommendedChapter?.id) {
-            router.replace({
-                pathname: "/(tabs)/learn/[id]",
-                params: { id: recommendedChapter.id },
-            });
-        } else {
-            router.replace("/(tabs)");
-        }
+        router.replace("/(tabs)/learn");
     };
 
     const getScoreColor = (s: number) => {
@@ -340,6 +322,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "#FFF9E6",
         borderRadius: 14,
+        marginBottom: 5,
         padding: 16,
         gap: 12,
         borderWidth: 1,

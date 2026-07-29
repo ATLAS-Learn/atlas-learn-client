@@ -10,7 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { AssessmentResult, SubjectBreakdown } from "@/lib/types";
+import { AssessmentResult, SubjectBreakdown, PerSubjectRecommendation } from "@/lib/types";
 import { LEVEL_INFO } from "@/lib/constants/levels";
 
 export default function ProfileAssessmentResultScreen() {
@@ -117,19 +117,34 @@ export default function ProfileAssessmentResultScreen() {
                     </View>
                 )}
 
-                {/* Recommended Chapter */}
-                {result.recommendedChapter && (
+                {/* Recommended Starting Points per Subject */}
+                {result.perSubjectRecommendations && result.perSubjectRecommendations.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Recommended Starting Point</Text>
-                        <View style={styles.recommendedCard}>
-                            <Ionicons name="rocket-outline" size={24} color="#F2B138" />
-                            <View style={styles.recommendedInfo}>
-                                <Text style={styles.recommendedChapter}>{result.recommendedChapter.title}</Text>
-                                {result.recommendedChapter.subjectName && (
-                                    <Text style={styles.recommendedSubject}>{result.recommendedChapter.subjectName}</Text>
-                                )}
-                            </View>
-                        </View>
+                        <Text style={styles.sectionTitle}>Recommended Starting Points</Text>
+                        {result.perSubjectRecommendations.map((rec: PerSubjectRecommendation) => (
+                            <TouchableOpacity
+                                key={rec.subjectId}
+                                style={styles.recommendedCard}
+                                onPress={() => {
+                                    if (rec.recommendedChapter) {
+                                        router.push({
+                                            pathname: "/(tabs)/learn/[id]",
+                                            params: { id: rec.recommendedChapter.id, subjectId: rec.subjectId },
+                                        } as any);
+                                    }
+                                }}
+                            >
+                                <Ionicons name="rocket-outline" size={24} color="#F2B138" />
+                                <View style={styles.recommendedInfo}>
+                                    <Text style={styles.recommendedSubject}>{rec.subjectName}</Text>
+                                    {rec.recommendedChapter && (
+                                        <Text style={styles.recommendedChapter}>{rec.recommendedChapter.title}</Text>
+                                    )}
+                                    <Text style={styles.recommendedScore}>{rec.score}% on assessment</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={16} color="#999" />
+                            </TouchableOpacity>
+                        ))}
                     </View>
                 )}
             </ScrollView>
@@ -265,8 +280,14 @@ const styles = StyleSheet.create({
         color: "#1F2524",
     },
     recommendedSubject: {
-        fontSize: 12,
+        fontSize: 13,
+        fontWeight: "600",
         color: "#999",
+        marginBottom: 2,
+    },
+    recommendedScore: {
+        fontSize: 12,
+        color: "#F2B138",
         fontWeight: "600",
         marginTop: 2,
     },
