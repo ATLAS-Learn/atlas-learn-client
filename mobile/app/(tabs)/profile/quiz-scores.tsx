@@ -82,6 +82,11 @@ export default function QuizScoresScreen() {
                                         <Text style={styles.quizTitle}>
                                             {quizTitle}
                                         </Text>
+                                        {attempt.quiz?.chapter?.subject && (
+                                            <Text style={styles.quizSubject}>
+                                                {attempt.quiz.chapter.subject.name}
+                                            </Text>
+                                        )}
                                         <Text style={styles.quizDate}>
                                             {formatDate(attempt.completedAt)}
                                         </Text>
@@ -218,6 +223,12 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: "#282F2E",
         marginBottom: 4,
+    },
+    quizSubject: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#F2B138",
+        marginBottom: 2,
     },
     quizDate: {
         fontSize: 12,

@@ -69,7 +69,7 @@ export default function LearnScreen() {
         apiClient.getPreferredSubjects().then(setPreferredIds).catch(() => setPreferredIds([]));
     }, []);
 
-    if (isLoading) {
+    if (isLoading || preferredIds === null) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#F2B138" />
@@ -87,9 +87,9 @@ export default function LearnScreen() {
     }
 
     const allSubjects = progressData.subjects || [];
-    const subjects = preferredIds && preferredIds.length > 0
+    const subjects = preferredIds.length > 0
         ? allSubjects.filter((s) => preferredIds.includes(s.subjectId))
-        : allSubjects;
+        : [];
 
     return (
         <View style={styles.container}>
@@ -104,7 +104,8 @@ export default function LearnScreen() {
                 {subjects.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="school-outline" size={56} color="#CCC" />
-                        <Text style={styles.emptyText}>No subjects available yet.</Text>
+                        <Text style={styles.emptyText}>No subjects selected yet</Text>
+                        <Text style={styles.emptySubtext}>Browse and add subjects to start learning</Text>
                         <TouchableOpacity
                             style={styles.browseAllButton}
                             onPress={() => router.push("/(tabs)/learn/browse-subjects")}
@@ -165,6 +166,7 @@ const styles = StyleSheet.create({
         borderColor: "#EEE",
     },
     emptyText: { marginTop: 12, fontSize: 14, color: "#999", fontWeight: "600" },
+    emptySubtext: { marginTop: 4, fontSize: 12, color: "#BBB", marginBottom: 8 },
     browseAllButton: {
         flexDirection: "row",
         alignItems: "center",

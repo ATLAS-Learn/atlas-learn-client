@@ -599,6 +599,10 @@ export interface QuizAttempt {
         chapter?: {
             unlockThreshold: number;
             subjectId: string;
+            subject?: {
+                name: string;
+                code: string;
+            };
         };
     };
     // Computed fields (not from backend, calculated by frontend)
