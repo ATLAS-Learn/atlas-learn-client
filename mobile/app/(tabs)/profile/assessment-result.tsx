@@ -126,12 +126,10 @@ export default function ProfileAssessmentResultScreen() {
                                 key={rec.subjectId}
                                 style={styles.recommendedCard}
                                 onPress={() => {
-                                    if (rec.recommendedChapter) {
-                                        router.push({
-                                            pathname: "/(tabs)/learn/[id]",
-                                            params: { id: rec.recommendedChapter.id, subjectId: rec.subjectId },
-                                        } as any);
-                                    }
+                                    router.push({
+                                        pathname: "/(tabs)/learn/subjects/[subjectId]",
+                                        params: { subjectId: rec.subjectId },
+                                    } as any);
                                 }}
                             >
                                 <Ionicons name="rocket-outline" size={24} color="#F2B138" />
@@ -146,6 +144,18 @@ export default function ProfileAssessmentResultScreen() {
                             </TouchableOpacity>
                         ))}
                     </View>
+                )}
+
+                {/* View Corrections Button */}
+                {result.corrections && result.corrections.length > 0 && (
+                    <TouchableOpacity
+                        style={styles.viewCorrectionsButton}
+                        onPress={() => router.push("/(tabs)/profile/assessment-corrections" as any)}
+                    >
+                        <Ionicons name="document-text-outline" size={20} color="#F2B138" />
+                        <Text style={styles.viewCorrectionsText}>View All Corrections</Text>
+                        <Ionicons name="chevron-forward" size={18} color="#999" />
+                    </TouchableOpacity>
                 )}
             </ScrollView>
         </View>
@@ -267,6 +277,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFF9E6",
         borderRadius: 14,
         padding: 16,
+        marginBottom: 10,
         gap: 12,
         borderWidth: 1,
         borderColor: "#FFE082",
@@ -290,5 +301,23 @@ const styles = StyleSheet.create({
         color: "#F2B138",
         fontWeight: "600",
         marginTop: 2,
+    },
+    viewCorrectionsButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+        backgroundColor: "#FFF9E6",
+        borderRadius: 12,
+        padding: 16,
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: "#FFE082",
+    },
+    viewCorrectionsText: {
+        fontSize: 15,
+        fontWeight: "700",
+        color: "#F2B138",
+        flex: 1,
     },
 });
