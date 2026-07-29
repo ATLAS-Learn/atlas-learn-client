@@ -60,7 +60,7 @@ export default function SignUpScreen() {
         });
       } catch (error: any) {
         const errorMessage = error.message || "An error occurred. Please try again.";
-        
+
         // If error is about email already existing, show it inline
         if (errorMessage.toLowerCase().includes("already exists") || errorMessage.toLowerCase().includes("email")) {
           setErrors({ email: errorMessage });

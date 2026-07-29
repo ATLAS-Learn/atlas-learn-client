@@ -93,6 +93,8 @@ export interface AssessmentQuestion {
     options: string[];
     correctAnswer: number; // index of correct option
     topic: string;
+    subjectId?: string;
+    subjectName?: string;
 }
 
 export interface AssessmentAdminQuestion {
@@ -144,6 +146,38 @@ export interface AssessmentResult {
     totalQuestions: number;
     level: Level;
     message: string;
+    subjectBreakdown?: SubjectBreakdown[];
+    recommendedChapter?: { id: string; title: string; subjectName?: string } | null;
+    unlockedChapters?: { subjectId: string; subjectName: string; chapterId: string; chapterTitle: string }[];
+}
+
+export interface SubjectBreakdown {
+    subjectId: string;
+    subjectName: string;
+    correct: number;
+    total: number;
+    score: number;
+}
+
+export interface LearningPath {
+    overallLevel: string;
+    assessmentScore: number | null;
+    perSubject: LearningPathSubject[];
+    studyPlan: string;
+}
+
+export interface LearningPathSubject {
+    subjectId: string;
+    subjectName: string;
+    subjectCode: string;
+    totalChapters: number;
+    completedChapters: number;
+    remainingChapters: number;
+    completionPercentage: number;
+    startChapter: { id: string; title: string } | null;
+    currentChapter: { id: string; title: string } | null;
+    nextRecommended: { id: string; title: string } | null;
+    weakAreas: { chapterId: string; chapterTitle: string; score: number }[];
 }
 
 // Subject Types

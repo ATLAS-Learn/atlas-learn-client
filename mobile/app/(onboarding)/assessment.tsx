@@ -138,6 +138,8 @@ export default function AssessmentScreen() {
                     totalQuestions: result.totalQuestions.toString(),
                     level: result.level,
                     message: result.message,
+                    subjectBreakdown: JSON.stringify(result.subjectBreakdown || []),
+                    recommendedChapter: JSON.stringify(result.recommendedChapter || null),
                 },
             });
         } catch {
@@ -217,6 +219,13 @@ export default function AssessmentScreen() {
                     currentQuestion={currentQuestionIndex + 1}
                     totalQuestions={questions.length}
                 />
+
+                {currentQuestion.subjectName && (
+                    <View style={styles.subjectBadge}>
+                        <Ionicons name="book-outline" size={14} color="#F2B138" />
+                        <Text style={styles.subjectBadgeText}>{currentQuestion.subjectName}</Text>
+                    </View>
+                )}
 
                 <QuestionCard
                     question={{
@@ -376,6 +385,22 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         padding: 24,
+    },
+    subjectBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: "#FFF9E6",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        alignSelf: "flex-start",
+        marginBottom: 16,
+    },
+    subjectBadgeText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#E65100",
     },
     footer: {
         flexDirection: "row",

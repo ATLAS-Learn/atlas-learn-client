@@ -477,6 +477,8 @@ class APIClient {
                     questionText: string;
                     options: string[];
                     orderIndex: number;
+                    subjectId?: string;
+                    subjectName?: string;
                 }[];
             };
         }>("/assessment/start");
@@ -487,13 +489,14 @@ class APIClient {
         }
 
         // Map API response format to AssessmentQuestion format
-        // API uses 'questionText' but our types expect 'question'
         return response.data.questions.map((q) => ({
             id: q.id,
-            question: q.questionText || "", // Map questionText to question
+            question: q.questionText || "",
             options: q.options || [],
-            correctAnswer: -1, // Assessments don't have correct answers, use -1 as placeholder
-            topic: "", // Not provided by API, use empty string
+            correctAnswer: -1,
+            topic: "",
+            subjectId: q.subjectId,
+            subjectName: q.subjectName,
         }));
     }
 
@@ -503,7 +506,6 @@ class APIClient {
      * @returns Assessment result with score, level, and message
      */
     async submitAssessment(answers: number[]): Promise<AssessmentResult> {
-        // API expects: { answers: [0, 1, 2, 0, 1] } - array of answer indices
         const result = await this.request<{
             success: boolean;
             message: string;
@@ -515,7 +517,9 @@ class APIClient {
                 levelDescription: string;
                 correctAnswers: number;
                 totalQuestions: number;
-                recommendedChapter?: unknown;
+                subjectBreakdown?: { subjectId: string; subjectName: string; correct: number; total: number; score: number }[];
+                recommendedChapter?: { id: string; title: string } | null;
+                unlockedChapters?: { subjectId: string; subjectName: string; chapterId: string; chapterTitle: string }[];
                 completedAt: string;
             };
         }>("/assessment/submit", {
@@ -532,6 +536,9 @@ class APIClient {
             totalQuestions: result.data.totalQuestions,
             level: result.data.level,
             message: result.data.levelDescription || result.message || "Assessment completed successfully",
+            subjectBreakdown: result.data.subjectBreakdown,
+            recommendedChapter: result.data.recommendedChapter,
+            unlockedChapters: result.data.unlockedChapters,
         };
     }
 
@@ -540,17 +547,22 @@ class APIClient {
             success: boolean;
             data: {
                 score: number;
-                totalQuestions: number;
+                totalQuestions?: number;
                 level: Level;
                 levelLabel: string;
                 levelDescription: string;
+                subjectBreakdown?: { subjectId: string; subjectName: string; correct: number; total: number; score: number }[];
+                recommendedChapter?: { id: string; title: string; subjectName?: string } | null;
+                completedAt: string;
             };
         }>("/assessment/result");
         return {
             score: response.data.score,
-            totalQuestions: response.data.totalQuestions,
+            totalQuestions: response.data.totalQuestions || 0,
             level: response.data.level,
             message: response.data.levelDescription || "Assessment completed",
+            subjectBreakdown: response.data.subjectBreakdown,
+            recommendedChapter: response.data.recommendedChapter,
         };
     }
 
@@ -568,6 +580,14 @@ class APIClient {
             completed: response.data.isCompleted,
             level: response.data.level,
         };
+    }
+
+    async getLearningPath(): Promise<import("@/lib/types").LearningPath> {
+        const response = await this.request<{
+            success: boolean;
+            data: import("@/lib/types").LearningPath;
+        }>("/recommendations/learning-path");
+        return response.data;
     }
 
     async getOverallProgress(): Promise<OverallProgressData> {

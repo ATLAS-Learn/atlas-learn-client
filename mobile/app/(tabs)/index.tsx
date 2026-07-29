@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useUserStore } from "@/lib/store/user";
 import { UserRole, SubjectProgress } from "@/lib/types";
-import { useOverallProgress, useStreak, useUserQuizAttempts } from "@/lib/hooks/api";
+import { useOverallProgress, useStreak, useUserQuizAttempts, useLearningPath } from "@/lib/hooks/api";
 import { apiClient } from "@/lib/api";
 
 function SubjectProgressCard({ subject }: { subject: SubjectProgress }) {
@@ -56,6 +56,7 @@ export default function HomeTab() {
     const { data: overallProgress } = useOverallProgress();
     const { data: streakData } = useStreak();
     const { data: quizAttempts = [] } = useUserQuizAttempts(user?.id);
+    const { data: learningPath } = useLearningPath();
 
     const isStudent = user?.role === UserRole.STUDENT;
     const displayName =
@@ -117,6 +118,44 @@ export default function HomeTab() {
                         <Text style={styles.streakValue}>{streak} day streak</Text>
                         <Text style={styles.streakLabel}>Keep it going!</Text>
                     </View>
+                </View>
+            )}
+
+            {/* Continue Your Path */}
+            {isStudent && learningPath && learningPath.perSubject.length > 0 && (
+                <View style={styles.pathContainer}>
+                    <Text style={styles.sectionTitle}>Continue Your Path</Text>
+                    {learningPath.perSubject.map((subject) => {
+                        const next = subject.currentChapter || subject.nextRecommended || subject.startChapter;
+                        if (!next) return null;
+                        return (
+                            <TouchableOpacity
+                                key={subject.subjectId}
+                                style={styles.pathCard}
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: "/(tabs)/learn/[id]",
+                                            params: { id: next.id, subjectId: subject.subjectId },
+                                        } as any)
+                                }
+                            >
+                                <View style={styles.pathCardLeft}>
+                                    <Ionicons name="rocket-outline" size={20} color="#F2B138" />
+                                    <View style={styles.pathCardInfo}>
+                                        <Text style={styles.pathSubject}>{subject.subjectName}</Text>
+                                        <Text style={styles.pathChapter}>{next.title}</Text>
+                                    </View>
+                                </View>
+                                <View style={styles.pathCardRight}>
+                                    <Text style={styles.pathProgress}>{subject.completionPercentage}%</Text>
+                                    <Ionicons name="chevron-forward" size={16} color="#999" />
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    })}
+                    {learningPath.studyPlan && (
+                        <Text style={styles.studyPlan}>{learningPath.studyPlan}</Text>
+                    )}
                 </View>
             )}
 
@@ -289,6 +328,58 @@ const styles = StyleSheet.create({
     },
     statValue: { fontSize: 16, fontWeight: "800", color: "#282F2E", marginTop: 6 },
     statLabel: { fontSize: 10, color: "#999", fontWeight: "600", marginTop: 2, textAlign: "center" },
+
+    // Learning Path
+    pathContainer: {
+        marginBottom: 16,
+    },
+    pathCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: "#fff",
+        borderRadius: 14,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: "#EAEAEA",
+        marginBottom: 10,
+    },
+    pathCardLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        flex: 1,
+    },
+    pathCardInfo: {
+        flex: 1,
+    },
+    pathSubject: {
+        fontSize: 12,
+        color: "#999",
+        fontWeight: "600",
+    },
+    pathChapter: {
+        fontSize: 15,
+        fontWeight: "700",
+        color: "#1F2524",
+        marginTop: 2,
+    },
+    pathCardRight: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    pathProgress: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#F2B138",
+    },
+    studyPlan: {
+        fontSize: 13,
+        color: "#666",
+        fontStyle: "italic",
+        marginTop: 4,
+    },
 
     // Subject Cards
     subjectCard: {
