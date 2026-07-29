@@ -148,7 +148,16 @@ export interface AssessmentResult {
     message: string;
     subjectBreakdown?: SubjectBreakdown[];
     recommendedChapter?: { id: string; title: string; subjectName?: string } | null;
+    perSubjectRecommendations?: PerSubjectRecommendation[];
     unlockedChapters?: { subjectId: string; subjectName: string; chapterId: string; chapterTitle: string }[];
+}
+
+export interface PerSubjectRecommendation {
+    subjectId: string;
+    subjectName: string;
+    score: number;
+    recommendedChapter: { id: string; title: string } | null;
+    unlockedChapterIds: string[];
 }
 
 export interface SubjectBreakdown {

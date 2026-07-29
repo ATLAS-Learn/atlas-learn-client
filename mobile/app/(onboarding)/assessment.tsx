@@ -139,6 +139,7 @@ export default function AssessmentScreen() {
                     level: result.level,
                     message: result.message,
                     subjectBreakdown: JSON.stringify(result.subjectBreakdown || []),
+                    perSubjectRecommendations: JSON.stringify(result.perSubjectRecommendations || []),
                     recommendedChapter: JSON.stringify(result.recommendedChapter || null),
                 },
             });

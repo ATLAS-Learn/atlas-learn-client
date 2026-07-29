@@ -105,11 +105,27 @@ export default function LearnScreen() {
                     <View style={styles.emptyContainer}>
                         <Ionicons name="school-outline" size={56} color="#CCC" />
                         <Text style={styles.emptyText}>No subjects available yet.</Text>
+                        <TouchableOpacity
+                            style={styles.browseAllButton}
+                            onPress={() => router.push("/(tabs)/learn/browse-subjects")}
+                        >
+                            <Ionicons name="add-circle-outline" size={18} color="#F2B138" />
+                            <Text style={styles.browseAllText}>Browse All Subjects</Text>
+                        </TouchableOpacity>
                     </View>
                 ) : (
-                    subjects.map((subject) => (
-                        <SubjectCard key={subject.subjectId} subject={subject} />
-                    ))
+                    <>
+                        {subjects.map((subject) => (
+                            <SubjectCard key={subject.subjectId} subject={subject} />
+                        ))}
+                        <TouchableOpacity
+                            style={styles.browseAllButton}
+                            onPress={() => router.push("/(tabs)/learn/browse-subjects")}
+                        >
+                            <Ionicons name="add-circle-outline" size={18} color="#F2B138" />
+                            <Text style={styles.browseAllText}>Browse All Subjects</Text>
+                        </TouchableOpacity>
+                    </>
                 )}
             </ScrollView>
         </View>
@@ -149,6 +165,19 @@ const styles = StyleSheet.create({
         borderColor: "#EEE",
     },
     emptyText: { marginTop: 12, fontSize: 14, color: "#999", fontWeight: "600" },
+    browseAllButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        paddingVertical: 14,
+        backgroundColor: "#FFF9E6",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#FFE082",
+        marginTop: 12,
+    },
+    browseAllText: { fontSize: 14, fontWeight: "700", color: "#F2B138" },
     subjectCard: {
         flexDirection: "row",
         alignItems: "center",

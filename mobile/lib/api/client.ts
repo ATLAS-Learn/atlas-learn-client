@@ -518,6 +518,7 @@ class APIClient {
                 correctAnswers: number;
                 totalQuestions: number;
                 subjectBreakdown?: { subjectId: string; subjectName: string; correct: number; total: number; score: number }[];
+                perSubjectRecommendations?: { subjectId: string; subjectName: string; score: number; recommendedChapter: { id: string; title: string } | null; unlockedChapterIds: string[] }[];
                 recommendedChapter?: { id: string; title: string } | null;
                 unlockedChapters?: { subjectId: string; subjectName: string; chapterId: string; chapterTitle: string }[];
                 completedAt: string;
@@ -537,6 +538,7 @@ class APIClient {
             level: result.data.level,
             message: result.data.levelDescription || result.message || "Assessment completed successfully",
             subjectBreakdown: result.data.subjectBreakdown,
+            perSubjectRecommendations: result.data.perSubjectRecommendations,
             recommendedChapter: result.data.recommendedChapter,
             unlockedChapters: result.data.unlockedChapters,
         };

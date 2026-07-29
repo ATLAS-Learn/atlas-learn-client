@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Level, SubjectBreakdown } from "@/lib/types";
+import { Level, SubjectBreakdown, PerSubjectRecommendation } from "@/lib/types";
 import { LEVEL_INFO } from "@/lib/constants/levels";
 import { useUserStore } from "@/lib/store/user";
 import { setItem } from "@/lib/utils/storage";
@@ -41,6 +41,14 @@ export default function AssessmentResultScreen() {
         }
     }, [params.recommendedChapter]);
 
+    const perSubjectRecommendations: PerSubjectRecommendation[] = useMemo(() => {
+        try {
+            return params.perSubjectRecommendations ? JSON.parse(params.perSubjectRecommendations as string) : [];
+        } catch {
+            return [];
+        }
+    }, [params.perSubjectRecommendations]);
+
     const levelInfo = LEVEL_INFO[level];
     const percentage = (score / totalQuestions) * 100;
 
@@ -55,6 +63,17 @@ export default function AssessmentResultScreen() {
 
     const handleStartLearning = async () => {
         await setItem("assessmentComplete", "true");
+        // Navigate to first recommended subject's recommended chapter
+        if (perSubjectRecommendations.length > 0) {
+            const first = perSubjectRecommendations[0];
+            if (first.recommendedChapter) {
+                router.replace({
+                    pathname: "/(tabs)/learn/[id]",
+                    params: { id: first.recommendedChapter.id, subjectId: first.subjectId },
+                });
+                return;
+            }
+        }
         if (recommendedChapter?.id) {
             router.replace({
                 pathname: "/(tabs)/learn/[id]",
@@ -126,19 +145,22 @@ export default function AssessmentResultScreen() {
                 </View>
             )}
 
-            {/* Recommended Starting Point */}
-            {recommendedChapter && (
+            {/* Recommended Starting Points per Subject */}
+            {perSubjectRecommendations.length > 0 && (
                 <View style={styles.recommendedContainer}>
-                    <Text style={styles.recommendedTitle}>Recommended Starting Point</Text>
-                    <View style={styles.recommendedCard}>
-                        <Ionicons name="rocket-outline" size={24} color="#F2B138" />
-                        <View style={styles.recommendedInfo}>
-                            <Text style={styles.recommendedChapter}>{recommendedChapter.title}</Text>
-                            {recommendedChapter.subjectName && (
-                                <Text style={styles.recommendedSubject}>{recommendedChapter.subjectName}</Text>
-                            )}
+                    <Text style={styles.recommendedTitle}>Recommended Starting Points</Text>
+                    {perSubjectRecommendations.map((rec) => (
+                        <View key={rec.subjectId} style={styles.recommendedCard}>
+                            <Ionicons name="rocket-outline" size={24} color="#F2B138" />
+                            <View style={styles.recommendedInfo}>
+                                <Text style={styles.recommendedSubject}>{rec.subjectName}</Text>
+                                {rec.recommendedChapter && (
+                                    <Text style={styles.recommendedChapter}>{rec.recommendedChapter.title}</Text>
+                                )}
+                                <Text style={styles.recommendedScore}>{rec.score}% on assessment</Text>
+                            </View>
                         </View>
-                    </View>
+                    ))}
                 </View>
             )}
 
@@ -334,6 +356,12 @@ const styles = StyleSheet.create({
     recommendedSubject: {
         fontSize: 12,
         color: "#999",
+        fontWeight: "600",
+        marginTop: 2,
+    },
+    recommendedScore: {
+        fontSize: 12,
+        color: "#F2B138",
         fontWeight: "600",
         marginTop: 2,
     },
