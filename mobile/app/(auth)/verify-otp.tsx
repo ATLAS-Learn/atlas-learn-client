@@ -40,6 +40,13 @@ export default function VerifyOTPScreen() {
     const mode = params.mode === "signup" ? "signup" : "login";
     const fullName = params.fullName || "";
 
+    // Auto-verify when code reaches 6 digits
+    useEffect(() => {
+        if (code.length === 6 && !loading) {
+            handleVerify();
+        }
+    }, [code]);
+
     // Cleanup cooldown timer on unmount
     useEffect(() => {
         return () => {
