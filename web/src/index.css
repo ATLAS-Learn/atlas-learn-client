@@ -17,3 +17,8 @@
     color: var(--dark);
   }
 }
+
+a, button, [role="link"] {
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+}

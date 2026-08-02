@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api/client'
 
@@ -6,64 +6,89 @@ export default function TeacherStudents() {
   const [students, setStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(0)
   const [total, setTotal] = useState(0)
   const limit = 20
 
-  useEffect(() => { loadStudents() }, [page, search])
-
-  const loadStudents = async () => {
+  const loadStudents = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await api.getTeacherStudents({ search: search || undefined, limit, offset: (page - 1) * limit })
+      const res = await api.getTeacherStudents({ search: search || undefined, limit, offset: page * limit })
       const data = res?.data?.students || res?.students || res?.data || res || []
       setStudents(Array.isArray(data) ? data : [])
-      setTotal(res?.data?.total || res?.total || data.length || 0)
+      setTotal(res?.data?.total || res?.total || 0)
     } catch { setStudents([]) } finally { setLoading(false) }
-  }
+  }, [search, page])
 
-  const totalPages = Math.ceil(total / limit)
+  useEffect(() => { loadStudents() }, [loadStudents])
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-[#1F2524] mb-6">Students</h1>
-      <div className="bg-white rounded-2xl border border-gray-100">
-        <div className="p-4 border-b border-gray-100">
-          <input
-            type="text"
-            placeholder="Search by name or email..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#F2B138] focus:ring-2 focus:ring-[#F2B138]/20"
-          />
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+    <div className='space-y-6'>
+      <div>
+        <h2 className='text-2xl font-bold text-[#1F2524]'>Students</h2>
+        <p className='text-sm text-gray-400 mt-0.5'>{total} student{total !== 1 ? 's' : ''}</p>
+      </div>
+
+      <div className='relative'>
+        <svg className='absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
+          <path strokeLinecap='round' strokeLinejoin='round' d='M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z' />
+        </svg>
+        <input
+          type='text'
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(0) }}
+          placeholder='Search by name or email...'
+          className='w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F2B138]/20 focus:border-[#F2B138] transition-all'
+        />
+      </div>
+
+      <div className='bg-white rounded-2xl border border-gray-200 overflow-hidden'>
+        <div className='overflow-x-auto'>
+          <table className='w-full'>
             <thead>
-              <tr className="border-b border-gray-100 text-left">
-                <th className="px-4 py-3 font-semibold text-gray-500">Name</th>
-                <th className="px-4 py-3 font-semibold text-gray-500">Email</th>
-                <th className="px-4 py-3 font-semibold text-gray-500">Level</th>
-                <th className="px-4 py-3 font-semibold text-gray-500">School</th>
-                <th className="px-4 py-3 font-semibold text-gray-500">Actions</th>
+              <tr className='bg-gray-50/80 border-b border-gray-100'>
+                <th className='text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider'>Student</th>
+                <th className='text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider'>Level</th>
+                <th className='text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider'>School</th>
+                <th className='text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider'>Quizzes</th>
+                <th className='text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider'>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className='divide-y divide-gray-50'>
               {loading ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Loading...</td></tr>
+                <tr><td colSpan={5} className='px-6 py-12 text-center text-gray-400'>Loading students...</td></tr>
               ) : students.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No students found</td></tr>
+                <tr><td colSpan={5} className='px-6 py-12 text-center text-gray-400'>No students found</td></tr>
               ) : students.map((s) => (
-                <tr key={s.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                  <td className="px-4 py-3 font-medium text-[#282F2E]">{s.name || s.email?.split('@')[0]}</td>
-                  <td className="px-4 py-3 text-gray-500">{s.email}</td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium">{s.level ?? 'N/A'}</span>
+                <tr key={s.id} className='hover:bg-gray-50/50 transition-colors'>
+                  <td className='px-6 py-3.5'>
+                    <div className='flex items-center gap-3'>
+                      <div className='w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 flex-shrink-0'>
+                        {(s.name || s.email || '?')[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <p className='text-sm font-semibold text-[#1F2524]'>{s.name || s.email?.split('@')[0]}</p>
+                        <p className='text-xs text-gray-400'>{s.email}</p>
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{s.school || '-'}</td>
-                  <td className="px-4 py-3">
-                    <Link to={`/teacher/students/${s.id}`} className="text-[#F2B138] font-medium text-xs">
+                  <td className='px-6 py-3.5'>
+                    <span className='inline-flex px-2.5 py-0.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-semibold ring-1 ring-slate-200'>
+                      {s.level ?? 'N/A'}
+                    </span>
+                  </td>
+                  <td className='px-6 py-3.5 text-sm text-gray-500'>{s.school || '—'}</td>
+                  <td className='px-6 py-3.5 text-sm text-gray-500'>{s._count?.quizAttempts ?? '—'}</td>
+                  <td className='px-6 py-3.5 text-right'>
+                    <Link
+                      to={`/teacher/students/${s.id}`}
+                      style={{ textDecoration: 'none' }}
+                      className='inline-flex items-center gap-1.5 text-xs font-semibold text-[#B8860B] hover:text-[#996515] px-3 py-1.5 rounded-lg hover:bg-amber-50 transition-colors'
+                    >
                       View Progress
+                      <svg className='w-3.5 h-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
+                        <path strokeLinecap='round' strokeLinejoin='round' d='M8.25 4.5l7.5 7.5-7.5 7.5' />
+                      </svg>
                     </Link>
                   </td>
                 </tr>
@@ -71,14 +96,34 @@ export default function TeacherStudents() {
             </tbody>
           </table>
         </div>
-        {totalPages > 1 && (
-          <div className="p-4 flex items-center justify-between border-t border-gray-100">
-            <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">Prev</button>
-            <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">Next</button>
-          </div>
-        )}
       </div>
+
+      {total > limit && (
+        <div className='flex items-center justify-between'>
+          <p className='text-sm text-gray-400'>
+            Showing {page * limit + 1}–{Math.min((page + 1) * limit, total)} of {total}
+          </p>
+          <div className='flex items-center gap-2'>
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className='px-4 py-2 text-sm font-semibold rounded-xl border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
+            >
+              Previous
+            </button>
+            <span className='text-sm text-gray-500 font-medium px-2'>
+              Page {page + 1} of {Math.ceil(total / limit)}
+            </span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={(page + 1) * limit >= total}
+              className='px-4 py-2 text-sm font-semibold rounded-xl border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

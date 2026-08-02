@@ -28,58 +28,75 @@ export default function AdminRoleUpgrades() {
   }
 
   return (
-    <div className="space-y-6">
-      <p className="text-sm text-gray-500">{requests.length} pending request{requests.length !== 1 ? 's' : ''}</p>
+    <div className='space-y-6'>
+      {/* Header */}
+      <div>
+        <h2 className='text-2xl font-bold text-[#1F2524]'>Role Upgrades</h2>
+        <p className='text-sm text-gray-400 mt-0.5'>
+          {requests.length} pending request{requests.length !== 1 ? 's' : ''} from students wanting to become teachers
+        </p>
+      </div>
 
       {loading ? (
-        <div className="text-center py-10 text-gray-400">Loading...</div>
+        <div className='flex items-center justify-center h-40 text-gray-400'>Loading requests...</div>
       ) : requests.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
-          <div className="mb-3">
-            <svg className="w-12 h-12 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <div className='bg-white rounded-2xl border border-gray-200 p-16 text-center'>
+          <div className='w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4'>
+            <svg className='w-8 h-8 text-slate-400' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={1.5}>
+              <path strokeLinecap='round' strokeLinejoin='round' d='M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' />
+            </svg>
           </div>
-          <p className="text-gray-500 font-semibold">No pending role upgrade requests</p>
+          <p className='text-lg font-bold text-[#1F2524]'>All caught up</p>
+          <p className='text-sm text-gray-400 mt-1 max-w-sm mx-auto'>No pending role upgrade requests. New requests from students will appear here.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className='space-y-4'>
           {requests.map((req: any) => {
             const user = req.user || {}
             const details = req.details || {}
             return (
-              <div key={req.requestId || user.id} className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="font-bold text-[#282F2E]">{user.name || 'Unknown'}</div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">Student</span>
-                      <span className="text-gray-400">→</span>
-                      <span className="px-2.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">Teacher</span>
+              <div key={req.requestId || user.id} className='bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow'>
+                <div className='p-6'>
+                  <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-4'>
+                    <div className='flex items-start gap-4'>
+                      <div className='w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-lg flex-shrink-0'>
+                        {(user.name || user.email || '?')[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className='text-base font-bold text-[#1F2524]'>{user.name || 'Unknown'}</h3>
+                        <p className='text-sm text-gray-400'>{user.email}</p>
+                        <div className='flex items-center gap-2 mt-2'>
+                          <span className='inline-flex px-2.5 py-0.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-semibold ring-1 ring-slate-200'>Student</span>
+                          <svg className='w-4 h-4 text-gray-300' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3' /></svg>
+                          <span className='inline-flex px-2.5 py-0.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-semibold ring-1 ring-slate-200'>Teacher</span>
+                        </div>
+                        {details.reason && (
+                          <div className='mt-3 p-3 bg-gray-50 rounded-xl'>
+                            <p className='text-xs font-bold text-gray-500 uppercase tracking-wider mb-1'>Reason</p>
+                            <p className='text-sm text-gray-600 leading-relaxed'>{details.reason}</p>
+                          </div>
+                        )}
+                        {details.school && (
+                          <p className='mt-2 text-sm text-gray-500'>
+                            <span className='font-semibold'>School:</span> {details.school}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    {details.reason && (
-                      <p className="mt-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl">
-                        <span className="font-semibold">Reason:</span> {details.reason}
-                      </p>
-                    )}
-                    {details.school && (
-                      <p className="mt-1 text-sm text-gray-500">
-                        <span className="font-semibold">School:</span> {details.school}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleApprove(user.id)}
-                      className="px-4 py-2 bg-green-500 text-white text-sm font-bold rounded-xl hover:bg-green-600 transition-colors"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleReject(user.id)}
-                      className="px-4 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors"
-                    >
-                      Reject
-                    </button>
+                    <div className='flex gap-2 sm:flex-shrink-0'>
+                      <button
+                        onClick={() => handleApprove(user.id)}
+                        className='px-5 py-2.5 bg-slate-600 text-white text-sm font-bold rounded-xl hover:bg-slate-700 transition-colors'
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleReject(user.id)}
+                        className='px-5 py-2.5 bg-white border border-gray-200 text-gray-600 text-sm font-bold rounded-xl hover:bg-slate-50 hover:text-slate-600 hover:border-slate-200 transition-colors'
+                      >
+                        Reject
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

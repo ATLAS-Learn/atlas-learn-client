@@ -12,12 +12,12 @@ const nav = [
         fill='none'
         viewBox='0 0 24 24'
         stroke='currentColor'
+        strokeWidth={1.5}
       >
         <path
           strokeLinecap='round'
           strokeLinejoin='round'
-          strokeWidth={2}
-          d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
+          d='M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z'
         />
       </svg>
     ),
@@ -31,12 +31,12 @@ const nav = [
         fill='none'
         viewBox='0 0 24 24'
         stroke='currentColor'
+        strokeWidth={1.5}
       >
         <path
           strokeLinecap='round'
           strokeLinejoin='round'
-          strokeWidth={2}
-          d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'
+          d='M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z'
         />
       </svg>
     ),
@@ -50,12 +50,12 @@ const nav = [
         fill='none'
         viewBox='0 0 24 24'
         stroke='currentColor'
+        strokeWidth={1.5}
       >
         <path
           strokeLinecap='round'
           strokeLinejoin='round'
-          strokeWidth={2}
-          d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'
+          d='M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25'
         />
       </svg>
     ),
@@ -69,12 +69,12 @@ const nav = [
         fill='none'
         viewBox='0 0 24 24'
         stroke='currentColor'
+        strokeWidth={1.5}
       >
         <path
           strokeLinecap='round'
           strokeLinejoin='round'
-          strokeWidth={2}
-          d='M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z'
+          d='M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0116.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.003 6.003 0 01-3.77 1.503m3.77-1.503a6.004 6.004 0 00-.5-5.228M12 12.75a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z'
         />
       </svg>
     ),
@@ -86,23 +86,36 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleLogout = () => {
-    api.clearToken();
-    navigate('/login');
+  const handleLogout = async () => {
+    await api.logout();
+    navigate('/dashboard');
   };
 
+  const currentPage = nav.find(
+    (n) =>
+      location.pathname === n.to ||
+      (n.to !== '/admin' && location.pathname.startsWith(n.to)),
+  );
+
   return (
-    <div className='min-h-screen bg-[#FAFAFA] flex'>
+    <div className='h-screen bg-[#F0F0F0] flex overflow-hidden'>
       {/* Sidebar */}
       <aside
-        className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-64 bg-[#1F2524] text-white flex flex-col transition-transform lg:translate-x-0 lg:static`}
+        className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-64 bg-[#1F2524] flex flex-col transition-transform lg:translate-x-0 lg:static lg:shrink-0`}
       >
-        <div className='px-6 py-5 flex items-center gap-3 border-b border-white/10'>
-          <img src='/icon.png' alt='Atlas' className='w-8 h-8 rounded-lg' />
-          <span className='font-bold text-lg'>Atlas Admin</span>
+        {/* Logo */}
+        <div className='px-6 py-6 flex items-center gap-3'>
+          <img src='/icon.png' alt='Atlas' className='w-9 h-9' />
+          <div>
+            <p className='text-white font-bold text-base leading-tight pb-2'>
+              Atlas Learn
+            </p>
+            <p className='text-gray-400 text-xs'>Admin Console</p>
+          </div>
         </div>
 
-        <nav className='flex-1 px-3 py-4 space-y-1'>
+        {/* Nav */}
+        <nav className='flex-1 px-3 py-2 space-y-1'>
           {nav.map((item) => {
             const active =
               location.pathname === item.to ||
@@ -112,82 +125,83 @@ export default function AdminLayout() {
                 key={item.to}
                 to={item.to}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                style={{ textDecoration: 'none' }}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium no-underline transition-all ${
                   active
-                    ? 'bg-[#F2B138] text-white'
-                    : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                    ? 'bg-white/10 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <span className='text-lg'>{item.icon}</span>
+                {item.icon}
                 {item.label}
               </Link>
             );
           })}
         </nav>
 
+        {/* Logout */}
         <div className='px-3 py-4 border-t border-white/10'>
           <button
             onClick={handleLogout}
-            className='w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-300 hover:bg-red-500/20 hover:text-red-300 transition-colors'
+            className='w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all'
           >
             <svg
               className='w-5 h-5'
               fill='none'
               viewBox='0 0 24 24'
               stroke='currentColor'
+              strokeWidth={1.5}
             >
               <path
                 strokeLinecap='round'
                 strokeLinejoin='round'
-                strokeWidth={2}
-                d='M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1'
+                d='M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9'
               />
             </svg>
-            Logout
+            Sign Out
           </button>
         </div>
       </aside>
 
-      {/* Overlay for mobile */}
+      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className='fixed inset-0 bg-black/40 z-40 lg:hidden'
+          className='fixed inset-0 bg-black/50 z-40 lg:hidden'
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Main */}
-      <div className='flex-1 flex flex-col min-w-0'>
-        {/* Top bar */}
-        <header className='sticky top-0 z-30 bg-white border-b border-gray-100 px-6 py-4 flex items-center gap-4'>
+      <div className='flex-1 flex flex-col min-w-0 overflow-y-auto'>
+        {/* Header */}
+        <header className='sticky top-0 z-30 bg-white border-b border-gray-200 px-6 lg:px-8 py-4 flex items-center gap-4'>
           <button
             onClick={() => setSidebarOpen(true)}
-            className='lg:hidden p-2 rounded-lg hover:bg-gray-100'
+            className='lg:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100'
           >
             <svg
-              className='w-5 h-5'
+              className='w-5 h-5 text-gray-600'
               fill='none'
               viewBox='0 0 24 24'
               stroke='currentColor'
+              strokeWidth={2}
             >
               <path
                 strokeLinecap='round'
                 strokeLinejoin='round'
-                strokeWidth={2}
-                d='M4 6h16M4 12h16M4 18h16'
+                d='M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5'
               />
             </svg>
           </button>
-          <h1 className='text-lg font-bold text-[#282F2E]'>
-            {nav.find(
-              (n) =>
-                location.pathname === n.to ||
-                (n.to !== '/admin' && location.pathname.startsWith(n.to)),
-            )?.label || 'Admin'}
-          </h1>
+          <div className='flex-1'>
+            <h1 className='text-lg font-bold text-[#1F2524]'>
+              {currentPage?.label || 'Admin'}
+            </h1>
+          </div>
         </header>
 
-        <main className='flex-1 p-6'>
+        {/* Content */}
+        <main className='flex-1 p-6 lg:p-8'>
           <Outlet />
         </main>
       </div>

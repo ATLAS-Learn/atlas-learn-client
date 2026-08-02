@@ -52,75 +52,79 @@ export default function HomeTab() {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <View style={styles.hero}>
-                <Text style={styles.welcome}>Welcome back,</Text>
-                <Text style={styles.name}>{displayName}</Text>
-                <Text style={styles.subtle}>
-                    {isStudent ? "Keep learning and track your progress." : "Manage your classes and track learners."}
-                </Text>
+            {/* Header */}
+            <View style={styles.header}>
+                <View>
+                    <Text style={styles.greeting}>Hello,</Text>
+                    <Text style={styles.name}>{displayName}</Text>
+                </View>
+                {isStudent && streak > 0 && (
+                    <View style={styles.streakBadge}>
+                        <Text style={styles.streakIcon}>{"\uD83D\uDD25"}</Text>
+                        <Text style={styles.streakText}>{streak}</Text>
+                    </View>
+                )}
             </View>
 
-            {/* Streak Banner */}
-            {isStudent && (
+            {/* Streak Banner (only when streak is 0) */}
+            {isStudent && streak === 0 && (
                 <View style={styles.streakBanner}>
-                    <Text style={styles.streakEmoji}>{"\uD83D\uDD25"}</Text>
-                    <View style={styles.streakInfo}>
-                        <Text style={styles.streakValue}>{streak} day streak</Text>
-                        <Text style={styles.streakLabel}>{streak > 0 ? "Keep it going!" : "Complete a lesson or quiz today to start your streak!"}</Text>
+                    <Text style={styles.streakBannerEmoji}>{"\uD83D\uDD25"}</Text>
+                    <View style={styles.streakBannerInfo}>
+                        <Text style={styles.streakBannerTitle}>Start your streak!</Text>
+                        <Text style={styles.streakBannerText}>Complete a lesson or quiz today</Text>
                     </View>
                 </View>
             )}
 
-            {/* Progress Snapshot */}
-            <View style={styles.summaryCard}>
-                <Text style={styles.sectionTitle}>Progress Snapshot</Text>
-                <View style={styles.summaryRow}>
-                    <View style={styles.summaryItem}>
-                        <Text style={styles.summaryValue}>{completion}%</Text>
-                        <Text style={styles.summaryLabel}>Overall</Text>
+            {/* Progress Ring + Stats */}
+            {isStudent && (
+                <View style={styles.progressCard}>
+                    <View style={styles.progressRing}>
+                        <Text style={styles.progressPercent}>{completion}%</Text>
+                        <Text style={styles.progressLabel}>complete</Text>
                     </View>
-                    <View style={styles.summaryDivider} />
-                    <View style={styles.summaryItem}>
-                        <Text style={styles.summaryValue}>
-                            {lessonsDone}/{lessonsTotal}
-                        </Text>
-                        <Text style={styles.summaryLabel}>Lessons</Text>
-                    </View>
-                    <View style={styles.summaryDivider} />
-                    <View style={styles.summaryItem}>
-                        <Text style={styles.summaryValue}>
-                            {quizzesPassed}/{quizzesTotal}
-                        </Text>
-                        <Text style={styles.summaryLabel}>Quizzes</Text>
+                    <View style={styles.progressStats}>
+                        <View style={styles.progressStat}>
+                            <Ionicons name="book-outline" size={16} color="#999" />
+                            <Text style={styles.progressStatValue}>{lessonsDone}/{lessonsTotal}</Text>
+                            <Text style={styles.progressStatLabel}>Lessons</Text>
+                        </View>
+                        <View style={styles.progressStatDivider} />
+                        <View style={styles.progressStat}>
+                            <Ionicons name="checkmark-circle-outline" size={16} color="#999" />
+                            <Text style={styles.progressStatValue}>{quizzesPassed}/{quizzesTotal}</Text>
+                            <Text style={styles.progressStatLabel}>Quizzes</Text>
+                        </View>
                     </View>
                 </View>
-            </View>
+            )}
 
-            {/* Stats Row for Students */}
+            {/* Quick Stats */}
             {isStudent && (
                 <View style={styles.statsRow}>
                     <View style={styles.statCard}>
-                        <Ionicons name="time-outline" size={20} color="#F2B138" />
+                        <Ionicons name="time-outline" size={18} color="#999" />
                         <Text style={styles.statValue}>{formatTimeSpent(totalTimeSpent)}</Text>
                         <Text style={styles.statLabel}>Time Spent</Text>
                     </View>
                     <View style={styles.statCard}>
-                        <Ionicons name="trophy-outline" size={20} color="#F2B138" />
+                        <Ionicons name="trophy-outline" size={18} color="#999" />
                         <Text style={styles.statValue}>{averageScore}%</Text>
-                        <Text style={styles.statLabel}>Avg Quiz Score</Text>
+                        <Text style={styles.statLabel}>Avg Score</Text>
                     </View>
                     <View style={styles.statCard}>
-                        <Ionicons name="checkmark-circle-outline" size={20} color="#F2B138" />
+                        <Ionicons name="ribbon-outline" size={18} color="#999" />
                         <Text style={styles.statValue}>{quizzesPassed}</Text>
-                        <Text style={styles.statLabel}>Quizzes Passed</Text>
+                        <Text style={styles.statLabel}>Passed</Text>
                     </View>
                 </View>
             )}
 
             {/* Continue Your Path */}
             {isStudent && learningPath && learningPath.perSubject.length > 0 && (
-                <View style={styles.pathContainer}>
-                    <Text style={styles.sectionTitle}>Continue Your Path</Text>
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Continue Learning</Text>
                     {learningPath.perSubject.map((subject) => {
                         const next = subject.currentChapter || subject.nextRecommended || subject.startChapter;
                         if (!next) return null;
@@ -128,23 +132,24 @@ export default function HomeTab() {
                             <TouchableOpacity
                                 key={subject.subjectId}
                                 style={styles.pathCard}
-                                    onPress={() =>
-                                        router.push({
-                                            pathname: "/(tabs)/learn/subjects/[subjectId]",
-                                            params: { subjectId: subject.subjectId },
-                                        } as any)
+                                onPress={() =>
+                                    router.push({
+                                        pathname: "/(tabs)/learn/subjects/[subjectId]",
+                                        params: { subjectId: subject.subjectId },
+                                    } as any)
                                 }
+                                activeOpacity={0.7}
                             >
-                                <View style={styles.pathCardLeft}>
-                                    <Ionicons name="rocket-outline" size={20} color="#F2B138" />
-                                    <View style={styles.pathCardInfo}>
+                                <View style={styles.pathLeft}>
+                                    <View style={styles.pathDot} />
+                                    <View>
                                         <Text style={styles.pathSubject}>{subject.subjectName}</Text>
                                         <Text style={styles.pathChapter}>{next.title}</Text>
                                     </View>
                                 </View>
-                                <View style={styles.pathCardRight}>
-                                    <Text style={styles.pathProgress}>{subject.completionPercentage}%</Text>
-                                    <Ionicons name="chevron-forward" size={16} color="#999" />
+                                <View style={styles.pathRight}>
+                                    <Text style={styles.pathPercent}>{subject.completionPercentage}%</Text>
+                                    <Ionicons name="chevron-forward" size={14} color="#CCC" />
                                 </View>
                             </TouchableOpacity>
                         );
@@ -156,35 +161,37 @@ export default function HomeTab() {
             )}
 
             {/* Quick Actions */}
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <View style={styles.actionsGrid}>
-                {isStudent ? (
-                    <>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/learn")}>
-                            <Ionicons name="book" size={22} color="#F2B138" />
-                            <Text style={styles.actionTitle}>Continue Learning</Text>
-                            <Text style={styles.actionText}>Jump back into lessons</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")}>
-                            <Ionicons name="person" size={22} color="#F2B138" />
-                            <Text style={styles.actionTitle}>Profile</Text>
-                            <Text style={styles.actionText}>Update your info</Text>
-                        </TouchableOpacity>
-                    </>
-                ) : (
-                    <>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/classes")}>
-                            <Ionicons name="people" size={22} color="#F2B138" />
-                            <Text style={styles.actionTitle}>My Classes</Text>
-                            <Text style={styles.actionText}>View students and progress</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")}>
-                            <Ionicons name="settings" size={22} color="#F2B138" />
-                            <Text style={styles.actionTitle}>Profile</Text>
-                            <Text style={styles.actionText}>Manage your account</Text>
-                        </TouchableOpacity>
-                    </>
-                )}
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Quick Actions</Text>
+                <View style={styles.actionsRow}>
+                    {isStudent ? (
+                        <>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/learn")} activeOpacity={0.7}>
+                                <Ionicons name="book-outline" size={20} color="#1F2524" />
+                                <Text style={styles.actionTitle}>Learn</Text>
+                                <Text style={styles.actionDesc}>Continue lessons</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.7}>
+                                <Ionicons name="person-outline" size={20} color="#1F2524" />
+                                <Text style={styles.actionTitle}>Profile</Text>
+                                <Text style={styles.actionDesc}>View progress</Text>
+                            </TouchableOpacity>
+                        </>
+                    ) : (
+                        <>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/classes")} activeOpacity={0.7}>
+                                <Ionicons name="people-outline" size={20} color="#1F2524" />
+                                <Text style={styles.actionTitle}>Classes</Text>
+                                <Text style={styles.actionDesc}>View students</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.7}>
+                                <Ionicons name="settings-outline" size={20} color="#1F2524" />
+                                <Text style={styles.actionTitle}>Settings</Text>
+                                <Text style={styles.actionDesc}>Manage account</Text>
+                            </TouchableOpacity>
+                        </>
+                    )}
+                </View>
             </View>
         </ScrollView>
     );
@@ -192,130 +199,119 @@ export default function HomeTab() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#FAFAFA" },
-    content: { padding: 24, paddingBottom: 40 },
-    hero: { marginBottom: 20 },
-    welcome: { fontSize: 16, color: "#666" },
-    name: { fontSize: 28, fontWeight: "800", color: "#1F2524", marginTop: 4 },
-    subtle: { marginTop: 8, fontSize: 13, color: "#777" },
-    sectionTitle: { fontSize: 18, fontWeight: "700", color: "#282F2E", marginBottom: 12, marginTop: 8 },
+    content: { padding: 20, paddingBottom: 40 },
 
-    // Streak
+    // Header
+    header: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 24,
+        marginTop: 8,
+    },
+    greeting: { fontSize: 15, color: "#999", fontWeight: "500" },
+    name: { fontSize: 26, fontWeight: "800", color: "#1F2524", marginTop: 2 },
+    streakBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFF3E0",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        gap: 4,
+    },
+    streakIcon: { fontSize: 16 },
+    streakText: { fontSize: 14, fontWeight: "700", color: "#E65100" },
+
+    // Streak Banner
     streakBanner: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "#FFF3E0",
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: "#FFE0B2",
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 20,
     },
-    streakEmoji: { fontSize: 32, marginRight: 12 },
-    streakInfo: { flex: 1 },
-    streakValue: { fontSize: 18, fontWeight: "800", color: "#E65100" },
-    streakLabel: { fontSize: 12, color: "#BF360C", marginTop: 2 },
+    streakBannerEmoji: { fontSize: 28, marginRight: 12 },
+    streakBannerInfo: { flex: 1 },
+    streakBannerTitle: { fontSize: 14, fontWeight: "700", color: "#E65100" },
+    streakBannerText: { fontSize: 12, color: "#BF360C", marginTop: 2 },
 
-    // Summary
-    summaryCard: {
+    // Progress Card
+    progressCard: {
+        flexDirection: "row",
         backgroundColor: "#fff",
         borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: "#F0F0F0",
+        padding: 20,
         marginBottom: 16,
+        alignItems: "center",
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 1,
     },
-    summaryRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
-    summaryItem: { alignItems: "center", flex: 1 },
-    summaryValue: { fontSize: 18, fontWeight: "800", color: "#282F2E" },
-    summaryLabel: { marginTop: 4, fontSize: 12, color: "#666", fontWeight: "600" },
-    summaryDivider: { width: 1, backgroundColor: "#F0F0F0" },
+    progressRing: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 4,
+        borderColor: "#F0F0F0",
+        borderTopColor: "#1F2524",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 20,
+    },
+    progressPercent: { fontSize: 20, fontWeight: "800", color: "#1F2524" },
+    progressLabel: { fontSize: 10, color: "#999", marginTop: -2 },
+    progressStats: { flex: 1, flexDirection: "row", alignItems: "center" },
+    progressStat: { flex: 1, alignItems: "center" },
+    progressStatValue: { fontSize: 16, fontWeight: "700", color: "#1F2524", marginTop: 4 },
+    progressStatLabel: { fontSize: 11, color: "#999", marginTop: 2 },
+    progressStatDivider: { width: 1, height: 30, backgroundColor: "#F0F0F0" },
 
     // Stats Row
-    statsRow: {
-        flexDirection: "row",
-        gap: 10,
-        marginBottom: 16,
-    },
+    statsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
     statCard: {
         flex: 1,
         backgroundColor: "#fff",
-        borderRadius: 14,
+        borderRadius: 12,
         padding: 12,
         alignItems: "center",
-        borderWidth: 1,
-        borderColor: "#F0F0F0",
     },
-    statValue: { fontSize: 16, fontWeight: "800", color: "#282F2E", marginTop: 6 },
-    statLabel: { fontSize: 10, color: "#999", fontWeight: "600", marginTop: 2, textAlign: "center" },
+    statValue: { fontSize: 15, fontWeight: "700", color: "#1F2524", marginTop: 6 },
+    statLabel: { fontSize: 10, color: "#999", marginTop: 2, fontWeight: "500" },
+
+    // Sections
+    section: { marginBottom: 24 },
+    sectionTitle: { fontSize: 15, fontWeight: "700", color: "#1F2524", marginBottom: 12 },
 
     // Learning Path
-    pathContainer: {
-        marginBottom: 16,
-    },
     pathCard: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         backgroundColor: "#fff",
-        borderRadius: 14,
+        borderRadius: 12,
         padding: 14,
-        borderWidth: 1,
-        borderColor: "#EAEAEA",
-        marginBottom: 10,
+        marginBottom: 8,
     },
-    pathCardLeft: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        flex: 1,
-    },
-    pathCardInfo: {
-        flex: 1,
-    },
-    pathSubject: {
-        fontSize: 12,
-        color: "#999",
-        fontWeight: "600",
-    },
-    pathChapter: {
-        fontSize: 15,
-        fontWeight: "700",
-        color: "#1F2524",
-        marginTop: 2,
-    },
-    pathCardRight: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-    },
-    pathProgress: {
-        fontSize: 13,
-        fontWeight: "700",
-        color: "#F2B138",
-    },
-    studyPlan: {
-        fontSize: 13,
-        color: "#666",
-        fontStyle: "italic",
-        marginTop: 4,
-    },
+    pathLeft: { flexDirection: "row", alignItems: "center", flex: 1, gap: 10 },
+    pathDot: { width: 4, height: 32, borderRadius: 2, backgroundColor: "#1F2524" },
+    pathSubject: { fontSize: 11, color: "#999", fontWeight: "600" },
+    pathChapter: { fontSize: 14, fontWeight: "600", color: "#1F2524", marginTop: 2 },
+    pathRight: { flexDirection: "row", alignItems: "center", gap: 4 },
+    pathPercent: { fontSize: 12, fontWeight: "700", color: "#999" },
+    studyPlan: { fontSize: 12, color: "#999", fontStyle: "italic", marginTop: 4 },
 
     // Actions
-    actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+    actionsRow: { flexDirection: "row", gap: 10 },
     actionCard: {
-        flexGrow: 1,
-        flexBasis: "48%",
+        flex: 1,
         backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: "#EAEAEA",
+        borderRadius: 12,
+        padding: 16,
     },
     actionTitle: { marginTop: 10, fontSize: 14, fontWeight: "700", color: "#1F2524" },
-    actionText: { marginTop: 4, fontSize: 12, color: "#777" },
+    actionDesc: { marginTop: 4, fontSize: 11, color: "#999" },
 });
