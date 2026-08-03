@@ -11,7 +11,7 @@ import QuizCelebration from "@/components/quizzes/quiz-celebration";
 
 export default function QuizResultScreen() {
     const router = useRouter();
-    const params = useLocalSearchParams<{ id: string; score: string; correctAnswers: string; totalQuestions: string; passed: string; unlockedNextChapter: string; nextChapterTitle?: string; quizId?: string; subjectId?: string }>();
+    const params = useLocalSearchParams<{ id: string; score: string; correctAnswers: string; totalQuestions: string; passed: string; unlockedNextChapter: string; nextChapterTitle?: string; nextChapterId?: string; quizId?: string; subjectId?: string }>();
 
     const score = parseInt(params.score as string) || 0;
     const correctAnswers = parseInt(params.correctAnswers as string) || 0;
@@ -20,10 +20,16 @@ export default function QuizResultScreen() {
     const passed = params.passed === "true";
     const unlockedNextChapter = params.unlockedNextChapter === "true";
     const nextChapterTitle = params.nextChapterTitle as string | undefined;
+    const nextChapterId = params.nextChapterId as string | undefined;
     const subjectId = params.subjectId as string | undefined;
 
     const handleContinue = () => {
-        if (subjectId) {
+        if (unlockedNextChapter && nextChapterId) {
+            router.replace({
+                pathname: "/(tabs)/learn/[id]",
+                params: { id: nextChapterId },
+            } as any);
+        } else if (subjectId) {
             router.replace({
                 pathname: "/(tabs)/learn/subjects/[subjectId]",
                 params: { subjectId },

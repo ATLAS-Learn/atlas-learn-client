@@ -153,6 +153,16 @@ class WebAPIClient {
     return res;
   }
 
+  // Feedback (admin)
+  async getAllFeedback(params?: { status?: string; category?: string; page?: number; limit?: number }) {
+    const res = await this.request<any>('/admin/feedback', { params });
+    return res;
+  }
+
+  async updateFeedback(id: string, data: { status?: string; adminReply?: string }) {
+    return this.request<any>(`/admin/feedback/${id}`, { method: 'PATCH', data });
+  }
+
   async approveRoleUpgrade(userId: string) {
     return this.request<any>(`/auth/approve-role-upgrade/${userId}`, {
       method: 'POST',

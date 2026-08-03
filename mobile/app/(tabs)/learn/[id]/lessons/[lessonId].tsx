@@ -165,7 +165,21 @@ export default function LessonDetailScreen() {
             const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey);
             setStatusMessage(response.message || "Lesson marked as completed.");
             await queryClient.invalidateQueries({ queryKey: ["progress"] });
-            loadLesson();
+            Alert.alert(
+                "Lesson Complete",
+                "Great job! Moving to the next lesson.",
+                [
+                    {
+                        text: "OK",
+                        onPress: () => {
+                            router.replace({
+                                pathname: "/(tabs)/learn/[id]/lessons",
+                                params: { id: chapterId, subjectId: subjectKey || "" },
+                            } as any);
+                        },
+                    },
+                ]
+            );
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to complete lesson.");
         } finally {

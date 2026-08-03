@@ -1,28 +1,18 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
-import { useProgressStore } from "@/lib/store/progress";
 import { getItem, setItem } from "@/lib/utils/storage";
 import { apiClient } from "@/lib/api";
 
-const USER_CACHE_MAX_AGE_MS = 1000 * 60 * 15;
+const USER_CACHE_MAX_AGE_MS = 1000 * 60 * 30; // 30 minutes
 
 export function useAppFlow() {
   const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(
     null
   );
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, loadAuth, token, logout } = useAuthStore();
-  const { user, lastSyncedAt, setUser, loadUser } = useUserStore();
-  const { loadProgress } = useProgressStore();
-
-  useEffect(() => {
-    async function initialize() {
-      setIsLoading(true);
-      await Promise.all([loadAuth(), loadUser(), loadProgress()]);
-    }
-    initialize();
-  }, [loadAuth, loadUser, loadProgress]);
+  const { isAuthenticated, token, logout } = useAuthStore();
+  const { user, lastSyncedAt, setUser } = useUserStore();
 
   useEffect(() => {
     async function restoreSession() {
@@ -32,7 +22,6 @@ export function useAppFlow() {
       }
 
       try {
-        // Token sessions use Authorization header, cookie sessions rely on HTTP-only cookie.
         apiClient.setToken(token || null);
 
         const hasUserIdentity = Boolean(user?.id && user?.email && user?.name?.trim());
@@ -45,13 +34,11 @@ export function useAppFlow() {
         if (shouldRefreshUser) {
           try {
             const freshUser = await apiClient.getCurrentUser();
-            setUser(freshUser);
+            setUser(freshUser, { markSynced: true });
           } catch (error) {
-            // If user identity is incomplete, refresh is required for correct UI/auth state.
             if (requiresFreshIdentity || !user) {
               throw error;
             }
-            // Otherwise keep cached user data on transient failures.
           }
         }
 
@@ -71,12 +58,10 @@ export function useAppFlow() {
             setAssessmentComplete(false);
           }
         }
+
         setIsLoading(false);
       } catch (error: any) {
-        // Token is invalid or expired (401/403)
         console.error("Session restore failed:", error);
-        
-        // Clear invalid token and logout
         await logout();
         setIsLoading(false);
       }
@@ -87,7 +72,7 @@ export function useAppFlow() {
     } else if (isAuthenticated === false) {
       setIsLoading(false);
     }
-  }, [isAuthenticated, token, user, lastSyncedAt, setUser, loadProgress, logout]);
+  }, [isAuthenticated, token]);
 
   return { assessmentComplete, isAuthenticated, user, isLoading };
 }

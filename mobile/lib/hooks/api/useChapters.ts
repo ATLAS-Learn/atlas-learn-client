@@ -5,5 +5,6 @@ export function useChapters() {
     return useQuery({
         queryKey: ["chapters"],
         queryFn: () => apiClient.getChapters(),
+        staleTime: 1000 * 60 * 5, // 5 minutes - chapters rarely change
     });
 }

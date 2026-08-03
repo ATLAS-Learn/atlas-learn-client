@@ -5,7 +5,7 @@ export function useLearningPath() {
     return useQuery({
         queryKey: ["recommendations", "learning-path"],
         queryFn: () => apiClient.getLearningPath(),
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 1000 * 60 * 2, // 2 minutes - learning path changes with progress
         refetchOnMount: true,
     });
 }

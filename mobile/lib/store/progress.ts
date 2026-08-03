@@ -1,6 +1,7 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { Progress, ChapterProgress } from "@/lib/types";
-import { setItem, getItem, removeItem } from "@/lib/utils/storage";
+import { createPersistStorage } from "./persist";
 
 interface ProgressState {
     progress: Progress | null;
@@ -12,136 +13,88 @@ interface ProgressState {
     completeQuiz: (quizId: string) => void;
     updateStreak: (streak: number) => void;
     updateOverallProgress: (percentage: number) => void;
-    calculateOverallProgress: (allChapters: any[], allQuizzes: any[]) => Promise<number>;
-    loadProgress: () => Promise<void>;
-    clearProgress: () => Promise<void>;
+    clearProgress: () => void;
 }
 
-export const useProgressStore = create<ProgressState>((set, get) => ({
-    progress: null,
-    chapterProgress: {},
-    setProgress: (progress) => {
-        set({ progress });
-        setItem("progress", JSON.stringify(progress));
-    },
-    updateCurrentChapter: (chapterId) =>
-        set((state) => {
-            if (state.progress) {
-                const updated = { ...state.progress, currentChapterId: chapterId };
-                setItem("progress", JSON.stringify(updated));
-                return { progress: updated };
-            }
-            return state;
+export const useProgressStore = create<ProgressState>()(
+    persist(
+        (set) => ({
+            progress: null,
+            chapterProgress: {},
+            setProgress: (progress) => set({ progress }),
+            updateCurrentChapter: (chapterId) =>
+                set((state) => {
+                    if (state.progress) {
+                        return { progress: { ...state.progress, currentChapterId: chapterId } };
+                    }
+                    return state;
+                }),
+            completeChapter: (chapterId) =>
+                set((state) => {
+                    if (state.progress && !state.progress.completedChapters.includes(chapterId)) {
+                        return {
+                            progress: {
+                                ...state.progress,
+                                completedChapters: [...state.progress.completedChapters, chapterId],
+                            },
+                        };
+                    }
+                    return state;
+                }),
+            completeLesson: (lessonId) =>
+                set((state) => {
+                    if (state.progress && !state.progress.completedLessons.includes(lessonId)) {
+                        return {
+                            progress: {
+                                ...state.progress,
+                                completedLessons: [...state.progress.completedLessons, lessonId],
+                            },
+                        };
+                    }
+                    return state;
+                }),
+            completeQuiz: (quizId) =>
+                set((state) => {
+                    if (state.progress && !state.progress.completedQuizzes.includes(quizId)) {
+                        return {
+                            progress: {
+                                ...state.progress,
+                                completedQuizzes: [...state.progress.completedQuizzes, quizId],
+                            },
+                        };
+                    }
+                    return state;
+                }),
+            updateStreak: (streak) =>
+                set((state) => {
+                    if (state.progress) {
+                        return {
+                            progress: {
+                                ...state.progress,
+                                streak,
+                                lastActiveDate: new Date().toISOString(),
+                            },
+                        };
+                    }
+                    return state;
+                }),
+            updateOverallProgress: (percentage) =>
+                set((state) => {
+                    if (state.progress) {
+                        return {
+                            progress: { ...state.progress, overallProgress: percentage },
+                        };
+                    }
+                    return state;
+                }),
+            clearProgress: () => set({ progress: null, chapterProgress: {} }),
         }),
-    completeChapter: (chapterId) =>
-        set((state) => {
-            if (state.progress && !state.progress.completedChapters.includes(chapterId)) {
-                const updated = {
-                    ...state.progress,
-                    completedChapters: [...state.progress.completedChapters, chapterId],
-                };
-                setItem("progress", JSON.stringify(updated));
-                return { progress: updated };
-            }
-            return state;
-        }),
-    completeLesson: (lessonId) =>
-        set((state) => {
-            if (state.progress && !state.progress.completedLessons.includes(lessonId)) {
-                const updated = {
-                    ...state.progress,
-                    completedLessons: [...state.progress.completedLessons, lessonId],
-                };
-                setItem("progress", JSON.stringify(updated));
-                return { progress: updated };
-            }
-            return state;
-        }),
-    completeQuiz: (quizId) =>
-        set((state) => {
-            if (state.progress && !state.progress.completedQuizzes.includes(quizId)) {
-                const updated = {
-                    ...state.progress,
-                    completedQuizzes: [...state.progress.completedQuizzes, quizId],
-                };
-                setItem("progress", JSON.stringify(updated));
-                return { progress: updated };
-            }
-            return state;
-        }),
-    updateStreak: (streak) =>
-        set((state) => {
-            if (state.progress) {
-                const updated = { ...state.progress, streak, lastActiveDate: new Date().toISOString() };
-                setItem("progress", JSON.stringify(updated));
-                return { progress: updated };
-            }
-            return state;
-        }),
-    updateOverallProgress: (percentage) =>
-        set((state) => {
-            if (state.progress) {
-                const updated = { ...state.progress, overallProgress: percentage };
-                setItem("progress", JSON.stringify(updated));
-                return { progress: updated };
-            }
-            return state;
-        }),
-    calculateOverallProgress: async (allChapters, allQuizzes) => {
-        const state = get();
-        if (!state.progress) return 0;
-
-        // Count total lessons across all chapters
-        let totalLessons = 0;
-        allChapters.forEach((chapter) => {
-            if (chapter.lessons && Array.isArray(chapter.lessons)) {
-                totalLessons += chapter.lessons.length;
-            }
-        });
-
-        // Count total quizzes
-        const totalQuizzes = allQuizzes.length;
-
-        // Total items (lessons + quizzes)
-        const totalItems = totalLessons + totalQuizzes;
-        if (totalItems === 0) return 0;
-
-        // Count completed items
-        const completedLessons = state.progress.completedLessons?.length || 0;
-        const completedQuizzes = state.progress.completedQuizzes?.length || 0;
-        const completedItems = completedLessons + completedQuizzes;
-
-        // Calculate percentage
-        const percentage = Math.round((completedItems / totalItems) * 100);
-
-        // Update progress
-        if (state.progress) {
-            const updated = { ...state.progress, overallProgress: percentage };
-            setItem("progress", JSON.stringify(updated));
-            set({ progress: updated });
+        {
+            name: "progress",
+            storage: createPersistStorage(),
+            partialize: (state) => ({
+                progress: state.progress,
+            }),
         }
-
-        return percentage;
-    },
-    loadProgress: async () => {
-        try {
-            const stored = await getItem("progress");
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                // Ensure backward compatibility - add new fields if missing
-                const progress: Progress = {
-                    ...parsed,
-                    completedLessons: parsed.completedLessons || [],
-                    completedQuizzes: parsed.completedQuizzes || [],
-                };
-                set({ progress });
-            }
-        } catch (error) {
-            console.error("Error loading progress:", error);
-        }
-    },
-    clearProgress: async () => {
-        set({ progress: null, chapterProgress: {} });
-        await removeItem("progress");
-    },
-}));
+    )
+);

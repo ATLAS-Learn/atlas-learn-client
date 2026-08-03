@@ -1332,6 +1332,19 @@ class APIClient {
         return response?.data || [];
     }
 
+    async getAllFeedback(params: { status?: string; category?: string; page?: number; limit?: number } = {}): Promise<{ data: any[]; pagination: { total: number; page: number; limit: number; totalPages: number } }> {
+        const response = await this.request<{ success: boolean; data: any[]; pagination: any }>("/admin/feedback", { params });
+        return { data: response?.data || [], pagination: response?.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 } };
+    }
+
+    async updateFeedback(id: string, data: { status?: string; adminReply?: string }): Promise<any> {
+        const response = await this.request<{ success: boolean; data: any }>(`/admin/feedback/${id}`, {
+            method: "PATCH",
+            data,
+        });
+        return response?.data;
+    }
+
     async getQuizAttemptCorrections(attemptId: string): Promise<{
         attemptId: string;
         quizTitle: string;

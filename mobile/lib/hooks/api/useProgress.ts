@@ -5,9 +5,9 @@ export function useOverallProgress() {
     return useQuery({
         queryKey: ["progress", "overall"],
         queryFn: () => apiClient.getOverallProgress(),
-        staleTime: 1000 * 30,
+        staleTime: 1000 * 60, // 1 minute - progress changes frequently
         refetchOnMount: true,
-        refetchOnWindowFocus: true,
+        refetchOnWindowFocus: false,
     });
 }
 
@@ -15,7 +15,7 @@ export function useStreak() {
     return useQuery({
         queryKey: ["progress", "streak"],
         queryFn: () => apiClient.getStreak(),
-        staleTime: 1000 * 60,
+        staleTime: 1000 * 60 * 5, // 5 minutes - streak changes slowly
         refetchOnMount: true,
     });
 }

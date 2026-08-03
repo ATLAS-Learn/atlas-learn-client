@@ -111,6 +111,7 @@ export default function QuizScreen() {
                     passed: result.passed.toString(),
                     unlockedNextChapter: result.unlockedNextChapter ? "true" : "false",
                     nextChapterTitle: result.unlockedNextChapter?.title || "",
+                    nextChapterId: result.unlockedNextChapter?.id || "",
                 },
             } as any);
         } catch {

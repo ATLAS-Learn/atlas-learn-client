@@ -1,8 +1,10 @@
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { Svg, Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useUserStore } from "@/lib/store/user";
 import { UserRole } from "@/lib/types";
 import { useOverallProgress, useStreak, useUserQuizAttempts, useLearningPath } from "@/lib/hooks/api";
@@ -10,6 +12,7 @@ import { apiClient } from "@/lib/api";
 
 export default function HomeTab() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { user } = useUserStore();
     const { data: overallProgress } = useOverallProgress();
     const { data: streakData } = useStreak();
@@ -36,10 +39,12 @@ export default function HomeTab() {
 
     useFocusEffect(
         React.useCallback(() => {
+            // Refetch progress data when tab is focused
+            queryClient.invalidateQueries({ queryKey: ["progress"] });
             apiClient.getCurrentUser().then((freshUser) => {
                 useUserStore.getState().setUser(freshUser);
             }).catch(() => {});
-        }, [])
+        }, [queryClient])
     );
 
     const formatTimeSpent = (seconds: number): string => {
@@ -81,8 +86,34 @@ export default function HomeTab() {
             {isStudent && (
                 <View style={styles.progressCard}>
                     <View style={styles.progressRing}>
-                        <Text style={styles.progressPercent}>{completion}%</Text>
-                        <Text style={styles.progressLabel}>complete</Text>
+                        <Svg width={80} height={80} viewBox="0 0 80 80">
+                            {/* Background circle */}
+                            <Circle
+                                cx={40}
+                                cy={40}
+                                r={34}
+                                fill="none"
+                                stroke="#F0F0F0"
+                                strokeWidth={6}
+                            />
+                            {/* Progress circle */}
+                            <Circle
+                                cx={40}
+                                cy={40}
+                                r={34}
+                                fill="none"
+                                stroke="#1F2524"
+                                strokeWidth={6}
+                                strokeDasharray={`${2 * Math.PI * 34}`}
+                                strokeDashoffset={`${2 * Math.PI * 34 * (1 - completion / 100)}`}
+                                strokeLinecap="round"
+                                transform="rotate(-90 40 40)"
+                            />
+                        </Svg>
+                        <View style={styles.progressTextContainer}>
+                            <Text style={styles.progressPercent}>{completion}%</Text>
+                            <Text style={styles.progressLabel}>complete</Text>
+                        </View>
                     </View>
                     <View style={styles.progressStats}>
                         <View style={styles.progressStat}>
@@ -254,13 +285,14 @@ const styles = StyleSheet.create({
     progressRing: {
         width: 80,
         height: 80,
-        borderRadius: 40,
-        borderWidth: 4,
-        borderColor: "#F0F0F0",
-        borderTopColor: "#1F2524",
+        marginRight: 20,
         justifyContent: "center",
         alignItems: "center",
-        marginRight: 20,
+    },
+    progressTextContainer: {
+        position: "absolute",
+        justifyContent: "center",
+        alignItems: "center",
     },
     progressPercent: { fontSize: 20, fontWeight: "800", color: "#1F2524" },
     progressLabel: { fontSize: 10, color: "#999", marginTop: -2 },

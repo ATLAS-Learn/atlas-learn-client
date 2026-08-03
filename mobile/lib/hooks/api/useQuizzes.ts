@@ -7,6 +7,7 @@ export function useQuizzes(chapterId: string | undefined) {
         queryKey: ["quizzes", chapterId],
         queryFn: () => apiClient.getChapterQuizzes(chapterId!),
         enabled: !!chapterId,
+        staleTime: 1000 * 60 * 5, // 5 minutes - quizzes rarely change
     });
 }
 
@@ -15,6 +16,7 @@ export function useQuiz(quizId: string | undefined) {
         queryKey: ["quizzes", quizId],
         queryFn: () => apiClient.getQuiz(quizId!),
         enabled: !!quizId,
+        staleTime: 1000 * 60 * 5, // 5 minutes
     });
 }
 
@@ -30,5 +32,6 @@ export function useUserQuizAttempts(userId: string | undefined) {
         queryKey: ["users", userId, "quiz-attempts"],
         queryFn: () => apiClient.getUserQuizAttempts(userId!),
         enabled: !!userId,
+        staleTime: 1000 * 60, // 1 minute - attempts change frequently
     });
 }
