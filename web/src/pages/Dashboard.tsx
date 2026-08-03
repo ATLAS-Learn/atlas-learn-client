@@ -1,46 +1,52 @@
-import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { api } from '../api/client'
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { api } from '../api/client';
 
 export default function Dashboard() {
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const initialRole = searchParams.get('role') || 'admin'
-  const [role, setRole] = useState<'admin' | 'teacher'>(initialRole === 'teacher' ? 'teacher' : 'admin')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialRole = searchParams.get('role') || 'admin';
+  const [role, setRole] = useState<'admin' | 'teacher'>(
+    initialRole === 'teacher' ? 'teacher' : 'admin',
+  );
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    setError('');
+    setLoading(true);
     try {
-      const res = await api.login(email, password)
-      const user = res?.user
+      const res = await api.login(email, password);
+      const user = res?.user;
       if (!user) {
-        setError('Login failed. Please try again.')
-        return
+        setError('Login failed. Please try again.');
+        return;
       }
-      const userRole = user.role
+      const userRole = user.role;
       if (role === 'admin' && userRole !== 'admin') {
-        setError('Access denied. Admin accounts only.')
-        api.clearUser()
-        return
+        setError('Access denied. Admin accounts only.');
+        api.clearUser();
+        return;
       }
-      if (role === 'teacher' && userRole !== 'teacher' && userRole !== 'admin') {
-        setError('Access denied. Teacher or admin accounts only.')
-        api.clearUser()
-        return
+      if (
+        role === 'teacher' &&
+        userRole !== 'teacher' &&
+        userRole !== 'admin'
+      ) {
+        setError('Access denied. Teacher or admin accounts only.');
+        api.clearUser();
+        return;
       }
-      navigate(userRole === 'admin' ? '/admin' : '/teacher')
+      navigate(userRole === 'admin' ? '/admin' : '/teacher');
     } catch (err: any) {
-      setError(err.message || 'Login failed')
+      setError(err.message || 'Login failed');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className='min-h-screen flex'>
@@ -63,7 +69,10 @@ export default function Dashboard() {
             {(['admin', 'teacher'] as const).map((r) => (
               <button
                 key={r}
-                onClick={() => { setRole(r); setError('') }}
+                onClick={() => {
+                  setRole(r);
+                  setError('');
+                }}
                 className={`flex-1 py-2.5 rounded-md text-base font-medium transition-colors ${role === r ? 'bg-white text-[#1F2524] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 {r === 'admin' ? 'Admin' : 'Teacher'}
@@ -79,7 +88,9 @@ export default function Dashboard() {
             )}
 
             <div className='mb-5'>
-              <label className='block text-sm font-medium text-gray-600 mb-2'>Email</label>
+              <label className='block text-sm font-medium text-gray-600 mb-2'>
+                Email
+              </label>
               <input
                 type='email'
                 value={email}
@@ -91,7 +102,9 @@ export default function Dashboard() {
             </div>
 
             <div className='mb-7'>
-              <label className='block text-sm font-medium text-gray-600 mb-2'>Password</label>
+              <label className='block text-sm font-medium text-gray-600 mb-2'>
+                Password
+              </label>
               <input
                 type='password'
                 value={password}
@@ -101,7 +114,11 @@ export default function Dashboard() {
                 placeholder='••••••••'
               />
               <div className='text-right mt-2'>
-                <a href='/forgot-password' style={{ textDecoration: 'none' }} className='text-sm text-[#B8860B] hover:text-[#996515] transition-colors'>
+                <a
+                  href='/forgot-password'
+                  style={{ textDecoration: 'none' }}
+                  className='text-sm text-[#B8860B] hover:text-[#996515] transition-colors'
+                >
                   Forgot Password?
                 </a>
               </div>
@@ -119,16 +136,12 @@ export default function Dashboard() {
       </div>
 
       {/* Right: Branding Panel */}
-      <div className='hidden lg:flex w-1/2 bg-[#1F2524] relative overflow-hidden'>
+      <div className='hidden lg:flex w-1/2 bg-[#1F2524] relative overflow-hidden flex-col justify-center items-start'>
         {/* Decorative circles */}
         <div className='absolute top-20 right-20 w-72 h-72 bg-[#F2B138]/10 rounded-full blur-3xl' />
         <div className='absolute bottom-32 left-16 w-48 h-48 bg-[#F2B138]/5 rounded-full blur-2xl' />
 
         <div className='relative z-10 flex flex-col justify-center px-16 max-w-xl'>
-          <div className='mb-8'>
-            <img src='/icon-yellow.png' alt='Atlas' className='w-20 h-20 rounded-2xl mb-6' />
-          </div>
-
           <h2 className='text-4xl font-extrabold text-white leading-tight mb-5'>
             Manage learning
             <br />
@@ -148,9 +161,19 @@ export default function Dashboard() {
               'Content management across all subjects',
             ].map((item, i) => (
               <div key={i} className='flex items-center gap-3'>
-                <div className='w-6 h-6 rounded-full bg-[#F2B138]/20 flex items-center justify-center flex-shrink-0'>
-                  <svg className='w-3.5 h-3.5 text-[#B8860B]' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2.5} d='M5 13l4 4L19 7' />
+                <div className='w-6 h-6 rounded-full bg-[#F2B138]/20 flex items-center justify-center shrink-0'>
+                  <svg
+                    className='w-3.5 h-3.5 text-[#B8860B]'
+                    fill='none'
+                    viewBox='0 0 24 24'
+                    stroke='currentColor'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2.5}
+                      d='M5 13l4 4L19 7'
+                    />
                   </svg>
                 </div>
                 <span className='text-base text-gray-300'>{item}</span>
@@ -160,5 +183,5 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
-  )
+  );
 }
