@@ -32,7 +32,6 @@ import {
     TeacherDashboardData,
     StudentDetail,
     StudentStatus,
-    UpdateProfilePayload,
     Subject,
     CreateSubjectPayload,
     UpdateSubjectPayload,
@@ -52,12 +51,14 @@ import {
     UpdateLessonPayload,
     LessonProgressUpdatePayload,
     LessonCompletionResponse,
+    LessonWithProgress,
     LessonPdfMaterial,
     ChapterPdfMaterial,
     ChapterLesson,
     ChapterProgressData,
     ChapterUnlockResponse,
     ChapterExamHint,
+    StreakData,
 } from "@/lib/types";
 
 // API Client class using Axios
@@ -105,6 +106,13 @@ class APIClient {
                     errorMessage = error.message || "An unexpected error occurred";
                 }
                 console.error(`API Error [${error.response?.status || 'N/A'}]:`, error.config?.url, errorMessage);
+                console.error(
+                            `API Error [${error.response?.status || 'N/A'}]`,
+                            `| Code: ${error.code}`,
+                            `| BaseURL: ${this.axiosInstance.defaults.baseURL}`,
+                            `| Path: ${error.config?.url}`,
+                            `| Message: ${errorMessage}`
+                            );
                 return Promise.reject(new Error(errorMessage));
             }
         );
@@ -330,39 +338,60 @@ class APIClient {
         return this.normalizeUserPayload(response);
     }
 
-    async updateCurrentUserProfile(data: UpdateProfilePayload): Promise<User> {
-        const response = await this.request<User | { success?: boolean; data?: User }>("/auth/me", {
-            method: "PUT",
+    async updateCurrentUserProfile(data: {
+        name?: string;
+        username?: string;
+        bio?: string;
+        school?: string;
+        examYear?: number;
+        image?: string;
+    }): Promise<User> {
+        const response = await this.request<User>("/auth/me", {
+            method: "PATCH",
             data,
         });
-        return this.unwrapData<User>(response);
+        return this.normalizeUserPayload(response);
     }
 
-    async forgotPassword(email: string): Promise<{ message: string }> {
-        return this.request<{ message: string }>("/auth/forgot-password", {
-            method: "POST",
-            data: { email },
-        });
+    async getPreferredSubjects(): Promise<string[]> {
+        const response = await this.request<{ subjectIds?: string[] }>("/auth/preferred-subjects");
+        return response?.subjectIds ?? [];
     }
 
-    async resetPassword(token: string, password: string): Promise<{ message: string }> {
-        return this.request<{ message: string }>("/auth/reset-password", {
-            method: "POST",
-            data: { token, password },
+    async updatePreferredSubjects(subjectIds: string[]): Promise<string[]> {
+        const response = await this.request<{ subjectIds?: string[] }>("/auth/preferred-subjects", {
+            method: "PUT",
+            data: { subjectIds },
         });
+        return response?.subjectIds ?? subjectIds;
     }
 
-    async verifyEmail(code: string): Promise<{ message: string }> {
-        return this.request<{ message: string }>("/auth/verify-email", {
-            method: "POST",
-            data: { code },
+    async uploadProfileImage(uri: string): Promise<string> {
+        const formData = new FormData();
+        const filename = uri.split("/").pop() || "photo.jpg";
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : "image/jpeg";
+        formData.append("image", { uri, name: filename, type } as any);
+        const response = await this.axiosInstance.post<{ url?: string }>("/auth/upload-image", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
         });
+        return response.data?.url ?? "";
+    }
+
+    async forgotPassword(_email: string): Promise<{ message: string }> {
+        throw new Error("Password reset is not yet supported. Please contact support.");
+    }
+
+    async resetPassword(_token: string, _password: string): Promise<{ message: string }> {
+        throw new Error("Password reset is not yet supported. Please contact support.");
+    }
+
+    async verifyEmail(_code: string): Promise<{ message: string }> {
+        throw new Error("Email verification is not yet supported. Please contact support.");
     }
 
     async resendVerification(): Promise<{ message: string }> {
-        return this.request<{ message: string }>("/auth/resend-verification", {
-            method: "POST",
-        });
+        throw new Error("Email verification is not yet supported. Please contact support.");
     }
 
     // OTP Login endpoints
@@ -418,18 +447,17 @@ class APIClient {
     }
 
     async getPendingRoleUpgrades(): Promise<PendingRoleUpgradeRequest[]> {
-        const response = await this.request<
-            PendingRoleUpgradeRequest[] | { data?: PendingRoleUpgradeRequest[] }
-        >("/auth/pending-role-upgrades");
-        if (Array.isArray(response)) {
-            return response;
-        }
+        const response = await this.request<{
+            success: boolean;
+            count: number;
+            data: PendingRoleUpgradeRequest[];
+        }>("/auth/pending-role-upgrades");
         return response?.data ?? [];
     }
 
     // Assessment endpoints
     // Using dedicated assessment endpoints: /api/v1/assessment/*
-    
+
     /**
      * Start assessment and retrieve questions
      * @returns Array of assessment questions mapped to the expected format
@@ -449,23 +477,26 @@ class APIClient {
                     questionText: string;
                     options: string[];
                     orderIndex: number;
+                    subjectId?: string;
+                    subjectName?: string;
                 }[];
             };
         }>("/assessment/start");
-        
+
         // Validate response structure to prevent runtime errors
         if (!response?.data?.questions || !Array.isArray(response.data.questions)) {
             throw new Error("Invalid assessment response: questions array not found");
         }
-        
+
         // Map API response format to AssessmentQuestion format
-        // API uses 'questionText' but our types expect 'question'
         return response.data.questions.map((q) => ({
             id: q.id,
-            question: q.questionText || "", // Map questionText to question
+            question: q.questionText || "",
             options: q.options || [],
-            correctAnswer: -1, // Assessments don't have correct answers, use -1 as placeholder
-            topic: "", // Not provided by API, use empty string
+            correctAnswer: -1,
+            topic: "",
+            subjectId: q.subjectId,
+            subjectName: q.subjectName,
         }));
     }
 
@@ -475,7 +506,6 @@ class APIClient {
      * @returns Assessment result with score, level, and message
      */
     async submitAssessment(answers: number[]): Promise<AssessmentResult> {
-        // API expects: { answers: [0, 1, 2, 0, 1] } - array of answer indices
         const result = await this.request<{
             success: boolean;
             message: string;
@@ -487,7 +517,10 @@ class APIClient {
                 levelDescription: string;
                 correctAnswers: number;
                 totalQuestions: number;
-                recommendedChapter?: unknown;
+                subjectBreakdown?: { subjectId: string; subjectName: string; correct: number; total: number; score: number }[];
+                perSubjectRecommendations?: { subjectId: string; subjectName: string; score: number; recommendedChapter: { id: string; title: string } | null; unlockedChapterIds: string[] }[];
+                recommendedChapter?: { id: string; title: string } | null;
+                unlockedChapters?: { subjectId: string; subjectName: string; chapterId: string; chapterTitle: string }[];
                 completedAt: string;
             };
         }>("/assessment/submit", {
@@ -504,17 +537,63 @@ class APIClient {
             totalQuestions: result.data.totalQuestions,
             level: result.data.level,
             message: result.data.levelDescription || result.message || "Assessment completed successfully",
+            subjectBreakdown: result.data.subjectBreakdown,
+            perSubjectRecommendations: result.data.perSubjectRecommendations,
+            recommendedChapter: result.data.recommendedChapter,
+            unlockedChapters: result.data.unlockedChapters,
         };
     }
 
     async getAssessmentResult(): Promise<AssessmentResult> {
-        // Get assessment result after submission
-        return this.request<AssessmentResult>("/assessment/result");
+        const response = await this.request<{
+            success: boolean;
+            data: {
+                score: number;
+                totalQuestions?: number;
+                level: Level;
+                levelLabel: string;
+                levelDescription: string;
+                subjectBreakdown?: { subjectId: string; subjectName: string; correct: number; total: number; score: number }[];
+                recommendedChapter?: { id: string; title: string; subjectName?: string } | null;
+                perSubjectRecommendations?: { subjectId: string; subjectName: string; score: number; recommendedChapter: { id: string; title: string } | null; unlockedChapterIds: string[] }[];
+                corrections?: { questionIndex: number; questionText: string; options: string[]; userAnswer: number | null; correctAnswer: number; isCorrect: boolean; explanation: string | null; subjectName: string; points: number }[];
+                completedAt: string;
+            };
+        }>("/assessment/result");
+        return {
+            score: response.data.score,
+            totalQuestions: response.data.totalQuestions || 0,
+            level: response.data.level,
+            message: response.data.levelDescription || "Assessment completed",
+            subjectBreakdown: response.data.subjectBreakdown,
+            recommendedChapter: response.data.recommendedChapter,
+            perSubjectRecommendations: response.data.perSubjectRecommendations,
+            corrections: response.data.corrections,
+        };
     }
 
     async getAssessmentStatus(): Promise<{ completed: boolean; level?: Level }> {
-        // Check if assessment is completed
-        return this.request<{ completed: boolean; level?: Level }>("/assessment/status");
+        const response = await this.request<{
+            success: boolean;
+            data: {
+                isCompleted: boolean;
+                attemptId?: string;
+                completedAt?: string;
+                level?: Level;
+            };
+        }>("/assessment/status");
+        return {
+            completed: response.data.isCompleted,
+            level: response.data.level,
+        };
+    }
+
+    async getLearningPath(): Promise<import("@/lib/types").LearningPath> {
+        const response = await this.request<{
+            success: boolean;
+            data: import("@/lib/types").LearningPath;
+        }>("/recommendations/learning-path");
+        return response.data;
     }
 
     async getOverallProgress(): Promise<OverallProgressData> {
@@ -522,6 +601,13 @@ class APIClient {
             OverallProgressData | { success?: boolean; data?: OverallProgressData }
         >("/progress/overall");
         return this.unwrapData<OverallProgressData>(response);
+    }
+
+    async getStreak(): Promise<StreakData> {
+        const response = await this.request<
+            { success?: boolean; data?: StreakData } | StreakData
+        >("/progress/streak");
+        return this.unwrapData<StreakData>(response);
     }
 
     // Assessment management endpoints (Admin/Teacher)
@@ -706,7 +792,7 @@ class APIClient {
     ): Promise<SubjectChapter> {
         this.traceIdOrigin("getSubjectChapter", { subjectId, chapterId, options });
         const response = await this.request<SubjectChapter | { success?: boolean; data?: SubjectChapter }>(
-            `/subjects/${subjectId}/chapters/${chapterId}`,
+            `/chapters/${chapterId}`,
             {
                 params: this.buildSubjectChapterQueryParams(options),
             }
@@ -722,7 +808,7 @@ class APIClient {
         const response = await this.request<
             SubjectChapter | { success?: boolean; message?: string; data?: SubjectChapter }
         >(
-            `/subjects/${subjectId}/chapters/${chapterId}`,
+            `/chapters/${chapterId}`,
             {
                 method: "PUT",
                 data,
@@ -732,7 +818,7 @@ class APIClient {
     }
 
     async deleteSubjectChapter(subjectId: string, chapterId: string): Promise<void> {
-        await this.request<void | { message?: string }>(`/subjects/${subjectId}/chapters/${chapterId}`, {
+        await this.request<void | { message?: string }>(`/chapters/${chapterId}`, {
             method: "DELETE",
         });
     }
@@ -751,7 +837,7 @@ class APIClient {
     ): Promise<Quiz[]> {
         this.traceIdOrigin("getSubjectChapterQuizzes", { subjectId, chapterId, options });
         const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
-            `/subjects/${subjectId}/chapters/${chapterId}/quizzes`,
+            `/chapters/${chapterId}/quizzes`,
             {
                 params: this.buildSubjectChapterQuizzesQueryParams(options),
             }
@@ -764,13 +850,13 @@ class APIClient {
         this.traceIdOrigin("getSubjectChapterProgress", { subjectId, chapterId });
         const response = await this.request<
             SubjectChapterProgress | { success?: boolean; message?: string; data?: SubjectChapterProgress }
-        >(`/subjects/${subjectId}/chapters/${chapterId}/progress`);
+        >(`/chapters/${chapterId}/progress`);
         return this.unwrapData<SubjectChapterProgress>(response);
     }
 
     async unlockSubjectChapter(subjectId: string, chapterId: string): Promise<SubjectChapterUnlockResponse> {
         return this.request<SubjectChapterUnlockResponse>(
-            `/subjects/${subjectId}/chapters/${chapterId}/progress/unlock`,
+            `/chapters/${chapterId}/progress/unlock`,
             {
                 method: "POST",
             }
@@ -780,19 +866,20 @@ class APIClient {
     async getSubjectChapterExamHints(subjectId: string, chapterId: string): Promise<SubjectExamHint[]> {
         this.traceIdOrigin("getSubjectChapterExamHints", { subjectId, chapterId });
         const response = await this.request<SubjectExamHint[] | { success?: boolean; data?: SubjectExamHint[] }>(
-            `/subjects/${subjectId}/chapters/${chapterId}/exam-hints`
+            `/chapters/${chapterId}/exam-hints`
         );
         const hints = this.unwrapData<SubjectExamHint[]>(response);
         return Array.isArray(hints) ? hints : [];
     }
 
     // Lesson endpoints (subject chapter)
-    async getSubjectChapterLessons(subjectId: string, chapterId: string): Promise<Lesson[]> {
+    async getSubjectChapterLessons(subjectId: string, chapterId: string, includeProgress = false): Promise<LessonWithProgress[]> {
         this.traceIdOrigin("getSubjectChapterLessons", { subjectId, chapterId });
-        const response = await this.request<Lesson[] | { success?: boolean; data?: Lesson[] }>(
-            `/subjects/${subjectId}/chapters/${chapterId}/lessons`
+        const query = includeProgress ? "?includeProgress=true" : "";
+        const response = await this.request<LessonWithProgress[] | { success?: boolean; data?: LessonWithProgress[] }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons${query}`
         );
-        const lessons = this.unwrapData<Lesson[]>(response);
+        const lessons = this.unwrapData<LessonWithProgress[]>(response);
         return Array.isArray(lessons) ? this.dedupeById(lessons) : [];
     }
 
@@ -811,11 +898,12 @@ class APIClient {
         return this.unwrapData<Lesson>(response);
     }
 
-    async getSubjectChapterLesson(subjectId: string, chapterId: string, lessonId: string): Promise<Lesson> {
-        const response = await this.request<Lesson | { success?: boolean; data?: Lesson }>(
-            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}`
+    async getSubjectChapterLesson(subjectId: string, chapterId: string, lessonId: string, includeProgress = false): Promise<LessonWithProgress> {
+        const query = includeProgress ? "?includeProgress=true" : "";
+        const response = await this.request<LessonWithProgress | { success?: boolean; data?: LessonWithProgress }>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}${query}`
         );
-        return this.unwrapData<Lesson>(response);
+        return this.unwrapData<LessonWithProgress>(response);
     }
 
     async updateSubjectChapterLesson(
@@ -845,25 +933,13 @@ class APIClient {
         chapterId: string,
         lessonId: string
     ): Promise<LessonCompletionResponse> {
-        try {
-            return await this.request<LessonCompletionResponse>(
-                `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/complete`,
-                {
-                    method: "POST",
-                }
-            );
-        } catch (error) {
-            if (!this.shouldFallbackFromSubjectScopedError(error)) {
-                throw error;
+        return await this.request<LessonCompletionResponse>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/complete`,
+            {
+                method: "POST",
+                data: { timeSpent: 0 },
             }
-            // Fallback for deployments where lesson completion is chapter-scoped only.
-            return this.request<LessonCompletionResponse>(
-                `/chapters/${chapterId}/lessons/${lessonId}/complete`,
-                {
-                    method: "POST",
-                }
-            );
-        }
+        );
     }
 
     async updateSubjectChapterLessonProgress(
@@ -872,27 +948,13 @@ class APIClient {
         lessonId: string,
         data: LessonProgressUpdatePayload
     ): Promise<LessonCompletionResponse> {
-        try {
-            return await this.request<LessonCompletionResponse>(
-                `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/progress`,
-                {
-                    method: "POST",
-                    data,
-                }
-            );
-        } catch (error) {
-            if (!this.shouldFallbackFromSubjectScopedError(error)) {
-                throw error;
+        return await this.request<LessonCompletionResponse>(
+            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/progress`,
+            {
+                method: "POST",
+                data,
             }
-            // Fallback for deployments where lesson progress is chapter-scoped only.
-            return this.request<LessonCompletionResponse>(
-                `/chapters/${chapterId}/lessons/${lessonId}/progress`,
-                {
-                    method: "POST",
-                    data,
-                }
-            );
-        }
+        );
     }
 
     async getSubjectChapterLessonPdf(
@@ -901,7 +963,7 @@ class APIClient {
         lessonId: string
     ): Promise<LessonPdfMaterial> {
         const response = await this.request<LessonPdfMaterial | { success?: boolean; data?: LessonPdfMaterial }>(
-            `/subjects/${subjectId}/chapters/${chapterId}/lessons/${lessonId}/pdf`
+            `/chapters/${chapterId}/pdf`
         );
         return this.unwrapData<LessonPdfMaterial>(response);
     }
@@ -946,18 +1008,22 @@ class APIClient {
         return this.unwrapData<ChapterPdfMaterial>(response);
     }
 
-    async getChapterLessons(chapterId: string): Promise<ChapterLesson[]> {
-        const response = await this.request<ChapterLesson[] | { success?: boolean; data?: ChapterLesson[] }>(
-            `/chapters/${chapterId}/lessons`
+    async getChapterLessons(chapterId: string, includeProgress = false): Promise<LessonWithProgress[]> {
+        const query = includeProgress ? "?includeProgress=true" : "";
+        const response = await this.request<LessonWithProgress[] | { success?: boolean; data?: LessonWithProgress[] }>(
+            `/chapters/${chapterId}/lessons${query}`
         );
-        const lessons = this.unwrapData<ChapterLesson[]>(response);
+        const lessons = this.unwrapData<LessonWithProgress[]>(response);
         return Array.isArray(lessons) ? this.dedupeById(lessons) : [];
     }
 
     // Chapter Quiz endpoints
     async getChapterQuizzes(chapterId: string): Promise<Quiz[]> {
-        // Get all quizzes for a chapter
-        return this.request<Quiz[]>(`/chapters/${chapterId}/quizzes`);
+        const response = await this.request<Quiz[] | { success?: boolean; data?: Quiz[] }>(
+            `/chapters/${chapterId}/quizzes?includeQuestions=true`
+        );
+        const quizzes = this.unwrapData<Quiz[]>(response);
+        return Array.isArray(quizzes) ? quizzes : [];
     }
 
     async getChapterProgress(chapterId: string): Promise<ChapterProgressData> {
@@ -999,15 +1065,9 @@ class APIClient {
     }
 
     // Quiz endpoints
-    async getQuizzes(limit: number = 5): Promise<Quiz[]> {
-        // Try with limit parameter first, fallback to no parameter
-        try {
-            return await this.request<Quiz[]>(`/quizzes?limit=${limit}`);
-        } catch {
-            // If query parameter fails, try without it
-            const allQuizzes = await this.request<Quiz[]>(`/quizzes`);
-            return allQuizzes.slice(0, limit);
-        }
+    async getQuizzes(chapterId: string): Promise<Quiz[]> {
+        // Use chapter-scoped quizzes endpoint
+        return this.getChapterQuizzes(chapterId);
     }
 
     async getQuiz(quizId: string): Promise<Quiz> {
@@ -1048,10 +1108,14 @@ class APIClient {
     }
 
     async submitQuiz(quizId: string, submission: QuizSubmission): Promise<QuizResult> {
-        return this.request<QuizResult>(`/quizzes/${quizId}/submit`, {
-            method: "POST",
-            data: submission,
-        });
+        const response = await this.request<QuizResult | { success?: boolean; data?: QuizResult }>(
+            `/quizzes/${quizId}/submit`,
+            {
+                method: "POST",
+                data: submission,
+            }
+        );
+        return this.unwrapData<QuizResult>(response);
     }
 
     async getQuizAttempts(quizId: string): Promise<QuizAttempt[]> {
@@ -1061,7 +1125,8 @@ class APIClient {
 
     async getUserQuizAttempts(userId: string): Promise<QuizAttempt[]> {
         // Get all quiz attempts by a user
-        return this.request<QuizAttempt[]>(`/users/${userId}/quiz-attempts`);
+        const response = await this.request<{ success?: boolean; data?: QuizAttempt[] }>(`/users/${userId}/quiz-attempts`);
+        return this.unwrapData<QuizAttempt[]>(response) || [];
     }
 
     async getQuizStats(quizId: string): Promise<QuizStats> {
@@ -1207,6 +1272,86 @@ class APIClient {
             quizAttempts,
         };
     }
+
+    // Admin endpoints
+    async getAdminUsers(params: { search?: string; role?: string; isActive?: boolean; limit?: number; offset?: number } = {}): Promise<any> {
+        return this.request<any>("/admin/users", { params });
+    }
+
+    async getAdminUser(userId: string): Promise<any> {
+        return this.request<any>(`/admin/users/${userId}`);
+    }
+
+    async deactivateUser(userId: string): Promise<any> {
+        return this.request<any>(`/admin/users/${userId}/deactivate`, {
+            method: "PATCH",
+        });
+    }
+
+    async reactivateUser(userId: string): Promise<any> {
+        return this.request<any>(`/admin/users/${userId}/reactivate`, {
+            method: "PATCH",
+        });
+    }
+
+    async getAdminAnalyticsOverview(): Promise<any> {
+        return this.request<any>("/admin/analytics/overview");
+    }
+
+    async getAdminAnalyticsChapterCompletion(): Promise<any> {
+        return this.request<any>("/admin/analytics/chapter-completion");
+    }
+
+    async getAdminAnalyticsQuizStats(): Promise<any> {
+        return this.request<any>("/admin/analytics/quiz-stats");
+    }
+
+    async getAdminAnalyticsWAU(): Promise<any> {
+        return this.request<any>("/admin/analytics/wau");
+    }
+
+    async getAdminAnalyticsTeacherActivity(): Promise<any> {
+        return this.request<any>("/admin/analytics/teacher-activity");
+    }
+
+    async getAdminAnalyticsSignups(): Promise<any> {
+        return this.request<any>("/admin/analytics/signups");
+    }
+
+    // Feedback
+    async submitFeedback(data: { category: string; subject: string; message: string; rating?: number }): Promise<{ id: string }> {
+        const response = await this.request<{ success: boolean; data: { id: string } }>("/feedback", {
+            method: "POST",
+            data,
+        });
+        return response?.data || { id: "" };
+    }
+
+    async getMyFeedback(): Promise<any[]> {
+        const response = await this.request<{ success: boolean; data: any[] }>("/feedback");
+        return response?.data || [];
+    }
+
+    async getQuizAttemptCorrections(attemptId: string): Promise<{
+        attemptId: string;
+        quizTitle: string;
+        chapterTitle: string;
+        subjectName: string;
+        score: number;
+        corrections: {
+            questionIndex: number;
+            questionText: string;
+            options: string[];
+            userAnswer: number | null;
+            correctAnswer: number;
+            isCorrect: boolean;
+            explanation: string | null;
+            points: number;
+        }[];
+    }> {
+        const response = await this.request<{ success: boolean; data: any }>(`/quiz-attempts/${attemptId}/corrections`);
+        return response?.data;
+    }
 }
 
 function mapStatusFromProgress(overallProgress: number): StudentStatus {
@@ -1234,6 +1379,7 @@ function mapTeacherAttemptToQuizAttempt(
         quizId: attempt.quiz?.id || "",
         userId: studentId,
         score: attempt.score,
+        answers: [],
         percentage,
         passed: attempt.passed,
         completedAt: attempt.completedAt,
@@ -1241,4 +1387,4 @@ function mapTeacherAttemptToQuizAttempt(
 }
 
 // Export singleton instance
-export const apiClient = new APIClient(API_BASE_URL || "http://localhost:3000/api/v1");
+export const apiClient = new APIClient(API_BASE_URL as string);

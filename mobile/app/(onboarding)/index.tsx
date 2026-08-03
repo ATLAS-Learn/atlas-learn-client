@@ -15,7 +15,7 @@ export default function Onboarding() {
   const { width, height } = useWindowDimensions();
 
   const handleStartAssessment = () => {
-    router.push("/(onboarding)/assessment");
+    router.push("/(onboarding)/select-subjects");
   };
 
   const contentPadding = width < 390 ? 16 : 24;
@@ -34,8 +34,7 @@ export default function Onboarding() {
       </Text>
 
       <Text style={[styles.description, { fontSize: descriptionSize }]}>
-        We&apos;ll ask you 5 questions to understand your current knowledge level.
-        This helps us give you the right material tailored to your needs.
+        First, choose the subjects you want to study. Then we&apos;ll ask you 5 questions to understand your current knowledge level.
       </Text>
 
       <View style={styles.benefitsContainer}>

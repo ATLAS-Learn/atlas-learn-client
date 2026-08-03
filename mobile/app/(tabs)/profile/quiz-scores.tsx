@@ -34,10 +34,6 @@ export default function QuizScoresScreen() {
         });
     };
 
-    const getChapterTitle = (quizId: string): string => {
-        return `Quiz ${quizId.slice(0, 8)}`;
-    };
-
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
@@ -63,7 +59,7 @@ export default function QuizScoresScreen() {
                 refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
             >
                 {quizAttempts.length > 0 && <QuizScoresChart attempts={quizAttempts} />}
-                
+
                 {quizAttempts.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="document-text-outline" size={64} color="#CCC" />
@@ -74,17 +70,28 @@ export default function QuizScoresScreen() {
                     </View>
                 ) : (
                     quizAttempts.map((attempt) => {
-                        const passed = attempt.passed;
-                        const percentage = attempt.percentage;
-                        const chapterTitle = getChapterTitle(attempt.quizId);
+                        const threshold = attempt.quiz?.chapter?.unlockThreshold ?? 70;
+                        const passed = attempt.score >= threshold;
+                        const percentage = attempt.score ?? 0;
+                        const quizTitle = attempt.quiz?.title || `Quiz ${attempt.quizId.slice(0, 8)}`;
 
                         return (
-                            <View key={attempt.id} style={styles.scoreCard}>
+                            <TouchableOpacity
+                                key={attempt.id}
+                                style={styles.scoreCard}
+                                onPress={() => router.push(`/(tabs)/profile/quiz-corrections?attemptId=${attempt.id}`)}
+                                activeOpacity={0.7}
+                            >
                                 <View style={styles.scoreHeader}>
                                     <View style={styles.scoreInfo}>
                                         <Text style={styles.quizTitle}>
-                                            {chapterTitle}
+                                            {quizTitle}
                                         </Text>
+                                        {attempt.quiz?.chapter?.subject && (
+                                            <Text style={styles.quizSubject}>
+                                                {attempt.quiz.chapter.subject.name}
+                                            </Text>
+                                        )}
                                         <Text style={styles.quizDate}>
                                             {formatDate(attempt.completedAt)}
                                         </Text>
@@ -98,7 +105,7 @@ export default function QuizScoresScreen() {
                                         <Ionicons
                                             name={passed ? "checkmark-circle" : "close-circle"}
                                             size={16}
-                                            color={passed ? "#4CAF50" : "#F44336"}
+                                            color={passed ? "#4CAF50" : "#E57373"}
                                         />
                                         <Text
                                             style={[
@@ -109,6 +116,7 @@ export default function QuizScoresScreen() {
                                             {passed ? "Passed" : "Failed"}
                                         </Text>
                                     </View>
+                                    <Ionicons name="chevron-forward" size={20} color="#CCC" />
                                 </View>
 
                                 <View style={styles.scoreDetails}>
@@ -130,9 +138,9 @@ export default function QuizScoresScreen() {
                                         </Text>
                                     </View>
                                 </View>
-                            </View>
-                        );
-                    })
+                                </TouchableOpacity>
+                            );
+                        })
                 )}
             </ScrollView>
         </View>
@@ -222,6 +230,12 @@ const styles = StyleSheet.create({
         color: "#282F2E",
         marginBottom: 4,
     },
+    quizSubject: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#F2B138",
+        marginBottom: 2,
+    },
     quizDate: {
         fontSize: 12,
         color: "#999",
@@ -248,7 +262,7 @@ const styles = StyleSheet.create({
         color: "#4CAF50",
     },
     statusTextFailed: {
-        color: "#F44336",
+        color: "#E57373",
     },
     scoreDetails: {
         flexDirection: "row",
@@ -278,6 +292,6 @@ const styles = StyleSheet.create({
         color: "#4CAF50",
     },
     scorePercentageFailed: {
-        color: "#F44336",
+        color: "#E57373",
     },
 });

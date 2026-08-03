@@ -1,335 +1,222 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
-  TouchableOpacity,
+    View,
+    Text,
+    ScrollView,
+    StyleSheet,
+    ActivityIndicator,
+    TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { apiClient } from "@/lib/api";
-import { DashboardData, Chapter, Progress } from "@/lib/types";
-import WelcomeHeader from "@/components/progress/welcome-header";
-import ProgressBar from "@/components/progress/progress-bar";
-import CurrentChapterCard from "@/components/progress/current-chapter-card";
-import NextChapterCard from "@/components/progress/next-chapter-card";
-import { useUserStore } from "@/lib/store/user";
 import { useOverallProgress } from "@/lib/hooks/api";
+import { SubjectProgress } from "@/lib/types";
+import { apiClient } from "@/lib/api";
 
-export default function LearnDashboardScreen() {
-  const router = useRouter();
-  const { user, setUser } = useUserStore();
-  const { data: overallProgressData, refetch: refetchOverallProgress } = useOverallProgress();
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+function SubjectCard({ subject }: { subject: SubjectProgress }) {
+    const router = useRouter();
+    const chapters = subject.chapters as unknown as { total: number; completed: number };
+    const lessons = subject.lessons as unknown as { total: number; completed: number };
 
-  useEffect(() => {
-    if (!user) return;
-    setDashboardData((prev) => (prev ? { ...prev, user } : prev));
-  }, [user]);
+    return (
+        <TouchableOpacity
+            style={styles.subjectCard}
+            onPress={() =>
+                router.push({
+                    pathname: "/(tabs)/learn/subjects/[subjectId]",
+                    params: { subjectId: subject.subjectId, subjectCode: subject.code },
+                } as any)
+            }
+        >
+            <View style={styles.subjectInfo}>
+                <Text style={styles.subjectName}>{subject.name}</Text>
+                <Text style={styles.subjectCode}>{subject.code}</Text>
+                <View style={styles.progressRow}>
+                    <View style={styles.progressBadge}>
+                        <Ionicons name="book-outline" size={14} color="#666" />
+                        <Text style={styles.progressBadgeText}>
+                            {chapters.completed}/{chapters.total} chapters
+                        </Text>
+                    </View>
+                    <View style={styles.progressBadge}>
+                        <Ionicons name="document-text-outline" size={14} color="#666" />
+                        <Text style={styles.progressBadgeText}>
+                            {lessons.completed}/{lessons.total} lessons
+                        </Text>
+                    </View>
+                </View>
+                <View style={styles.progressBarBg}>
+                    <View
+                        style={[
+                            styles.progressBarFill,
+                            { width: `${Math.min(subject.completionPercentage, 100)}%` },
+                        ]}
+                    />
+                </View>
+                <Text style={styles.progressPercent}>{subject.completionPercentage}% complete</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#999" />
+        </TouchableOpacity>
+    );
+}
 
-  useEffect(() => {
-    if (!overallProgressData) return;
-    setDashboardData((prev) => {
-      if (!prev) return prev;
-      const nextOverall = Number(
-        overallProgressData.overall?.completionPercentage ?? prev.progress.overallProgress
-      );
-      const nextStreak = prev.progress.streak;
+export default function LearnScreen() {
+    const router = useRouter();
+    const { data: progressData, isLoading, error } = useOverallProgress();
+    const [preferredIds, setPreferredIds] = useState<string[] | null>(null);
 
-      if (nextOverall === prev.progress.overallProgress && nextStreak === prev.progress.streak) {
-        return prev;
-      }
+    useEffect(() => {
+        apiClient.getPreferredSubjects().then(setPreferredIds).catch(() => setPreferredIds([]));
+    }, []);
 
-      return {
-        ...prev,
-        progress: {
-          ...prev.progress,
-          overallProgress: nextOverall,
-          streak: nextStreak,
-        },
-      };
-    });
-  }, [overallProgressData]);
+    const subjects = useMemo(() => {
+        const allSubjects = progressData?.subjects || [];
+        if (!preferredIds || preferredIds.length === 0) return [];
+        return allSubjects.filter((s) => preferredIds.includes(s.subjectId));
+    }, [progressData, preferredIds]);
 
-  const loadDashboard = useCallback(async () => {
-    try {
-      let activeUser = user;
-      if (!activeUser) {
-        activeUser = await apiClient.getCurrentUser();
-        setUser(activeUser);
-      }
-      if (!activeUser) {
-        throw new Error("User data not available");
-      }
-
-      const [allChaptersRaw, serverProgress] = await Promise.all([
-        apiClient.getChapters(),
-        apiClient.getOverallProgress(),
-      ]);
-      const allChapters = (Array.isArray(allChaptersRaw) ? allChaptersRaw : []).map((chapter) => ({
-        ...chapter,
-        content: Array.isArray(chapter.content) ? chapter.content : [],
-        estimatedTime: typeof chapter.estimatedTime === "number" ? chapter.estimatedTime : 0,
-      }));
-
-      if (allChapters.length === 0) {
-        Alert.alert("Info", "No chapters available yet.");
-        return;
-      }
-
-      allChapters.sort((a, b) => a.order - b.order);
-      const completedChapterCount = Math.max(
-        0,
-        Math.min(serverProgress?.overall?.chapters?.completed || 0, allChapters.length)
-      );
-      const completedChapterIds = new Set<string>(
-        allChapters.slice(0, completedChapterCount).map((chapter) => chapter.id)
-      );
-
-      const currentChapter =
-        allChapters[completedChapterCount] || allChapters[allChapters.length - 1];
-
-      let nextChapter: Chapter | undefined;
-
-      const currentIndex = allChapters.findIndex((c) => c.id === currentChapter.id);
-      if (currentIndex >= 0 && currentIndex < allChapters.length - 1) {
-        nextChapter = allChapters[currentIndex + 1];
-      }
-
-      const overallProgress = Number(
-        overallProgressData?.overall?.completionPercentage ??
-          serverProgress?.overall?.completionPercentage ??
-          0
-      );
-      const streak = 0;
-      const latestActivity = activeUser.createdAt;
-
-      const finalProgress: Progress = {
-        userId: activeUser.id,
-        currentChapterId: currentChapter.id,
-        completedChapters: Array.from(completedChapterIds),
-        completedLessons: [],
-        completedQuizzes: [],
-        overallProgress,
-        streak,
-        lastActiveDate: latestActivity,
-      };
-
-      const isNextChapterLocked = completedChapterCount <= currentIndex;
-
-      const localDashboardData: DashboardData = {
-        user: activeUser,
-        progress: finalProgress,
-        currentChapter,
-        nextChapter,
-        isNextChapterLocked,
-      };
-
-      setDashboardData(localDashboardData);
-    } catch (error: unknown) {
-      console.error("Error loading dashboard:", error);
-      Alert.alert("Error", (error as Error).message || "Failed to load dashboard. Please try again.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    if (isLoading || preferredIds === null) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#F2B138" />
+                <Text style={styles.loadingText}>Loading your progress...</Text>
+            </View>
+        );
     }
-  }, [overallProgressData, setUser, user]);
 
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
+    if (error || !progressData) {
+        return (
+            <View style={styles.loadingContainer}>
+                <Text style={styles.errorText}>Failed to load progress</Text>
+            </View>
+        );
+    }
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    refetchOverallProgress();
-    loadDashboard();
-  };
-
-  const handleChapterPress = (chapter: Chapter) => {
-    const chapterSubjectId =
-      chapter.subjectId ||
-      ((chapter as Chapter & { subject_id?: string }).subject_id ?? "");
-    router.push({
-      pathname: "/(tabs)/learn/[id]",
-      params: {
-        id: chapter.id,
-        subjectId: chapterSubjectId,
-      },
-    } as any);
-  };
-
-  if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#F2B138" />
-        <Text style={styles.loadingText}>Loading dashboard...</Text>
-      </View>
-    );
-  }
-
-  if (!dashboardData) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Failed to load dashboard</Text>
-      </View>
-    );
-  }
-
-  const headerName =
-    user?.name ||
-    user?.email?.split("@")[0] ||
-    dashboardData.user?.name ||
-    dashboardData.user?.email?.split("@")[0] ||
-    "Student";
-
-  return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-      }
-    >
-      <WelcomeHeader
-        name={headerName.split(" ")[0]}
-        streak={dashboardData.progress.streak}
-      />
-
-      <ProgressBar progress={dashboardData.progress.overallProgress} />
-
-      {overallProgressData?.overall?.lessons && (
-        <View style={styles.lessonSummaryCard}>
-          <Text style={styles.sectionTitle}>Lesson Progress</Text>
-          <View style={styles.lessonSummaryRow}>
-            <View style={styles.lessonSummaryItem}>
-              <Text style={styles.lessonSummaryValue}>
-                {overallProgressData.overall.lessons.percentage ?? 0}%
-              </Text>
-              <Text style={styles.lessonSummaryLabel}>Completion</Text>
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>Continue Learning</Text>
             </View>
-            <View style={styles.lessonSummaryItem}>
-              <Text style={styles.lessonSummaryValue}>
-                {overallProgressData.overall.lessons.completed ?? 0}/
-                {overallProgressData.overall.lessons.total ?? 0}
-              </Text>
-              <Text style={styles.lessonSummaryLabel}>Lessons Done</Text>
-            </View>
-            <View style={styles.lessonSummaryItem}>
-              <Text style={styles.lessonSummaryValue}>
-                {Math.round((overallProgressData.overall.totalTimeSpent || 0) / 60)}m
-              </Text>
-              <Text style={styles.lessonSummaryLabel}>Time Spent</Text>
-            </View>
-          </View>
+
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.content}
+            >
+                {subjects.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                        <Ionicons name="school-outline" size={56} color="#CCC" />
+                        <Text style={styles.emptyText}>No subjects selected yet</Text>
+                        <Text style={styles.emptySubtext}>Browse and add subjects to start learning</Text>
+                        <TouchableOpacity
+                            style={styles.browseAllButton}
+                            onPress={() => router.push("/(tabs)/learn/browse-subjects")}
+                        >
+                            <Ionicons name="add-circle-outline" size={18} color="#F2B138" />
+                            <Text style={styles.browseAllText}>Browse All Subjects</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <>
+                        {subjects.map((subject) => (
+                            <SubjectCard key={subject.subjectId} subject={subject} />
+                        ))}
+                        <TouchableOpacity
+                            style={styles.browseAllButton}
+                            onPress={() => router.push("/(tabs)/learn/browse-subjects")}
+                        >
+                            <Ionicons name="add-circle-outline" size={18} color="#F2B138" />
+                            <Text style={styles.browseAllText}>Browse All Subjects</Text>
+                        </TouchableOpacity>
+                    </>
+                )}
+            </ScrollView>
         </View>
-      )}
-
-      <CurrentChapterCard
-        chapter={dashboardData.currentChapter}
-        onPress={() => handleChapterPress(dashboardData.currentChapter)}
-      />
-
-      {dashboardData.nextChapter && (
-        <NextChapterCard
-          chapter={dashboardData.nextChapter}
-          isLocked={dashboardData.isNextChapterLocked}
-        />
-      )}
-
-      <TouchableOpacity
-        style={styles.chaptersButton}
-        onPress={() => router.push("/(tabs)/learn/subjects")}
-      >
-        <Ionicons name="albums" size={24} color="#F2B138" />
-        <Text style={styles.chaptersButtonText}>Browse Subjects</Text>
-        <Ionicons name="chevron-forward" size={20} color="#999" />
-      </TouchableOpacity>
-    </ScrollView>
-  );
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAFA",
-  },
-  content: {
-    padding: 24,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FAFAFA",
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#666",
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#F44336",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#282F2E",
-  },
-  lessonSummaryCard: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  lessonSummaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 12,
-  },
-  lessonSummaryItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  lessonSummaryValue: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#282F2E",
-  },
-  lessonSummaryLabel: {
-    marginTop: 4,
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "600",
-  },
-  chaptersButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    gap: 12,
-  },
-  chaptersButtonText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#282F2E",
-  },
+    container: { flex: 1, backgroundColor: "#FAFAFA" },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#FAFAFA",
+    },
+    loadingText: { marginTop: 16, fontSize: 16, color: "#666" },
+    errorText: { fontSize: 16, color: "#E57373" },
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: 16,
+        paddingTop: 20,
+        backgroundColor: "#fff",
+        borderBottomWidth: 1,
+        borderBottomColor: "#E0E0E0",
+    },
+    headerTitle: { fontSize: 24, fontWeight: "800", color: "#1F2524" },
+    scrollView: { flex: 1 },
+    content: { padding: 24 },
+    emptyContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 40,
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "#EEE",
+    },
+    emptyText: { marginTop: 12, fontSize: 14, color: "#999", fontWeight: "600" },
+    emptySubtext: { marginTop: 4, fontSize: 12, color: "#BBB", marginBottom: 8 },
+    browseAllButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        paddingVertical: 14,
+        backgroundColor: "#FFF9E6",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#FFE082",
+        marginTop: 12,
+    },
+    browseAllText: { fontSize: 14, fontWeight: "700", color: "#F2B138" },
+    subjectCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: 16,
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "#EAEAEA",
+        marginBottom: 12,
+    },
+    subjectInfo: { flex: 1, marginRight: 12 },
+    subjectName: { fontSize: 16, fontWeight: "700", color: "#1F2524" },
+    subjectCode: { marginTop: 2, fontSize: 12, color: "#999", fontWeight: "700" },
+    progressRow: {
+        flexDirection: "row",
+        gap: 12,
+        marginTop: 8,
+    },
+    progressBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+    },
+    progressBadgeText: { fontSize: 12, color: "#666" },
+    progressBarBg: {
+        height: 6,
+        backgroundColor: "#EEE",
+        borderRadius: 3,
+        marginTop: 8,
+        overflow: "hidden",
+    },
+    progressBarFill: {
+        height: "100%",
+        backgroundColor: "#F2B138",
+        borderRadius: 3,
+    },
+    progressPercent: { marginTop: 4, fontSize: 12, color: "#999", fontWeight: "600" },
 });

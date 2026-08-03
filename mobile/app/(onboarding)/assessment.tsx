@@ -40,7 +40,7 @@ export default function AssessmentScreen() {
             console.error("Assessment load error:", error);
             const errorMessage = error?.message || "Failed to load assessment questions. Please try again.";
             const normalizedErrorMessage = errorMessage.toLowerCase();
-            
+
             // Provide more user-friendly error messages for common scenarios
             let userMessage = errorMessage;
             if (
@@ -63,14 +63,14 @@ export default function AssessmentScreen() {
                 userMessage = "You have already completed the assessment.";
             }
 
-            if (normalizedErrorMessage.includes("no active assessment") || 
+            if (normalizedErrorMessage.includes("no active assessment") ||
                 normalizedErrorMessage.includes("not available")) {
                 userMessage = "Assessment is not available at this time. Please contact support or try again later.";
             } else if (normalizedErrorMessage.includes("exactly 5 questions")) {
                 userMessage =
                     "Assessment is temporarily misconfigured on the server (must contain exactly 5 questions). Please try again later or contact support.";
             }
-            
+
             setError(userMessage);
         } finally {
             setLoading(false);
@@ -138,6 +138,9 @@ export default function AssessmentScreen() {
                     totalQuestions: result.totalQuestions.toString(),
                     level: result.level,
                     message: result.message,
+                    subjectBreakdown: JSON.stringify(result.subjectBreakdown || []),
+                    perSubjectRecommendations: JSON.stringify(result.perSubjectRecommendations || []),
+                    recommendedChapter: JSON.stringify(result.recommendedChapter || null),
                 },
             });
         } catch {
@@ -167,7 +170,7 @@ export default function AssessmentScreen() {
                     <View style={styles.backButton} />
                 </View>
                 <View style={styles.errorContainer}>
-                    <Ionicons name="alert-circle-outline" size={64} color="#F44336" />
+                    <Ionicons name="alert-circle-outline" size={64} color="#E57373" />
                     <Text style={styles.errorTitle}>Assessment Unavailable</Text>
                     <Text style={styles.errorMessage}>{error}</Text>
                     <View style={styles.errorActions}>
@@ -218,8 +221,22 @@ export default function AssessmentScreen() {
                     totalQuestions={questions.length}
                 />
 
+                {currentQuestion.subjectName && (
+                    <View style={styles.subjectBadge}>
+                        <Ionicons name="book-outline" size={14} color="#F2B138" />
+                        <Text style={styles.subjectBadgeText}>{currentQuestion.subjectName}</Text>
+                    </View>
+                )}
+
                 <QuestionCard
-                    question={currentQuestion}
+                    question={{
+                        id: currentQuestion.id,
+                        questionText: currentQuestion.question,
+                        options: currentQuestion.options,
+                        correctAnswerIndex: -1,
+                        points: 1,
+                        quizId: "",
+                    }}
                     selectedAnswer={answers[currentQuestion.id] ?? null}
                     onSelectAnswer={handleSelectAnswer}
                 />
@@ -281,7 +298,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 16,
-        color: "#F44336",
+        color: "#E57373",
     },
     errorContainer: {
         flex: 1,
@@ -369,6 +386,22 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         padding: 24,
+    },
+    subjectBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: "#FFF9E6",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        alignSelf: "flex-start",
+        marginBottom: 16,
+    },
+    subjectBadgeText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#E65100",
     },
     footer: {
         flexDirection: "row",

@@ -291,7 +291,7 @@ export default function AdminAssessmentsScreen() {
                   disabled={deletingId === assessment.id}
                 >
                   {deletingId === assessment.id ? (
-                    <ActivityIndicator size="small" color="#F44336" />
+                    <ActivityIndicator size="small" color="#E57373" />
                   ) : (
                     <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
                   )}
@@ -462,8 +462,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   smallButtonText: { color: "#333", fontWeight: "600", fontSize: 13 },
-  deleteButton: { borderColor: "#FFCDD2" },
-  deleteButtonText: { color: "#F44336" },
+  deleteButton: { borderColor: "#FFEBEE" },
+  deleteButtonText: { color: "#E57373" },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", padding: 20 },
   modalCard: { backgroundColor: "#fff", borderRadius: 14, padding: 18 },
   modalTitle: { fontSize: 20, fontWeight: "700", color: "#282F2E", marginBottom: 14 },

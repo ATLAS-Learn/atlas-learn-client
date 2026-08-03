@@ -21,8 +21,8 @@ export default function QuizScoresChart({ attempts }: QuizScoresChartProps) {
         .sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime())
         .map((attempt, index) => ({
             x: index + 1,
-            y: attempt.percentage,
-            label: `${Math.round(attempt.percentage)}%`,
+            y: attempt.score ?? 0,
+            label: `${Math.round(attempt.score ?? 0)}%`,
         }));
 
     const screenWidth = Dimensions.get("window").width - 48; // Account for padding
@@ -34,12 +34,12 @@ export default function QuizScoresChart({ attempts }: QuizScoresChartProps) {
                 width={screenWidth}
                 height={220}
                 theme={VictoryTheme.material}
-                padding={{ left: 50, right: 20, top: 20, bottom: 40 }}
+                padding={{ left: 70, right: 20, top: 20, bottom: 60 }}
             >
                 <VictoryAxis
                     label="Attempt Number"
                     style={{
-                        axisLabel: { padding: 35, fontSize: 12 },
+                        axisLabel: { padding: 45, fontSize: 12 },
                         tickLabels: { fontSize: 10 },
                     }}
                 />
@@ -47,7 +47,7 @@ export default function QuizScoresChart({ attempts }: QuizScoresChartProps) {
                     dependentAxis
                     label="Score (%)"
                     style={{
-                        axisLabel: { padding: 40, fontSize: 12 },
+                        axisLabel: { padding: 55, fontSize: 12 },
                         tickLabels: { fontSize: 10 },
                     }}
                 />

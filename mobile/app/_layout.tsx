@@ -1,7 +1,7 @@
 import "../styles/global.css";
 
 import { Stack, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Animated, StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { FontLoader } from "@/components/ui/font-loader";
@@ -15,6 +15,7 @@ export default function RootLayout() {
   const fadeAnim = useState(new Animated.Value(1))[0];
   const router = useRouter();
   const { assessmentComplete, isAuthenticated, isLoading } = useAppFlow();
+  const hasNavigated = useRef(false);
 
 
   useEffect(() => {
@@ -30,6 +31,10 @@ export default function RootLayout() {
         useNativeDriver: true,
       }).start(() => {
         setShowIntro(false); // hide splash
+
+        // Only navigate on initial splash dismiss
+        if (hasNavigated.current) return;
+        hasNavigated.current = true;
 
         // Navigate based on user state
         // Flow: 1. Check auth first, 2. Check assessment completion
@@ -47,7 +52,7 @@ export default function RootLayout() {
     }, minDisplayTime); // Show splash for at least 5 seconds
 
     return () => clearTimeout(timer);
-  }, [fadeAnim, isAuthenticated, assessmentComplete, isLoading]);
+  }, [fadeAnim, isAuthenticated, assessmentComplete, isLoading, router]);
 
 
   return (

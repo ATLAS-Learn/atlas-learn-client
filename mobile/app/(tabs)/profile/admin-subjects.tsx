@@ -342,7 +342,7 @@ export default function AdminSubjectsScreen() {
     setLessonTitle(lesson.title || "");
     setLessonContent(lesson.content || "");
     setLessonOrderIndex(lesson.orderIndex !== undefined ? String(lesson.orderIndex) : "");
-    setLessonEstimatedMinutes(lesson.estimatedMinutes !== undefined ? String(lesson.estimatedMinutes) : "");
+    setLessonEstimatedMinutes(lesson.durationMinutes !== undefined ? String(lesson.durationMinutes) : "");
     setLessonVideoUrl(lesson.videoUrl || "");
     setLessonPdfUrl(lesson.pdfUrl || "");
     setLessonExamples(lesson.examples ? JSON.stringify(lesson.examples, null, 2) : "");
@@ -464,11 +464,11 @@ export default function AdminSubjectsScreen() {
         title: lessonTitle.trim(),
         content: lessonContent.trim() || undefined,
         orderIndex: parseOptionalInteger(lessonOrderIndex),
-        estimatedMinutes: parseOptionalInteger(lessonEstimatedMinutes),
+        durationMinutes: parseOptionalInteger(lessonEstimatedMinutes),
         videoUrl: lessonVideoUrl.trim() || undefined,
         pdfUrl: lessonPdfUrl.trim() || undefined,
         examples: parsedExamples,
-        keyPoints: parsedKeyPoints,
+        keyPoints: Array.isArray(parsedKeyPoints) ? parsedKeyPoints.map(String) : undefined,
       };
 
       if (editingLessonId) {
@@ -784,7 +784,7 @@ export default function AdminSubjectsScreen() {
                   disabled={deleteSubjectMutation.isPending}
                 >
                   {deleteSubjectMutation.isPending ? (
-                    <ActivityIndicator size="small" color="#F44336" />
+                    <ActivityIndicator size="small" color="#E57373" />
                   ) : (
                     <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
                   )}
@@ -969,7 +969,7 @@ export default function AdminSubjectsScreen() {
                         disabled={deletingChapterId === chapter.id}
                       >
                         {deletingChapterId === chapter.id ? (
-                          <ActivityIndicator size="small" color="#F44336" />
+                          <ActivityIndicator size="small" color="#E57373" />
                         ) : (
                           <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
                         )}
@@ -1072,7 +1072,7 @@ export default function AdminSubjectsScreen() {
                     <Text style={styles.cardTitle}>{lesson.title || "Untitled Lesson"}</Text>
                     <Text style={styles.metaText}>ID: {lesson.id}</Text>
                     <Text style={styles.metaText}>Order: {lesson.orderIndex ?? "-"}</Text>
-                    <Text style={styles.metaText}>Minutes: {lesson.estimatedMinutes ?? "-"}</Text>
+                    <Text style={styles.metaText}>Minutes: {lesson.durationMinutes ?? "-"}</Text>
 
                     <View style={styles.cardActions}>
                       <TouchableOpacity style={styles.smallButton} onPress={() => openEditLesson(lesson)}>
@@ -1084,7 +1084,7 @@ export default function AdminSubjectsScreen() {
                         disabled={deletingLessonId === lesson.id}
                       >
                         {deletingLessonId === lesson.id ? (
-                          <ActivityIndicator size="small" color="#F44336" />
+                          <ActivityIndicator size="small" color="#E57373" />
                         ) : (
                           <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
                         )}
@@ -1158,7 +1158,7 @@ export default function AdminSubjectsScreen() {
                         disabled={deletingQuizId === quiz.id}
                       >
                         {deletingQuizId === quiz.id ? (
-                          <ActivityIndicator size="small" color="#F44336" />
+                          <ActivityIndicator size="small" color="#E57373" />
                         ) : (
                           <Text style={[styles.smallButtonText, styles.deleteButtonText]}>Delete</Text>
                         )}
@@ -1301,8 +1301,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   smallButtonText: { fontSize: 12, color: "#333", fontWeight: "600" },
-  deleteButton: { borderColor: "#FFCDD2" },
-  deleteButtonText: { color: "#F44336" },
+  deleteButton: { borderColor: "#FFEBEE" },
+  deleteButtonText: { color: "#E57373" },
   fetchingIndicator: { marginTop: 8 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", padding: 16 },
   modalCard: { backgroundColor: "#fff", borderRadius: 16, padding: 16 },

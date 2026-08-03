@@ -60,7 +60,7 @@ export default function SignUpScreen() {
         });
       } catch (error: any) {
         const errorMessage = error.message || "An error occurred. Please try again.";
-        
+
         // If error is about email already existing, show it inline
         if (errorMessage.toLowerCase().includes("already exists") || errorMessage.toLowerCase().includes("email")) {
           setErrors({ email: errorMessage });
@@ -119,7 +119,7 @@ export default function SignUpScreen() {
             />
           </View>
           {errors.email && (
-            <Text style={{ color: "red", marginBottom: 10 }}>{errors.email}</Text>
+            <Text style={{ color: "#E57373", marginBottom: 10 }}>{errors.email}</Text>
           )
           }
           {/* Name Input */}
@@ -135,7 +135,7 @@ export default function SignUpScreen() {
             />
           </View>
           {errors.fullName && (
-            <Text style={{ color: "red", marginBottom: 10 }}>{errors.fullName}</Text>
+            <Text style={{ color: "#E57373", marginBottom: 10 }}>{errors.fullName}</Text>
           )
           }
 

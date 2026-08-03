@@ -11,22 +11,25 @@ import QuizCelebration from "@/components/quizzes/quiz-celebration";
 
 export default function QuizResultScreen() {
     const router = useRouter();
-    const params = useLocalSearchParams<{ id: string; score: string; totalQuestions: string; percentage: string; passed: string; pastPaperReference?: string; unlockedNextChapter: string; quizId?: string }>();
+    const params = useLocalSearchParams<{ id: string; score: string; correctAnswers: string; totalQuestions: string; passed: string; unlockedNextChapter: string; nextChapterTitle?: string; quizId?: string; subjectId?: string }>();
 
     const score = parseInt(params.score as string) || 0;
+    const correctAnswers = parseInt(params.correctAnswers as string) || 0;
     const totalQuestions = parseInt(params.totalQuestions as string) || 0;
-    const percentage = parseFloat(params.percentage as string) || 0;
+    const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
     const passed = params.passed === "true";
-    const pastPaperReference = params.pastPaperReference as string | undefined;
     const unlockedNextChapter = params.unlockedNextChapter === "true";
+    const nextChapterTitle = params.nextChapterTitle as string | undefined;
+    const subjectId = params.subjectId as string | undefined;
 
     const handleContinue = () => {
-        if (unlockedNextChapter && passed && params.id) {
-            router.replace("/(tabs)/learn");
-        } else if (passed && params.id) {
-            router.replace("/(tabs)/learn");
+        if (subjectId) {
+            router.replace({
+                pathname: "/(tabs)/learn/subjects/[subjectId]",
+                params: { subjectId },
+            } as any);
         } else {
-            router.back();
+            router.replace("/(tabs)/learn");
         }
     };
 
@@ -51,9 +54,8 @@ export default function QuizResultScreen() {
             {passed ? (
                 <>
                     <QuizCelebration
-                        score={score}
+                        score={correctAnswers}
                         totalQuestions={totalQuestions}
-                        pastPaperReference={pastPaperReference}
                     />
 
                     <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
@@ -68,7 +70,7 @@ export default function QuizResultScreen() {
                     <View style={styles.failureContainer}>
                         <View style={styles.iconContainer}>
                             <View style={styles.iconCircle}>
-                                <Ionicons name="refresh" size={60} color="#F44336" />
+                                <Ionicons name="refresh" size={60} color="#E57373" />
                             </View>
                         </View>
 
@@ -76,7 +78,7 @@ export default function QuizResultScreen() {
 
                         <View style={styles.scoreContainer}>
                             <Text style={styles.scoreText}>
-                                {score} / {totalQuestions}
+                                {correctAnswers} / {totalQuestions}
                             </Text>
                             <Text style={styles.percentageText}>{Math.round(percentage)}%</Text>
                         </View>

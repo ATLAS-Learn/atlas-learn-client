@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -13,6 +13,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { apiClient } from "@/lib/api";
 import { Subject, SubjectChapter } from "@/lib/types";
+import { useOverallProgress } from "@/lib/hooks/api";
+
+type ChapterStatus = "completed" | "current" | "locked";
+
+interface ChapterWithProgress extends SubjectChapter {
+    status: ChapterStatus;
+    lessonProgress?: { completed: number; total: number };
+    quizPassed?: boolean;
+}
 
 export default function SubjectDetailScreen() {
     const router = useRouter();
@@ -25,6 +34,42 @@ export default function SubjectDetailScreen() {
     const [resolvedSubjectId, setResolvedSubjectId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const { data: progressData, refetch: refetchProgress } = useOverallProgress();
+
+    const chaptersWithStatus = useMemo<ChapterWithProgress[]>(() => {
+        if (!progressData || chapters.length === 0) return chapters as ChapterWithProgress[];
+
+        const subjectProgress = progressData.subjects?.find(
+            (s) => s.subjectId === resolvedSubjectId || s.subjectId === subjectKey
+        );
+        const chapterDetails = (subjectProgress?.chapterDetails || []) as {
+            chapterId: string;
+            isCompleted: boolean;
+            isUnlocked: boolean;
+            lessons?: { completed: number; total: number };
+            quizzes?: { passed: number; total: number };
+        }[];
+
+        return chapters.map((chapter) => {
+            const detail = chapterDetails.find((d) => d.chapterId === chapter.id);
+
+            let status: ChapterStatus = "locked";
+            if (detail?.isCompleted) {
+                status = "completed";
+            } else if (detail?.isUnlocked && detail?.lessons && detail.lessons.completed > 0) {
+                status = "current";
+            } else if (detail?.isUnlocked) {
+                status = "current";
+            }
+
+            return {
+                ...chapter,
+                status,
+                lessonProgress: detail?.lessons,
+                quizPassed: detail?.quizzes ? detail.quizzes.passed > 0 : undefined,
+            };
+        });
+    }, [chapters, progressData, resolvedSubjectId, subjectKey]);
 
     useEffect(() => {
         console.log("[ID_TRACE] SubjectDetail route params", {
@@ -129,14 +174,63 @@ export default function SubjectDetailScreen() {
 
     const handleRefresh = () => {
         setRefreshing(true);
+        refetchProgress();
         initialize();
     };
 
-    const handleOpenChapter = (chapterId: string) => {
+    const handleOpenChapter = (chapterId: string, status: ChapterStatus) => {
+        if (status === "locked") {
+            Alert.alert("Chapter Locked", "Complete the previous chapter to unlock this one.");
+            return;
+        }
         router.push({
             pathname: "/(tabs)/learn/[id]",
             params: { id: chapterId, subjectId: resolvedSubjectId || subjectKey || "" },
         } as any);
+    };
+
+    const getStatusIcon = (status: ChapterStatus) => {
+        switch (status) {
+            case "completed":
+                return <Ionicons name="checkmark-circle" size={22} color="#4CAF50" />;
+            case "current":
+                return <Ionicons name="play-circle" size={22} color="#F2B138" />;
+            case "locked":
+                return <Ionicons name="lock-closed" size={20} color="#CCC" />;
+        }
+    };
+
+    const getStatusLabel = (status: ChapterStatus) => {
+        switch (status) {
+            case "completed":
+                return "Completed";
+            case "current":
+                return "In Progress";
+            case "locked":
+                return "Not Started";
+        }
+    };
+
+    const getStatusColor = (status: ChapterStatus) => {
+        switch (status) {
+            case "completed":
+                return "#E8F5E9";
+            case "current":
+                return "#FFF8E1";
+            case "locked":
+                return "#F5F5F5";
+        }
+    };
+
+    const getBorderColor = (status: ChapterStatus) => {
+        switch (status) {
+            case "completed":
+                return "#4CAF50";
+            case "current":
+                return "#F2B138";
+            case "locked":
+                return "#EAEAEA";
+        }
     };
 
     if (loading) {
@@ -178,20 +272,42 @@ export default function SubjectDetailScreen() {
                     <Text style={styles.sectionCount}>{chapters.length} total</Text>
                 </View>
 
-                {chapters.length === 0 ? (
+                {chaptersWithStatus.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="book-outline" size={40} color="#CCC" />
                         <Text style={styles.emptyText}>No chapters yet.</Text>
                     </View>
                 ) : (
-                    chapters.map((chapter) => (
+                    chaptersWithStatus.map((chapter) => (
                         <TouchableOpacity
                             key={chapter.id}
-                            style={styles.chapterCard}
-                            onPress={() => handleOpenChapter(chapter.id)}
+                            style={[
+                                styles.chapterCard,
+                                {
+                                    backgroundColor: getStatusColor(chapter.status),
+                                    borderColor: getBorderColor(chapter.status),
+                                },
+                            ]}
+                            onPress={() => handleOpenChapter(chapter.id, chapter.status)}
+                            disabled={chapter.status === "locked"}
                         >
+                            <View style={styles.chapterIconContainer}>
+                                {getStatusIcon(chapter.status)}
+                            </View>
                             <View style={styles.chapterInfo}>
-                                <Text style={styles.chapterTitle}>{chapter.title}</Text>
+                                <View style={styles.chapterTitleRow}>
+                                    <Text
+                                        style={[
+                                            styles.chapterTitle,
+                                            chapter.status === "locked" && styles.chapterTitleLocked,
+                                        ]}
+                                    >
+                                        {chapter.title}
+                                    </Text>
+                                    <Text style={[styles.statusLabel, { color: getBorderColor(chapter.status) }]}>
+                                        {getStatusLabel(chapter.status)}
+                                    </Text>
+                                </View>
                                 {!!chapter.description && (
                                     <Text style={styles.chapterDescription} numberOfLines={2}>
                                         {chapter.description}
@@ -200,11 +316,14 @@ export default function SubjectDetailScreen() {
                                 <Text style={styles.chapterMeta}>
                                     {chapter.orderIndex ? `Chapter ${chapter.orderIndex}` : "Chapter"}
                                     {chapter.estimatedMinutes
-                                        ? ` • ${chapter.estimatedMinutes} min`
+                                        ? ` \u2022 ${chapter.estimatedMinutes} min`
+                                        : ""}
+                                    {chapter.lessonProgress
+                                        ? ` \u2022 ${chapter.lessonProgress.completed}/${chapter.lessonProgress.total} lessons`
                                         : ""}
                                 </Text>
                             </View>
-                            <Ionicons name="chevron-forward" size={22} color="#999" />
+                            <Ionicons name="chevron-forward" size={20} color={chapter.status === "locked" ? "#CCC" : "#999"} />
                         </TouchableOpacity>
                     ))
                 )}
@@ -269,14 +388,23 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         padding: 14,
-        backgroundColor: "#fff",
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: "#EAEAEA",
         marginBottom: 10,
     },
-    chapterInfo: { flex: 1, marginRight: 12 },
-    chapterTitle: { fontSize: 15, fontWeight: "700", color: "#222" },
+    chapterIconContainer: {
+        width: 32,
+        alignItems: "center",
+    },
+    chapterInfo: { flex: 1, marginRight: 8 },
+    chapterTitleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    chapterTitle: { fontSize: 15, fontWeight: "700", color: "#222", flex: 1 },
+    chapterTitleLocked: { color: "#999" },
+    statusLabel: { fontSize: 11, fontWeight: "700", marginLeft: 8 },
     chapterDescription: { marginTop: 4, fontSize: 13, color: "#666" },
     chapterMeta: { marginTop: 6, fontSize: 12, color: "#777", fontWeight: "600" },
 });

@@ -1,0 +1,218 @@
+import React, { useState, useEffect, useCallback } from "react";
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    ScrollView,
+    ActivityIndicator,
+    Alert,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { apiClient } from "@/lib/api";
+import { Subject } from "@/lib/types";
+
+export default function BrowseSubjectsScreen() {
+    const router = useRouter();
+    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [preferredIds, setPreferredIds] = useState<Set<string>>(new Set());
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    const loadSubjects = useCallback(async () => {
+        try {
+            const [allSubjects, preferred] = await Promise.all([
+                apiClient.getSubjects(),
+                apiClient.getPreferredSubjects(),
+            ]);
+            setSubjects(allSubjects);
+            setPreferredIds(new Set(preferred));
+        } catch {
+            Alert.alert("Error", "Failed to load subjects. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadSubjects();
+    }, [loadSubjects]);
+
+    const toggleSubject = (id: string) => {
+        setPreferredIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await apiClient.updatePreferredSubjects(Array.from(preferredIds));
+            Alert.alert("Saved", "Your subjects have been updated.", [
+                { text: "OK", onPress: () => router.back() },
+            ]);
+        } catch {
+            Alert.alert("Error", "Failed to save your selections. Please try again.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const addedCount = preferredIds.size;
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color="#000" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>All Subjects</Text>
+                <View style={styles.backButton} />
+            </View>
+
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#F2B138" />
+                    <Text style={styles.loadingText}>Loading subjects...</Text>
+                </View>
+            ) : (
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.content}
+                >
+                    <Text style={styles.subtitle}>
+                        Tap a subject to add or remove it from your learning path.
+                    </Text>
+
+                    {subjects.map((subject) => {
+                        const isSelected = preferredIds.has(subject.id);
+                        return (
+                            <TouchableOpacity
+                                key={subject.id}
+                                style={[styles.subjectCard, isSelected && styles.subjectCardSelected]}
+                                onPress={() => toggleSubject(subject.id)}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.subjectInfo}>
+                                    <Text style={[styles.subjectName, isSelected && styles.subjectNameSelected]}>
+                                        {subject.name}
+                                    </Text>
+                                    <Text style={styles.subjectCode}>{subject.code}</Text>
+                                    {subject.description && (
+                                        <Text style={styles.subjectDescription} numberOfLines={2}>
+                                            {subject.description}
+                                        </Text>
+                                    )}
+                                </View>
+                                <View style={[styles.badge, isSelected && styles.badgeSelected]}>
+                                    {isSelected ? (
+                                        <Ionicons name="checkmark" size={14} color="#fff" />
+                                    ) : (
+                                        <Ionicons name="add" size={14} color="#F2B138" />
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    })}
+
+                    <View style={{ height: 100 }} />
+                </ScrollView>
+            )}
+
+            {!loading && (
+                <View style={styles.footer}>
+                    <Text style={styles.selectedCount}>
+                        {addedCount} subject{addedCount !== 1 ? "s" : ""} selected
+                    </Text>
+                    <TouchableOpacity
+                        style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                        onPress={handleSave}
+                        disabled={saving}
+                    >
+                        {saving ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.saveButtonText}>Save Changes</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            )}
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: "#FAFAFA" },
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: 16,
+        paddingTop: 20,
+        backgroundColor: "#fff",
+        borderBottomWidth: 1,
+        borderBottomColor: "#E0E0E0",
+    },
+    backButton: { width: 40, height: 40, justifyContent: "center", alignItems: "center" },
+    headerTitle: { fontSize: 20, fontWeight: "700", color: "#282F2E" },
+    loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+    loadingText: { marginTop: 16, fontSize: 16, color: "#666" },
+    scrollView: { flex: 1 },
+    content: { padding: 24 },
+    subtitle: { fontSize: 14, color: "#666", lineHeight: 20, marginBottom: 20 },
+    subjectCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: 16,
+        backgroundColor: "#fff",
+        borderRadius: 14,
+        borderWidth: 2,
+        borderColor: "#E0E0E0",
+        marginBottom: 12,
+    },
+    subjectCardSelected: {
+        borderColor: "#F2B138",
+        backgroundColor: "#FFFDF5",
+    },
+    subjectInfo: { flex: 1, marginRight: 14 },
+    subjectName: { fontSize: 16, fontWeight: "700", color: "#282F2E" },
+    subjectNameSelected: { color: "#E65100" },
+    subjectCode: { fontSize: 12, color: "#999", fontWeight: "600", marginTop: 2 },
+    subjectDescription: { fontSize: 13, color: "#777", marginTop: 4, lineHeight: 18 },
+    badge: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        borderWidth: 2,
+        borderColor: "#F2B138",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    badgeSelected: {
+        backgroundColor: "#F2B138",
+        borderColor: "#F2B138",
+    },
+    footer: {
+        padding: 16,
+        backgroundColor: "#fff",
+        borderTopWidth: 1,
+        borderTopColor: "#E0E0E0",
+    },
+    selectedCount: { fontSize: 13, color: "#666", fontWeight: "600", marginBottom: 10, textAlign: "center" },
+    saveButton: {
+        backgroundColor: "#F2B138",
+        paddingVertical: 16,
+        borderRadius: 25,
+        alignItems: "center",
+    },
+    saveButtonDisabled: { opacity: 0.5 },
+    saveButtonText: { color: "#fff", fontSize: 18, fontWeight: "700" },
+});

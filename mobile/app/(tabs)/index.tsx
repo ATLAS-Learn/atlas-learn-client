@@ -1,16 +1,22 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { useUserStore } from "@/lib/store/user";
 import { UserRole } from "@/lib/types";
-import { useOverallProgress } from "@/lib/hooks/api";
+import { useOverallProgress, useStreak, useUserQuizAttempts, useLearningPath } from "@/lib/hooks/api";
+import { apiClient } from "@/lib/api";
 
 export default function HomeTab() {
     const router = useRouter();
     const { user } = useUserStore();
     const { data: overallProgress } = useOverallProgress();
+    const { data: streakData } = useStreak();
+    const { data: quizAttempts = [] } = useUserQuizAttempts(user?.id);
+    const { data: learningPath } = useLearningPath();
 
+    const isStudent = user?.role === UserRole.STUDENT;
     const displayName =
         user?.name || user?.email?.split("@")[0] || (user?.role === UserRole.TEACHER ? "Teacher" : "Student");
 
@@ -19,73 +25,173 @@ export default function HomeTab() {
     const lessonsTotal = overallProgress?.overall?.lessons?.total ?? 0;
     const quizzesPassed = overallProgress?.overall?.quizzes?.passed ?? 0;
     const quizzesTotal = overallProgress?.overall?.quizzes?.total ?? 0;
+    const totalTimeSpent = overallProgress?.overall?.totalTimeSpent ?? 0;
+    const streak = streakData?.streak ?? 0;
+
+    const averageScore = useMemo(() => {
+        if (!Array.isArray(quizAttempts) || quizAttempts.length === 0) return 0;
+        const total = quizAttempts.reduce((sum, a) => sum + (a.score ?? 0), 0);
+        return Math.round(total / quizAttempts.length);
+    }, [quizAttempts]);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            apiClient.getCurrentUser().then((freshUser) => {
+                useUserStore.getState().setUser(freshUser);
+            }).catch(() => {});
+        }, [])
+    );
+
+    const formatTimeSpent = (seconds: number): string => {
+        if (seconds < 60) return `${seconds}s`;
+        if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.round((seconds % 3600) / 60);
+        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    };
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <View style={styles.hero}>
-                <Text style={styles.welcome}>Welcome back,</Text>
-                <Text style={styles.name}>{displayName}</Text>
-                <Text style={styles.subtle}>
-                    {user?.role === UserRole.TEACHER ? "Manage your classes and track learners." : "Keep learning and track your progress."}
-                </Text>
+            {/* Header */}
+            <View style={styles.header}>
+                <View>
+                    <Text style={styles.greeting}>Hello,</Text>
+                    <Text style={styles.name}>{displayName}</Text>
+                </View>
+                {isStudent && streak > 0 && (
+                    <View style={styles.streakBadge}>
+                        <Text style={styles.streakIcon}>{"\uD83D\uDD25"}</Text>
+                        <Text style={styles.streakText}>{streak}</Text>
+                    </View>
+                )}
             </View>
 
-            <View style={styles.summaryCard}>
-                <Text style={styles.sectionTitle}>Progress Snapshot</Text>
-                <View style={styles.summaryRow}>
-                    <View style={styles.summaryItem}>
-                        <Text style={styles.summaryValue}>{completion}%</Text>
-                        <Text style={styles.summaryLabel}>Overall</Text>
-                    </View>
-                    <View style={styles.summaryItem}>
-                        <Text style={styles.summaryValue}>
-                            {lessonsDone}/{lessonsTotal}
-                        </Text>
-                        <Text style={styles.summaryLabel}>Lessons</Text>
-                    </View>
-                    <View style={styles.summaryItem}>
-                        <Text style={styles.summaryValue}>
-                            {quizzesPassed}/{quizzesTotal}
-                        </Text>
-                        <Text style={styles.summaryLabel}>Quizzes</Text>
+            {/* Streak Banner (only when streak is 0) */}
+            {isStudent && streak === 0 && (
+                <View style={styles.streakBanner}>
+                    <Text style={styles.streakBannerEmoji}>{"\uD83D\uDD25"}</Text>
+                    <View style={styles.streakBannerInfo}>
+                        <Text style={styles.streakBannerTitle}>Start your streak!</Text>
+                        <Text style={styles.streakBannerText}>Complete a lesson or quiz today</Text>
                     </View>
                 </View>
-            </View>
+            )}
 
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <View style={styles.actionsGrid}>
-                {user?.role === UserRole.TEACHER ? (
-                    <>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/classes")}>
-                            <Ionicons name="people" size={22} color="#F2B138" />
-                            <Text style={styles.actionTitle}>My Classes</Text>
-                            <Text style={styles.actionText}>View students and progress</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")}>
-                            <Ionicons name="settings" size={22} color="#F2B138" />
-                            <Text style={styles.actionTitle}>Profile</Text>
-                            <Text style={styles.actionText}>Manage your account</Text>
-                        </TouchableOpacity>
-                    </>
-                ) : (
-                    <>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/learn")}>
-                            <Ionicons name="book" size={22} color="#F2B138" />
-                            <Text style={styles.actionTitle}>Continue Learning</Text>
-                            <Text style={styles.actionText}>Jump back into lessons</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/learn/subjects")}>
-                            <Ionicons name="albums" size={22} color="#F2B138" />
-                            <Text style={styles.actionTitle}>Browse Subjects</Text>
-                            <Text style={styles.actionText}>Pick a new topic</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")}>
-                            <Ionicons name="person" size={22} color="#F2B138" />
-                            <Text style={styles.actionTitle}>Profile</Text>
-                            <Text style={styles.actionText}>Update your info</Text>
-                        </TouchableOpacity>
-                    </>
-                )}
+            {/* Progress Ring + Stats */}
+            {isStudent && (
+                <View style={styles.progressCard}>
+                    <View style={styles.progressRing}>
+                        <Text style={styles.progressPercent}>{completion}%</Text>
+                        <Text style={styles.progressLabel}>complete</Text>
+                    </View>
+                    <View style={styles.progressStats}>
+                        <View style={styles.progressStat}>
+                            <Ionicons name="book-outline" size={16} color="#999" />
+                            <Text style={styles.progressStatValue}>{lessonsDone}/{lessonsTotal}</Text>
+                            <Text style={styles.progressStatLabel}>Lessons</Text>
+                        </View>
+                        <View style={styles.progressStatDivider} />
+                        <View style={styles.progressStat}>
+                            <Ionicons name="checkmark-circle-outline" size={16} color="#999" />
+                            <Text style={styles.progressStatValue}>{quizzesPassed}/{quizzesTotal}</Text>
+                            <Text style={styles.progressStatLabel}>Quizzes</Text>
+                        </View>
+                    </View>
+                </View>
+            )}
+
+            {/* Quick Stats */}
+            {isStudent && (
+                <View style={styles.statsRow}>
+                    <View style={styles.statCard}>
+                        <Ionicons name="time-outline" size={18} color="#999" />
+                        <Text style={styles.statValue}>{formatTimeSpent(totalTimeSpent)}</Text>
+                        <Text style={styles.statLabel}>Time Spent</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Ionicons name="trophy-outline" size={18} color="#999" />
+                        <Text style={styles.statValue}>{averageScore}%</Text>
+                        <Text style={styles.statLabel}>Avg Score</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Ionicons name="ribbon-outline" size={18} color="#999" />
+                        <Text style={styles.statValue}>{quizzesPassed}</Text>
+                        <Text style={styles.statLabel}>Passed</Text>
+                    </View>
+                </View>
+            )}
+
+            {/* Continue Your Path */}
+            {isStudent && learningPath && learningPath.perSubject.length > 0 && (
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Continue Learning</Text>
+                    {learningPath.perSubject.map((subject) => {
+                        const next = subject.currentChapter || subject.nextRecommended || subject.startChapter;
+                        if (!next) return null;
+                        return (
+                            <TouchableOpacity
+                                key={subject.subjectId}
+                                style={styles.pathCard}
+                                onPress={() =>
+                                    router.push({
+                                        pathname: "/(tabs)/learn/subjects/[subjectId]",
+                                        params: { subjectId: subject.subjectId },
+                                    } as any)
+                                }
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.pathLeft}>
+                                    <View style={styles.pathDot} />
+                                    <View>
+                                        <Text style={styles.pathSubject}>{subject.subjectName}</Text>
+                                        <Text style={styles.pathChapter}>{next.title}</Text>
+                                    </View>
+                                </View>
+                                <View style={styles.pathRight}>
+                                    <Text style={styles.pathPercent}>{subject.completionPercentage}%</Text>
+                                    <Ionicons name="chevron-forward" size={14} color="#CCC" />
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    })}
+                    {learningPath.studyPlan && (
+                        <Text style={styles.studyPlan}>{learningPath.studyPlan}</Text>
+                    )}
+                </View>
+            )}
+
+            {/* Quick Actions */}
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Quick Actions</Text>
+                <View style={styles.actionsRow}>
+                    {isStudent ? (
+                        <>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/learn")} activeOpacity={0.7}>
+                                <Ionicons name="book-outline" size={20} color="#1F2524" />
+                                <Text style={styles.actionTitle}>Learn</Text>
+                                <Text style={styles.actionDesc}>Continue lessons</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.7}>
+                                <Ionicons name="person-outline" size={20} color="#1F2524" />
+                                <Text style={styles.actionTitle}>Profile</Text>
+                                <Text style={styles.actionDesc}>View progress</Text>
+                            </TouchableOpacity>
+                        </>
+                    ) : (
+                        <>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/classes")} activeOpacity={0.7}>
+                                <Ionicons name="people-outline" size={20} color="#1F2524" />
+                                <Text style={styles.actionTitle}>Classes</Text>
+                                <Text style={styles.actionDesc}>View students</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.7}>
+                                <Ionicons name="settings-outline" size={20} color="#1F2524" />
+                                <Text style={styles.actionTitle}>Settings</Text>
+                                <Text style={styles.actionDesc}>Manage account</Text>
+                            </TouchableOpacity>
+                        </>
+                    )}
+                </View>
             </View>
         </ScrollView>
     );
@@ -93,39 +199,119 @@ export default function HomeTab() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#FAFAFA" },
-    content: { padding: 24, paddingBottom: 40 },
-    hero: { marginBottom: 20 },
-    welcome: { fontSize: 16, color: "#666" },
-    name: { fontSize: 28, fontWeight: "800", color: "#1F2524", marginTop: 4 },
-    subtle: { marginTop: 8, fontSize: 13, color: "#777" },
-    sectionTitle: { fontSize: 18, fontWeight: "700", color: "#282F2E", marginBottom: 12 },
-    summaryCard: {
-        backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: "#F0F0F0",
-        marginBottom: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+    content: { padding: 20, paddingBottom: 40 },
+
+    // Header
+    header: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 24,
+        marginTop: 8,
     },
-    summaryRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
-    summaryItem: { alignItems: "center", flex: 1 },
-    summaryValue: { fontSize: 18, fontWeight: "800", color: "#282F2E" },
-    summaryLabel: { marginTop: 4, fontSize: 12, color: "#666", fontWeight: "600" },
-    actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-    actionCard: {
-        flexGrow: 1,
-        flexBasis: "48%",
+    greeting: { fontSize: 15, color: "#999", fontWeight: "500" },
+    name: { fontSize: 26, fontWeight: "800", color: "#1F2524", marginTop: 2 },
+    streakBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFF3E0",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        gap: 4,
+    },
+    streakIcon: { fontSize: 16 },
+    streakText: { fontSize: 14, fontWeight: "700", color: "#E65100" },
+
+    // Streak Banner
+    streakBanner: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFF3E0",
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 20,
+    },
+    streakBannerEmoji: { fontSize: 28, marginRight: 12 },
+    streakBannerInfo: { flex: 1 },
+    streakBannerTitle: { fontSize: 14, fontWeight: "700", color: "#E65100" },
+    streakBannerText: { fontSize: 12, color: "#BF360C", marginTop: 2 },
+
+    // Progress Card
+    progressCard: {
+        flexDirection: "row",
         backgroundColor: "#fff",
         borderRadius: 16,
+        padding: 20,
+        marginBottom: 16,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 1,
+    },
+    progressRing: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 4,
+        borderColor: "#F0F0F0",
+        borderTopColor: "#1F2524",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 20,
+    },
+    progressPercent: { fontSize: 20, fontWeight: "800", color: "#1F2524" },
+    progressLabel: { fontSize: 10, color: "#999", marginTop: -2 },
+    progressStats: { flex: 1, flexDirection: "row", alignItems: "center" },
+    progressStat: { flex: 1, alignItems: "center" },
+    progressStatValue: { fontSize: 16, fontWeight: "700", color: "#1F2524", marginTop: 4 },
+    progressStatLabel: { fontSize: 11, color: "#999", marginTop: 2 },
+    progressStatDivider: { width: 1, height: 30, backgroundColor: "#F0F0F0" },
+
+    // Stats Row
+    statsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
+    statCard: {
+        flex: 1,
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        padding: 12,
+        alignItems: "center",
+    },
+    statValue: { fontSize: 15, fontWeight: "700", color: "#1F2524", marginTop: 6 },
+    statLabel: { fontSize: 10, color: "#999", marginTop: 2, fontWeight: "500" },
+
+    // Sections
+    section: { marginBottom: 24 },
+    sectionTitle: { fontSize: 15, fontWeight: "700", color: "#1F2524", marginBottom: 12 },
+
+    // Learning Path
+    pathCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: "#fff",
+        borderRadius: 12,
         padding: 14,
-        borderWidth: 1,
-        borderColor: "#EAEAEA",
+        marginBottom: 8,
+    },
+    pathLeft: { flexDirection: "row", alignItems: "center", flex: 1, gap: 10 },
+    pathDot: { width: 4, height: 32, borderRadius: 2, backgroundColor: "#1F2524" },
+    pathSubject: { fontSize: 11, color: "#999", fontWeight: "600" },
+    pathChapter: { fontSize: 14, fontWeight: "600", color: "#1F2524", marginTop: 2 },
+    pathRight: { flexDirection: "row", alignItems: "center", gap: 4 },
+    pathPercent: { fontSize: 12, fontWeight: "700", color: "#999" },
+    studyPlan: { fontSize: 12, color: "#999", fontStyle: "italic", marginTop: 4 },
+
+    // Actions
+    actionsRow: { flexDirection: "row", gap: 10 },
+    actionCard: {
+        flex: 1,
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        padding: 16,
     },
     actionTitle: { marginTop: 10, fontSize: 14, fontWeight: "700", color: "#1F2524" },
-    actionText: { marginTop: 4, fontSize: 12, color: "#777" },
+    actionDesc: { marginTop: 4, fontSize: 11, color: "#999" },
 });

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import QuestionCard from "@/components/quizzes/question-card";
 import QuizProgress from "@/components/quizzes/quiz-progress";
 import { apiClient } from "@/lib/api";
@@ -17,8 +18,10 @@ import { Quiz } from "@/lib/types";
 
 export default function QuizScreen() {
     const router = useRouter();
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const queryClient = useQueryClient();
+    const { id, subjectId } = useLocalSearchParams<{ id: string; subjectId?: string }>();
     const chapterId = Array.isArray(id) ? id[0] : id;
+    const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -49,7 +52,7 @@ export default function QuizScreen() {
     }, [chapterId, loadQuiz]);
 
     const handleSelectAnswer = (answerIndex: number) => {
-        if (!quiz) return;
+        if (!quiz?.questions) return;
         const currentQuestion = quiz.questions[currentQuestionIndex];
         setAnswers({
             ...answers,
@@ -58,7 +61,7 @@ export default function QuizScreen() {
     };
 
     const handleNext = () => {
-        if (!quiz) return;
+        if (!quiz?.questions) return;
         if (currentQuestionIndex < quiz.questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
         } else {
@@ -73,7 +76,7 @@ export default function QuizScreen() {
     };
 
     const handleSubmit = async () => {
-        if (!quiz) return;
+        if (!quiz?.questions) return;
 
         const unansweredQuestions = quiz.questions.filter(
             (q) => answers[q.id] === undefined
@@ -90,25 +93,24 @@ export default function QuizScreen() {
         setSubmitting(true);
         try {
             const submission = {
-                answers: quiz.questions.map((q) => ({
-                    questionId: q.id,
-                    answerIndex: answers[q.id],
-                })),
+                answers: quiz.questions!.map((q) => answers[q.id]),
             };
 
             const result = await apiClient.submitQuiz(quiz.id, submission);
+            await queryClient.invalidateQueries({ queryKey: ["progress"] });
 
             router.push({
                 pathname: "/(tabs)/learn/[id]/quiz-result",
                 params: {
                     id: chapterId!,
                     quizId: quiz.id,
+                    subjectId: subjectKey || "",
                     score: result.score.toString(),
+                    correctAnswers: result.correctAnswers.toString(),
                     totalQuestions: result.totalQuestions.toString(),
-                    percentage: result.percentage.toString(),
                     passed: result.passed.toString(),
-                    pastPaperReference: result.pastPaperReference || "",
-                    unlockedNextChapter: result.unlockedNextChapter.toString(),
+                    unlockedNextChapter: result.unlockedNextChapter ? "true" : "false",
+                    nextChapterTitle: result.unlockedNextChapter?.title || "",
                 },
             } as any);
         } catch {
@@ -131,6 +133,23 @@ export default function QuizScreen() {
         return (
             <View style={styles.loadingContainer}>
                 <Text style={styles.errorText}>Quiz not found</Text>
+            </View>
+        );
+    }
+
+    if (!quiz.questions || quiz.questions.length === 0) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color="#000" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Chapter Quiz</Text>
+                    <View style={styles.backButton} />
+                </View>
+                <View style={styles.loadingContainer}>
+                    <Text style={styles.errorText}>No questions available</Text>
+                </View>
             </View>
         );
     }
@@ -218,7 +237,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 16,
-        color: "#F44336",
+        color: "#E57373",
     },
     header: {
         flexDirection: "row",

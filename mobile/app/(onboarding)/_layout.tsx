@@ -8,6 +8,7 @@ export default function OnboardingLayout() {
             }}
         >
             <Stack.Screen name="index" />
+            <Stack.Screen name="select-subjects" />
             <Stack.Screen name="assessment" />
             <Stack.Screen name="assessment-result" />
         </Stack>

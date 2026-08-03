@@ -46,9 +46,17 @@ export default function SignIn() {
         });
       } catch (error: any) {
         const errorMessage = error.message || "Failed to send OTP. Please try again.";
-        
-        // If error is about email, show it inline
-        if (errorMessage.toLowerCase().includes("already exists") || errorMessage.toLowerCase().includes("email")) {
+
+        if (errorMessage.toLowerCase().includes("no account found") || errorMessage.toLowerCase().includes("please sign up")) {
+          Alert.alert(
+            "Account Not Found",
+            "No account exists with this email. Would you like to create one?",
+            [
+              { text: "Cancel", style: "cancel" },
+              { text: "Sign Up", onPress: () => router.push("/(auth)/signup") },
+            ]
+          );
+        } else if (errorMessage.toLowerCase().includes("email")) {
           setErrors({ email: errorMessage });
         } else {
           Alert.alert("Error", errorMessage);
@@ -110,7 +118,7 @@ export default function SignIn() {
             />
           </View>
           {errors.email && (
-            <Text style={{ color: "red", marginBottom: 10 }}>{errors.email}</Text>
+            <Text style={{ color: "#E57373", marginBottom: 10 }}>{errors.email}</Text>
           )}
 
           <TouchableOpacity

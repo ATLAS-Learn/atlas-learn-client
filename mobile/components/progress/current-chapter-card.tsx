@@ -12,8 +12,7 @@ export default function CurrentChapterCard({
     chapter,
     onPress,
 }: CurrentChapterCardProps) {
-    const sectionCount = Array.isArray(chapter?.content) ? chapter.content.length : 0;
-    const estimatedTime = typeof chapter?.estimatedTime === "number" ? chapter.estimatedTime : 0;
+    const estimatedTime = typeof chapter?.estimatedMinutes === "number" ? chapter.estimatedMinutes : 0;
     const title = chapter?.title || "Untitled chapter";
     const description = chapter?.description || "No description available.";
 
@@ -36,10 +35,6 @@ export default function CurrentChapterCard({
                 <View style={styles.metaItem}>
                     <Ionicons name="time-outline" size={16} color="#666" />
                     <Text style={styles.metaText}>{estimatedTime} min</Text>
-                </View>
-                <View style={styles.metaItem}>
-                    <Ionicons name="layers-outline" size={16} color="#666" />
-                    <Text style={styles.metaText}>{sectionCount} sections</Text>
                 </View>
             </View>
         </TouchableOpacity>

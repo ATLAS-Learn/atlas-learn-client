@@ -19,7 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
-import { getItem } from "@/lib/utils/storage";
+import { getItem, setItem } from "@/lib/utils/storage";
 
 export default function VerifyOTPScreen() {
     const router = useRouter();
@@ -27,7 +27,7 @@ export default function VerifyOTPScreen() {
     const params = useLocalSearchParams<{ email?: string; mode?: string; fullName?: string }>();
     const { setAuth, setCookieAuth } = useAuthStore();
     const { setUser } = useUserStore();
-    
+
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
@@ -39,6 +39,13 @@ export default function VerifyOTPScreen() {
     const email = params.email || "";
     const mode = params.mode === "signup" ? "signup" : "login";
     const fullName = params.fullName || "";
+
+    // Auto-verify when code reaches 6 digits
+    useEffect(() => {
+        if (code.length === 6 && !loading) {
+            handleVerify();
+        }
+    }, [code]);
 
     // Cleanup cooldown timer on unmount
     useEffect(() => {
@@ -61,7 +68,7 @@ export default function VerifyOTPScreen() {
                 return prev - 1;
             });
         }, 1000);
-        cooldownIntervalRef.current = interval;
+        cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
 
         return () => clearInterval(interval);
     }, []);
@@ -81,7 +88,7 @@ export default function VerifyOTPScreen() {
         setLoading(true);
         try {
             const response = await apiClient.verifyOTP(email, code);
-            
+
             // Set auth token and user
             if (response.token) {
                 await setAuth(response.token);
@@ -93,13 +100,19 @@ export default function VerifyOTPScreen() {
             // Mark OTP payload as provisional; app flow will refresh /auth/me.
             setUser(response.user, { markSynced: false });
 
-            // Check if assessment is complete
-            const assessmentComplete = await getItem("assessmentComplete");
-            if (assessmentComplete === "true") {
-                router.replace("/(tabs)");
-            } else {
-                // Route to onboarding if assessment not complete
+            // New signups always go through onboarding (select subjects + assessment)
+            // Only check stored flag for returning users (login mode)
+            if (mode === "signup") {
+                // Clear assessment flag so useAppFlow doesn't override onboarding navigation
+                await setItem("assessmentComplete", "false");
                 router.replace("/(onboarding)");
+            } else {
+                const assessmentComplete = await getItem("assessmentComplete");
+                if (assessmentComplete === "true") {
+                    router.replace("/(tabs)");
+                } else {
+                    router.replace("/(onboarding)");
+                }
             }
         } catch (error: any) {
             setError(error.message || "Invalid verification code. Please try again.");
@@ -130,7 +143,7 @@ export default function VerifyOTPScreen() {
                 await apiClient.requestOTP(email);
             }
             Alert.alert("Success", "Verification code has been resent to your email.");
-            
+
             // Start 60s cooldown timer
             setCooldown(60);
             if (cooldownIntervalRef.current) {
@@ -145,7 +158,7 @@ export default function VerifyOTPScreen() {
                     return prev - 1;
                 });
             }, 1000);
-            cooldownIntervalRef.current = interval;
+            cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to resend verification code.");
         } finally {
@@ -234,8 +247,8 @@ export default function VerifyOTPScreen() {
 
                     <View style={styles.resendContainer}>
                         <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
-                        <TouchableOpacity 
-                            onPress={handleResend} 
+                        <TouchableOpacity
+                            onPress={handleResend}
                             disabled={resending || cooldown > 0}
                         >
                             {resending ? (
@@ -337,7 +350,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     errorText: {
-        color: "red",
+        color: "#E57373",
         marginBottom: 10,
         fontSize: 12,
         textAlign: "center",

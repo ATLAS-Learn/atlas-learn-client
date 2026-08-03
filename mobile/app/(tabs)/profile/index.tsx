@@ -1,13 +1,40 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions, Image, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useUserStore } from "@/lib/store/user";
 import { useAuthStore } from "@/lib/store/auth";
 import { apiClient } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/constants/api";
 import { UserRole } from "@/lib/types";
 import { useOverallProgress } from "@/lib/hooks/api";
 import ProgressBar from "@/components/progress/progress-bar";
+
+function parseUserAgent(ua: string | undefined): { browser: string; os: string; deviceType: "mobile" | "desktop" | "unknown" } {
+    if (!ua) return { browser: "Unknown", os: "Unknown", deviceType: "unknown" };
+
+    let browser = "Unknown";
+    if (ua.includes("ExpoGo") || ua.includes("expo")) browser = "Expo Go";
+    else if (ua.includes("Chrome") && !ua.includes("Edg")) browser = "Chrome";
+    else if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
+    else if (ua.includes("Firefox")) browser = "Firefox";
+    else if (ua.includes("Edg")) browser = "Edge";
+    else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
+
+    let os = "Unknown";
+    if (ua.includes("Android")) os = "Android";
+    else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
+    else if (ua.includes("Windows")) os = "Windows";
+    else if (ua.includes("Mac OS X") || ua.includes("Macintosh")) os = "macOS";
+    else if (ua.includes("Linux")) os = "Linux";
+
+    let deviceType: "mobile" | "desktop" | "unknown" = "unknown";
+    if (ua.includes("Mobile") || ua.includes("Android") || ua.includes("iPhone") || ua.includes("ExpoGo")) deviceType = "mobile";
+    else if (ua.includes("Windows") || ua.includes("Macintosh") || ua.includes("Linux")) deviceType = "desktop";
+
+    return { browser, os, deviceType };
+}
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -31,6 +58,14 @@ export default function ProfileScreen() {
     const [editBio, setEditBio] = useState("");
     const [editSchool, setEditSchool] = useState("");
     const [editExamYear, setEditExamYear] = useState("");
+    const [editPickedImage, setEditPickedImage] = useState<string | null>(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+    const [submittingFeedback, setSubmittingFeedback] = useState(false);
+    const [feedbackCategory, setFeedbackCategory] = useState<string>("general");
+    const [feedbackSubject, setFeedbackSubject] = useState("");
+    const [feedbackMessage, setFeedbackMessage] = useState("");
+    const [feedbackRating, setFeedbackRating] = useState<number>(0);
 
     const refreshUser = useCallback(async () => {
         try {
@@ -110,7 +145,41 @@ export default function ProfileScreen() {
         setEditBio(user?.bio || "");
         setEditSchool(user?.school || "");
         setEditExamYear(user?.examYear ? String(user.examYear) : "");
+        setEditPickedImage(null);
         setEditProfileModalVisible(true);
+    };
+
+    const handlePickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+            Alert.alert("Permission needed", "Please grant photo library access to upload a profile picture.");
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+        if (!result.canceled && result.assets[0]) {
+            setEditPickedImage(result.assets[0].uri);
+        }
+    };
+
+    const handleTakePhoto = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+            Alert.alert("Permission needed", "Please grant camera access to take a profile picture.");
+            return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+        if (!result.canceled && result.assets[0]) {
+            setEditPickedImage(result.assets[0].uri);
+        }
     };
 
     const handleSaveProfile = async () => {
@@ -127,16 +196,23 @@ export default function ProfileScreen() {
 
         setSavingProfile(true);
         try {
+            let imageUrl = editImage.trim() || undefined;
+            if (editPickedImage) {
+                setUploadingImage(true);
+                imageUrl = await apiClient.uploadProfileImage(editPickedImage);
+                setUploadingImage(false);
+            }
             const updatedUser = await apiClient.updateCurrentUserProfile({
                 name: editName.trim(),
                 username: editUsername.trim() || undefined,
-                image: editImage.trim() || undefined,
+                image: imageUrl,
                 bio: editBio.trim() || undefined,
                 school: editSchool.trim() || undefined,
                 examYear: parsedExamYear,
             });
             setUser(updatedUser);
             setEditProfileModalVisible(false);
+            Alert.alert("Success", "Profile updated successfully.");
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to update profile.");
         } finally {
@@ -190,12 +266,63 @@ export default function ProfileScreen() {
         return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     };
 
+    const handleSubmitFeedback = async () => {
+        if (!feedbackSubject.trim()) {
+            Alert.alert("Missing Subject", "Please enter a subject for your feedback.");
+            return;
+        }
+        if (!feedbackMessage.trim()) {
+            Alert.alert("Missing Message", "Please enter your feedback message.");
+            return;
+        }
+
+        setSubmittingFeedback(true);
+        try {
+            await apiClient.submitFeedback({
+                category: feedbackCategory,
+                subject: feedbackSubject.trim(),
+                message: feedbackMessage.trim(),
+                rating: feedbackRating > 0 ? feedbackRating : undefined,
+            });
+            setFeedbackModalVisible(false);
+            setFeedbackSubject("");
+            setFeedbackMessage("");
+            setFeedbackRating(0);
+            setFeedbackCategory("general");
+            Alert.alert("Thank You!", "Your feedback has been submitted successfully.");
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to submit feedback. Please try again.");
+        } finally {
+            setSubmittingFeedback(false);
+        }
+    };
+
+    const handleWhatsApp = () => {
+        const phoneNumber = "237600000000";
+        const message = encodeURIComponent("Hello! I need help with Atlas Learn.");
+        const url = `https://wa.me/${phoneNumber}?text=${message}`;
+        Linking.openURL(url).catch(() => {
+            Alert.alert("Error", "WhatsApp is not installed on this device.");
+        });
+    };
+
+    const handleJoinWhatsAppChannel = () => {
+        const channelUrl = "https://chat.whatsapp.com/YOUR_GROUP_LINK";
+        Linking.openURL(channelUrl).catch(() => {
+            Alert.alert("Error", "WhatsApp is not installed on this device.");
+        });
+    };
+
     return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             <View style={[styles.header, { paddingHorizontal: width < 390 ? 16 : 24 }]}>
                 <View style={styles.avatarContainer}>
-                    <Ionicons name="person" size={48} color="#666" />
+                    {user?.image ? (
+                        <Image source={{ uri: user.image.startsWith("http") ? user.image : `${API_BASE_URL}${user.image}` }} style={styles.avatarImage} />
+                    ) : (
+                        <Ionicons name="person" size={48} color="#666" />
+                    )}
                 </View>
                 <Text style={styles.name}>{user?.name || "User"}</Text>
                 <Text style={styles.email}>{user?.email || ""}</Text>
@@ -235,6 +362,14 @@ export default function ProfileScreen() {
                     <Text style={styles.menuText}>Quiz Scores</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => router.push("/(tabs)/profile/assessment-result" as any)}
+                >
+                    <Ionicons name="trophy-outline" size={24} color="#666" />
+                    <Text style={styles.menuText}>Assessment Result</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
             </View>
 
             <View style={styles.section}>
@@ -242,6 +377,11 @@ export default function ProfileScreen() {
                 <TouchableOpacity style={styles.menuItem} onPress={openEditProfileModal}>
                     <Ionicons name="person-outline" size={24} color="#666" />
                     <Text style={styles.menuText}>Edit Profile</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={() => setFeedbackModalVisible(true)}>
+                    <Ionicons name="chatbubble-outline" size={24} color="#666" />
+                    <Text style={styles.menuText}>Send Feedback</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.menuItem} disabled>
@@ -252,6 +392,20 @@ export default function ProfileScreen() {
                 <TouchableOpacity style={styles.menuItem} onPress={handleOpenSessions}>
                     <Ionicons name="phone-portrait-outline" size={24} color="#666" />
                     <Text style={styles.menuText}>Active Sessions</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Support</Text>
+                <TouchableOpacity style={styles.menuItem} onPress={handleWhatsApp}>
+                    <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+                    <Text style={styles.menuText}>Contact on WhatsApp</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={handleJoinWhatsAppChannel}>
+                    <Ionicons name="people-outline" size={24} color="#25D366" />
+                    <Text style={styles.menuText}>Join WhatsApp Channel</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
             </View>
@@ -317,7 +471,7 @@ export default function ProfileScreen() {
             )}
 
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <Ionicons name="log-out-outline" size={24} color="#F44336" />
+                <Ionicons name="log-out-outline" size={24} color="#E57373" />
                 <Text style={styles.logoutText}>Sign Out</Text>
             </TouchableOpacity>
             </ScrollView>
@@ -352,15 +506,30 @@ export default function ProfileScreen() {
                             editable={!savingProfile}
                         />
 
-                        <Text style={styles.requestFieldLabel}>Image URL</Text>
-                        <TextInput
-                            style={styles.requestInput}
-                            placeholder="https://example.com/avatar.jpg"
-                            value={editImage}
-                            onChangeText={setEditImage}
-                            autoCapitalize="none"
-                            editable={!savingProfile}
-                        />
+                        <Text style={styles.requestFieldLabel}>Profile Picture</Text>
+                        <View style={styles.imagePreviewRow}>
+                            <View style={styles.imagePreviewContainer}>
+                                {editPickedImage ? (
+                                    <Image source={{ uri: editPickedImage }} style={styles.imagePreview} />
+                                ) : user?.image ? (
+                                    <Image source={{ uri: user.image.startsWith("http") ? user.image : `${API_BASE_URL}${user.image}` }} style={styles.imagePreview} />
+                                ) : (
+                                    <View style={styles.imagePreviewPlaceholder}>
+                                        <Ionicons name="person" size={32} color="#999" />
+                                    </View>
+                                )}
+                            </View>
+                            <View style={styles.imagePickerButtons}>
+                                <TouchableOpacity style={styles.imagePickerButton} onPress={handlePickImage} disabled={savingProfile}>
+                                    <Ionicons name="images-outline" size={18} color="#F2B138" />
+                                    <Text style={styles.imagePickerButtonText}>Gallery</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.imagePickerButton} onPress={handleTakePhoto} disabled={savingProfile}>
+                                    <Ionicons name="camera-outline" size={18} color="#F2B138" />
+                                    <Text style={styles.imagePickerButtonText}>Camera</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
 
                         <Text style={styles.requestFieldLabel}>Bio</Text>
                         <TextInput
@@ -499,43 +668,138 @@ export default function ProfileScreen() {
                                 <Text style={styles.emptyText}>No active sessions</Text>
                             </View>
                         ) : (
-                            sessions.map((session) => (
-                                <View key={session.id} style={styles.sessionItem}>
-                                    <View style={styles.sessionInfo}>
-                                        <View style={styles.sessionHeader}>
-                                            <Ionicons name="phone-portrait" size={20} color="#666" />
-                                            <Text style={styles.sessionDevice}>
-                                                {session.userAgent || "Unknown Device"}
+                            sessions.map((session) => {
+                                const parsed = parseUserAgent(session.userAgent);
+                                const icon = parsed.deviceType === "mobile" ? "phone-portrait" : "laptop";
+                                return (
+                                    <View key={session.id} style={styles.sessionItem}>
+                                        <View style={styles.sessionInfo}>
+                                            <View style={styles.sessionHeader}>
+                                                <Ionicons name={icon as any} size={20} color="#666" />
+                                                <Text style={styles.sessionDevice}>
+                                                    {parsed.browser} on {parsed.os}
+                                                </Text>
+                                            </View>
+                                            <Text style={styles.sessionUserAgent} numberOfLines={1}>
+                                                {session.userAgent || "Unknown device"}
+                                            </Text>
+                                            {session.ipAddress && (
+                                                <Text style={styles.sessionIp}>IP: {session.ipAddress}</Text>
+                                            )}
+                                            <Text style={styles.sessionDate}>
+                                                Expires: {formatDate(session.expiresAt)}
                                             </Text>
                                         </View>
-                                        {session.ipAddress && (
-                                            <Text style={styles.sessionIp}>IP: {session.ipAddress}</Text>
-                                        )}
-                                        <Text style={styles.sessionDate}>
-                                            Expires: {formatDate(session.expiresAt)}
-                                        </Text>
-                                        <Text style={styles.sessionDate}>
-                                            Created: {formatDate(session.createdAt)}
-                                        </Text>
+                                        <TouchableOpacity
+                                            style={styles.revokeButton}
+                                            onPress={() => handleRevokeSession(session.id)}
+                                            disabled={revokingSessionId === session.id}
+                                        >
+                                            {revokingSessionId === session.id ? (
+                                                <ActivityIndicator size="small" color="#E57373" />
+                                            ) : (
+                                                <>
+                                                    <Ionicons name="trash-outline" size={18} color="#E57373" />
+                                                    <Text style={styles.revokeButtonText}>Revoke</Text>
+                                                </>
+                                            )}
+                                        </TouchableOpacity>
                                     </View>
-                                    <TouchableOpacity
-                                        style={styles.revokeButton}
-                                        onPress={() => handleRevokeSession(session.id)}
-                                        disabled={revokingSessionId === session.id}
-                                    >
-                                        {revokingSessionId === session.id ? (
-                                            <ActivityIndicator size="small" color="#F44336" />
-                                        ) : (
-                                            <>
-                                                <Ionicons name="trash-outline" size={18} color="#F44336" />
-                                                <Text style={styles.revokeButtonText}>Revoke</Text>
-                                            </>
-                                        )}
-                                    </TouchableOpacity>
-                                </View>
-                            ))
+                                );
+                            })
                         )}
                     </ScrollView>
+                </View>
+            </Modal>
+
+            {/* Feedback Modal */}
+            <Modal
+                visible={feedbackModalVisible}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setFeedbackModalVisible(false)}
+            >
+                <View style={styles.requestModalOverlay}>
+                    <View style={styles.requestModalCard}>
+                        <Text style={styles.requestModalTitle}>Send Feedback</Text>
+                        <Text style={styles.requestModalSubtitle}>
+                            Help us improve Atlas Learn. Your feedback is sent to our team.
+                        </Text>
+
+                        <Text style={styles.requestFieldLabel}>Category</Text>
+                        <View style={styles.categoryRow}>
+                            {(["general", "bug", "feature_request", "suggestion", "complaint"] as const).map((cat) => (
+                                <TouchableOpacity
+                                    key={cat}
+                                    style={[styles.categoryChip, feedbackCategory === cat && styles.categoryChipActive]}
+                                    onPress={() => setFeedbackCategory(cat)}
+                                    disabled={submittingFeedback}
+                                >
+                                    <Text style={[styles.categoryChipText, feedbackCategory === cat && styles.categoryChipTextActive]}>
+                                        {cat.replace(/_/g, " ")}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <Text style={styles.requestFieldLabel}>Rating (optional)</Text>
+                        <View style={styles.ratingRow}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <TouchableOpacity
+                                    key={star}
+                                    onPress={() => setFeedbackRating(star === feedbackRating ? 0 : star)}
+                                    disabled={submittingFeedback}
+                                >
+                                    <Ionicons
+                                        name={star <= feedbackRating ? "star" : "star-outline"}
+                                        size={32}
+                                        color={star <= feedbackRating ? "#F2B138" : "#CCC"}
+                                    />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <Text style={styles.requestFieldLabel}>Subject</Text>
+                        <TextInput
+                            style={styles.requestInput}
+                            placeholder="Brief summary of your feedback"
+                            value={feedbackSubject}
+                            onChangeText={setFeedbackSubject}
+                            editable={!submittingFeedback}
+                        />
+
+                        <Text style={styles.requestFieldLabel}>Message</Text>
+                        <TextInput
+                            style={[styles.requestInput, styles.requestInputMultiline]}
+                            placeholder="Describe your feedback in detail..."
+                            value={feedbackMessage}
+                            onChangeText={setFeedbackMessage}
+                            multiline
+                            numberOfLines={5}
+                            editable={!submittingFeedback}
+                        />
+
+                        <View style={styles.requestActions}>
+                            <TouchableOpacity
+                                style={styles.requestCancelButton}
+                                onPress={() => setFeedbackModalVisible(false)}
+                                disabled={submittingFeedback}
+                            >
+                                <Text style={styles.requestCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.requestSubmitButton}
+                                onPress={handleSubmitFeedback}
+                                disabled={submittingFeedback}
+                            >
+                                {submittingFeedback ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.requestSubmitText}>Submit</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
             </Modal>
         </View>
@@ -565,6 +829,12 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 16,
+        overflow: "hidden",
+    },
+    avatarImage: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
     },
     name: {
         fontSize: 24,
@@ -641,7 +911,7 @@ const styles = StyleSheet.create({
         color: "#4CAF50",
     },
     statusRejected: {
-        color: "#F44336",
+        color: "#E57373",
     },
     logoutButton: {
         flexDirection: "row",
@@ -658,7 +928,7 @@ const styles = StyleSheet.create({
     logoutText: {
         fontSize: 16,
         fontWeight: "700",
-        color: "#F44336",
+        color: "#E57373",
     },
     requestModalOverlay: {
         flex: 1,
@@ -779,6 +1049,12 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#282F2E",
     },
+    sessionUserAgent: {
+        fontSize: 11,
+        color: "#999",
+        marginTop: 2,
+        fontStyle: "italic",
+    },
     sessionIp: {
         fontSize: 12,
         color: "#666",
@@ -803,7 +1079,7 @@ const styles = StyleSheet.create({
     revokeButtonText: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#F44336",
+        color: "#E57373",
     },
     emptyContainer: {
         alignItems: "center",
@@ -824,5 +1100,83 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 16,
         color: "#666",
+    },
+    imagePreviewRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 16,
+        marginBottom: 12,
+    },
+    imagePreviewContainer: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        overflow: "hidden",
+        backgroundColor: "#F5F5F5",
+    },
+    imagePreview: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+    },
+    imagePreviewPlaceholder: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: "#F5F5F5",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    imagePickerButtons: {
+        flex: 1,
+        gap: 8,
+    },
+    imagePickerButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+        backgroundColor: "#FAFAFA",
+    },
+    imagePickerButtonText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#333",
+    },
+    categoryRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+        marginBottom: 8,
+    },
+    categoryChip: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+        backgroundColor: "#FAFAFA",
+    },
+    categoryChipActive: {
+        backgroundColor: "#FFF3E0",
+        borderColor: "#F2B138",
+    },
+    categoryChipText: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: "#666",
+        textTransform: "capitalize",
+    },
+    categoryChipTextActive: {
+        color: "#F2B138",
+    },
+    ratingRow: {
+        flexDirection: "row",
+        gap: 8,
+        marginBottom: 8,
     },
 });
