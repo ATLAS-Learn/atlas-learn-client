@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 
 const CATEGORIES = ['all', 'bug', 'feature_request', 'general', 'complaint', 'suggestion'] as const
@@ -33,42 +34,43 @@ const STATUS_DOT: Record<string, string> = {
 }
 
 export default function AdminFeedback() {
-  const [feedbacks, setFeedbacks] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [page, setPage] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
-  const [total, setTotal] = useState(0)
-  const limit = 20
-
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const limit = 20
 
   // Reply modal
   const [replyModal, setReplyModal] = useState<{ open: boolean; feedback: any | null }>({ open: false, feedback: null })
   const [replyText, setReplyText] = useState('')
-  const [replying, setReplying] = useState(false)
 
-  const loadFeedbacks = useCallback(async () => {
-    setLoading(true)
-    try {
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['admin-feedback', categoryFilter, statusFilter, page],
+    queryFn: async () => {
       const params: any = { page: page + 1, limit }
       if (categoryFilter !== 'all') params.category = categoryFilter
       if (statusFilter !== 'all') params.status = statusFilter
-      const res = await api.getAllFeedback(params)
-      setFeedbacks(res?.data ?? [])
-      setTotalPages(res?.pagination?.totalPages ?? 1)
-      setTotal(res?.pagination?.total ?? 0)
-    } catch {} finally { setLoading(false) }
-  }, [page, categoryFilter, statusFilter])
+      return api.getAllFeedback(params)
+    },
+    staleTime: 60_000,
+    gcTime: 300_000,
+  })
 
-  useEffect(() => { loadFeedbacks() }, [loadFeedbacks])
+  const feedbacks = data?.data ?? []
+  const totalPages = data?.pagination?.totalPages ?? 1
+  const total = data?.pagination?.total ?? 0
 
-  const handleChangeStatus = async (feedback: any, newStatus: string) => {
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: { status?: string; adminReply?: string } }) =>
+      api.updateFeedback(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-feedback'] })
+    },
+  })
+
+  const handleChangeStatus = (feedback: any, newStatus: string) => {
     if (!confirm(`Change status to "${newStatus}"?`)) return
-    try {
-      await api.updateFeedback(feedback.id, { status: newStatus })
-      setFeedbacks((prev) => prev.map((f) => f.id === feedback.id ? { ...f, status: newStatus } : f))
-    } catch {}
+    updateMutation.mutate({ id: feedback.id, payload: { status: newStatus } })
   }
 
   const handleOpenReply = (feedback: any) => {
@@ -76,15 +78,12 @@ export default function AdminFeedback() {
     setReplyModal({ open: true, feedback })
   }
 
-  const handleSendReply = async () => {
+  const handleSendReply = () => {
     if (!replyModal.feedback || !replyText.trim()) return
-    setReplying(true)
-    try {
-      await api.updateFeedback(replyModal.feedback.id, { adminReply: replyText, status: 'reviewed' })
-      setFeedbacks((prev) => prev.map((f) => f.id === replyModal.feedback.id ? { ...f, adminReply: replyText, status: 'reviewed' } : f))
-      setReplyModal({ open: false, feedback: null })
-      setReplyText('')
-    } catch {} finally { setReplying(false) }
+    updateMutation.mutate(
+      { id: replyModal.feedback.id, payload: { adminReply: replyText, status: 'reviewed' } },
+      { onSuccess: () => { setReplyModal({ open: false, feedback: null }); setReplyText('') } }
+    )
   }
 
   const formatDate = (dateStr: string) => {
@@ -92,9 +91,9 @@ export default function AdminFeedback() {
   }
 
   const stats = {
-    pending: feedbacks.filter((f) => f.status === 'pending').length,
-    reviewed: feedbacks.filter((f) => f.status === 'reviewed').length,
-    resolved: feedbacks.filter((f) => f.status === 'resolved').length,
+    pending: feedbacks.filter((f: any) => f.status === 'pending').length,
+    reviewed: feedbacks.filter((f: any) => f.status === 'reviewed').length,
+    resolved: feedbacks.filter((f: any) => f.status === 'resolved').length,
   }
 
   return (
@@ -165,7 +164,7 @@ export default function AdminFeedback() {
               </tr>
             </thead>
             <tbody>
-              {feedbacks.map((fb) => (
+              {feedbacks.map((fb: any) => (
                 <tr key={fb.id} className='border-b border-gray-50 hover:bg-gray-50/50 transition-colors'>
                   <td className='px-5 py-4'>
                     <p className='font-medium text-[#1F2524]'>{fb.user?.name || 'Unknown'}</p>
@@ -285,10 +284,10 @@ export default function AdminFeedback() {
               </button>
               <button
                 onClick={handleSendReply}
-                disabled={!replyText.trim() || replying}
+                disabled={!replyText.trim() || updateMutation.isPending}
                 className='px-4 py-2 text-sm font-medium text-white bg-[#F2B138] hover:bg-[#D99E30] rounded-lg transition-colors disabled:opacity-50'
               >
-                {replying ? 'Sending...' : 'Send Reply'}
+                {updateMutation.isPending ? 'Sending...' : 'Send Reply'}
               </button>
             </div>
           </div>
