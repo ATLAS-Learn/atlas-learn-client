@@ -27,6 +27,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
+        "android.permission.RECORD_AUDIO",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -58,6 +59,12 @@
         "projectId": "2296911e-108a-4fae-94d1-293dc9e547cc"
       }
     },
-    "owner": "oumate"
+    "owner": "oumate",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/2296911e-108a-4fae-94d1-293dc9e547cc"
+    }
   }
 }

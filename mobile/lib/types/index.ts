@@ -84,6 +84,7 @@ export interface UpdateProfilePayload {
 export interface AuthResponse {
     token?: string | null;
     user: User;
+    session?: { token?: string; id?: string; expiresAt?: string };
 }
 
 // Assessment Types

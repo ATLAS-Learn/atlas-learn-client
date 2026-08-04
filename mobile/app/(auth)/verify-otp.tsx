@@ -89,10 +89,11 @@ export default function VerifyOTPScreen() {
         try {
             const response = await apiClient.verifyOTP(email, code);
 
-            // Set auth token and user
-            if (response.token) {
-                await setAuth(response.token);
-                apiClient.setToken(response.token);
+            // Set auth token and user — server returns session.token from better-auth
+            const authToken = response.token || response.session?.token || null;
+            if (authToken) {
+                await setAuth(authToken);
+                apiClient.setToken(authToken);
             } else {
                 await setCookieAuth();
                 apiClient.setToken(null);
