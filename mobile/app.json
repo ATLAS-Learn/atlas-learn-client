@@ -13,7 +13,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Allow Atlas Learn to access your camera to take a profile picture.",
         "NSPhotoLibraryUsageDescription": "Allow Atlas Learn to access your photos to select a profile picture."
-      }
+      },
+      "bundleIdentifier": "com.atlaslearn.app"
     },
     "android": {
       "package": "com.atlaslearn.app",
