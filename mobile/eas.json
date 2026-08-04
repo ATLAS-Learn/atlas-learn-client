@@ -1,17 +1,19 @@
 {
-  "cli": {
-    "version": ">= 3.0.0"
-  },
   "build": {
-    "preview": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
-    },
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://atlas-learn-server-production.up.railway.app/api/v1"
+      }
+    },
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://atlas-learn-server-production.up.railway.app/api/v1"
       }
     }
   }
