@@ -40,6 +40,23 @@ export const useAuthStore = create<AuthState>()(
           set({ isAuthenticated: false, token: null, authMode: null });
           apiClient.setToken(null);
           useUserStore.getState().clearUser();
+          // clear cached content on logout
+          try {
+            // dynamic import to avoid cycles
+            const { clearCachePrefix, clearCaches } = await import("@/lib/utils/cache");
+            const { clearQuizQueue } = await import("@/lib/utils/syncQueue");
+            await Promise.all([
+              clearCaches([
+                "cache:chapters",
+                "cache:progress:overall",
+                "cache:progress:streak",
+              ]),
+              clearCachePrefix("cache:quizzes:"),
+              clearQuizQueue(),
+            ]);
+          } catch (e) {
+            // ignore
+          }
         }
       },
     }),

@@ -72,7 +72,7 @@ export default function LearnScreen() {
     const subjects = useMemo(() => {
         const allSubjects = progressData?.subjects || [];
         if (!preferredIds || preferredIds.length === 0) return [];
-        return allSubjects.filter((s) => preferredIds.includes(s.subjectId));
+        return allSubjects.filter((s: SubjectProgress) => preferredIds.includes(s.subjectId));
     }, [progressData, preferredIds]);
 
     if (isLoading || preferredIds === null) {
@@ -117,7 +117,7 @@ export default function LearnScreen() {
                     </View>
                 ) : (
                     <>
-                        {subjects.map((subject) => (
+                        {subjects.map((subject: SubjectProgress) => (
                             <SubjectCard key={subject.subjectId} subject={subject} />
                         ))}
                         <TouchableOpacity

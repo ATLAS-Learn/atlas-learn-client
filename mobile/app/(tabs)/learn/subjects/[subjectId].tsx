@@ -12,7 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { apiClient } from "@/lib/api";
-import { Subject, SubjectChapter } from "@/lib/types";
+import { Subject, SubjectChapter, SubjectProgress } from "@/lib/types";
 import { useOverallProgress } from "@/lib/hooks/api";
 
 type ChapterStatus = "completed" | "current" | "locked";
@@ -40,7 +40,7 @@ export default function SubjectDetailScreen() {
         if (!progressData || chapters.length === 0) return chapters as ChapterWithProgress[];
 
         const subjectProgress = progressData.subjects?.find(
-            (s) => s.subjectId === resolvedSubjectId || s.subjectId === subjectKey
+            (s: SubjectProgress) => s.subjectId === resolvedSubjectId || s.subjectId === subjectKey
         );
         const chapterDetails = (subjectProgress?.chapterDetails || []) as {
             chapterId: string;

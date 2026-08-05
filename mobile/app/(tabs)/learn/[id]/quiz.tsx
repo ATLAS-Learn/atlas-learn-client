@@ -14,7 +14,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import QuestionCard from "@/components/quizzes/question-card";
 import QuizProgress from "@/components/quizzes/quiz-progress";
 import { apiClient } from "@/lib/api";
-import { Quiz } from "@/lib/types";
+import { Chapter, Quiz } from "@/lib/types";
+import { enqueueQuizSubmission } from "@/lib/utils/syncQueue";
 
 export default function QuizScreen() {
     const router = useRouter();
@@ -23,18 +24,23 @@ export default function QuizScreen() {
     const chapterId = Array.isArray(id) ? id[0] : id;
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
     const [quiz, setQuiz] = useState<Quiz | null>(null);
+    const [chapter, setChapter] = useState<Chapter | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, number>>({});
+    const [feedback, setFeedback] = useState<Record<string, boolean>>({}); // immediate correctness feedback
     const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
 
     const loadQuiz = useCallback(async () => {
         try {
             if (!chapterId) {
                 throw new Error("Missing chapter ID");
             }
-            const data = await apiClient.getChapterQuiz(chapterId);
-            setQuiz(data);
+            const [quizData, chapterData] = await Promise.all([
+                apiClient.getChapterQuiz(chapterId),
+                apiClient.getChapter(chapterId),
+            ]);
+            setQuiz(quizData);
+            setChapter(chapterData);
         } catch {
             Alert.alert("Error", "Failed to load quiz. Please try again.");
             router.back();
@@ -54,10 +60,21 @@ export default function QuizScreen() {
     const handleSelectAnswer = (answerIndex: number) => {
         if (!quiz?.questions) return;
         const currentQuestion = quiz.questions[currentQuestionIndex];
-        setAnswers({
-            ...answers,
+
+        // Immediate UI update (optimistic) — no spinner, feedback within 100ms
+        setAnswers((prev) => ({
+            ...prev,
             [currentQuestion.id]: answerIndex,
-        });
+        }));
+
+        // If we have the correct answer locally, show immediate feedback
+        const correctIndex = (currentQuestion as any).correctAnswerIndex ?? (currentQuestion as any).correctAnswer;
+        if (typeof correctIndex === "number") {
+            const isCorrect = correctIndex === answerIndex;
+            setFeedback((f) => ({ ...f, [currentQuestion.id]: isCorrect }));
+        }
+
+        // Save locally for eventual sync (no server call yet). We'll enqueue on submit.
     };
 
     const handleNext = () => {
@@ -75,8 +92,33 @@ export default function QuizScreen() {
         }
     };
 
+    const computeLocalResult = () => {
+        if (!quiz?.questions || !chapter) return null;
+        const total = quiz.questions.length;
+        let correct = 0;
+        let earnedPoints = 0;
+        let totalPoints = 0;
+        for (const q of quiz.questions) {
+            const ans = answers[q.id];
+            const correctIdx = (q as any).correctAnswerIndex ?? (q as any).correctAnswer;
+            const points = typeof q.points === "number" ? q.points : 1;
+            totalPoints += points;
+            if (typeof correctIdx === "number" && typeof ans === "number" && ans === correctIdx) {
+                correct++;
+                earnedPoints += points;
+            }
+        }
+        const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+        const passed = score >= chapter.unlockThreshold;
+        return { score, correctAnswers: correct, totalQuestions: total, passed };
+    };
+
     const handleSubmit = async () => {
         if (!quiz?.questions) return;
+        if (!chapter) {
+            Alert.alert("Error", "Quiz settings are still loading. Please try again.");
+            return;
+        }
 
         const unansweredQuestions = quiz.questions.filter(
             (q) => answers[q.id] === undefined
@@ -90,34 +132,40 @@ export default function QuizScreen() {
             return;
         }
 
-        setSubmitting(true);
+        // Compute and show result immediately (optimistic)
+        const localResult = computeLocalResult();
+        if (!localResult) return;
+
+        // Navigate immediately with the computed result (no spinner)
+        router.push({
+            pathname: "/(tabs)/learn/[id]/quiz-result",
+            params: {
+                id: chapterId!,
+                quizId: quiz.id,
+                subjectId: subjectKey || "",
+                score: localResult.score.toString(),
+                correctAnswers: localResult.correctAnswers.toString(),
+                totalQuestions: localResult.totalQuestions.toString(),
+                passed: localResult.passed.toString(),
+                unlockedNextChapter: "false",
+                nextChapterTitle: "",
+                nextChapterId: "",
+            },
+        } as any);
+
+        // Fire-and-forget background sync — enqueue if network fails
+        const submission = {
+            answers: quiz.questions.map((q) => answers[q.id]),
+        };
+
         try {
-            const submission = {
-                answers: quiz.questions!.map((q) => answers[q.id]),
-            };
-
-            const result = await apiClient.submitQuiz(quiz.id, submission);
+            // attempt immediate sync; if it fails, enqueue for retry
+            await apiClient.submitQuiz(quiz.id, submission);
+            // refresh progress cache/queries
             await queryClient.invalidateQueries({ queryKey: ["progress"] });
-
-            router.push({
-                pathname: "/(tabs)/learn/[id]/quiz-result",
-                params: {
-                    id: chapterId!,
-                    quizId: quiz.id,
-                    subjectId: subjectKey || "",
-                    score: result.score.toString(),
-                    correctAnswers: result.correctAnswers.toString(),
-                    totalQuestions: result.totalQuestions.toString(),
-                    passed: result.passed.toString(),
-                    unlockedNextChapter: result.unlockedNextChapter ? "true" : "false",
-                    nextChapterTitle: result.unlockedNextChapter?.title || "",
-                    nextChapterId: result.unlockedNextChapter?.id || "",
-                },
-            } as any);
-        } catch {
-            Alert.alert("Error", "Failed to submit quiz. Please try again.");
-        } finally {
-            setSubmitting(false);
+        } catch (err) {
+            console.warn("Quiz submission failed, enqueueing for retry", err);
+            await enqueueQuizSubmission(quiz.id, submission);
         }
     };
 
@@ -179,6 +227,8 @@ export default function QuizScreen() {
                     question={currentQuestion}
                     selectedAnswer={answers[currentQuestion.id] ?? null}
                     onSelectAnswer={handleSelectAnswer}
+                    // pass immediate feedback to card so it can show green/red without loading
+                    feedback={feedback[currentQuestion.id]}
                 />
             </ScrollView>
 
@@ -197,22 +247,15 @@ export default function QuizScreen() {
                     style={[
                         styles.nextButton,
                         !isAnswered && styles.nextButtonDisabled,
-                        submitting && styles.nextButtonDisabled,
                     ]}
                     onPress={handleNext}
-                    disabled={!isAnswered || submitting}
+                    disabled={!isAnswered}
                 >
-                    {submitting ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <>
-                            <Text style={styles.nextButtonText}>
-                                {isLastQuestion ? "Submit" : "Next"}
-                            </Text>
-                            {!isLastQuestion && (
-                                <Ionicons name="arrow-forward" size={20} color="#fff" />
-                            )}
-                        </>
+                    <Text style={styles.nextButtonText}>
+                        {isLastQuestion ? "Submit" : "Next"}
+                    </Text>
+                    {!isLastQuestion && (
+                        <Ionicons name="arrow-forward" size={20} color="#fff" />
                     )}
                 </TouchableOpacity>
             </View>
