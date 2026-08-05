@@ -1,10 +1,11 @@
 import { storage } from "@/lib/utils/storage";
 import { apiClient } from "@/lib/api";
+import { QuizSubmission } from "@/lib/types";
 
 export type PendingQuizSubmission = {
   id: string; // local id
   quizId: string;
-  submission: any;
+  submission: QuizSubmission;
   attempts: number;
   createdAt: number;
 };
@@ -26,7 +27,7 @@ async function writeQueue(queue: PendingQuizSubmission[]) {
   await storage.setItem(QUEUE_KEY, JSON.stringify(queue));
 }
 
-export async function enqueueQuizSubmission(quizId: string, submission: any) {
+export async function enqueueQuizSubmission(quizId: string, submission: QuizSubmission) {
   const queue = await readQueue();
   const entry: PendingQuizSubmission = {
     id: `${quizId}:${Date.now()}`,
@@ -51,16 +52,12 @@ export async function processQuizQueue() {
       await apiClient.submitQuiz(item.quizId, item.submission);
       // success -> do nothing (item removed)
     } catch (err) {
-      const attempts = (item.attempts || 0) + 1;
+      const attempts = item.attempts + 1;
       if (attempts >= 5) {
         console.warn(`Giving up on queued quiz submission ${item.id} after ${attempts} attempts`);
         // drop it
       } else {
-        // schedule retry
-        const delay = Math.min(1000 * 2 ** attempts, 1000 * 60 * 5); // cap at 5 minutes
-        // update attempts and push back
         remaining.push({ ...item, attempts });
-        // naive: wait for backoff before next process run; actual waiting handled by caller (setInterval)
       }
     }
   }

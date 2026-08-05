@@ -6,7 +6,7 @@ import { setCache, getCacheSync } from "@/lib/utils/cache";
 const STATIC_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 export function useQuizzes(chapterId: string | undefined) {
-    const initial = getCacheSync<any>(`cache:quizzes:chapter:${chapterId}`);
+    const initial = getCacheSync<Quiz[]>(`cache:quizzes:chapter:${chapterId}`);
     return useQuery({
         queryKey: ["quizzes", chapterId],
         queryFn: async () => {
@@ -23,7 +23,7 @@ export function useQuizzes(chapterId: string | undefined) {
 }
 
 export function useQuiz(quizId: string | undefined) {
-    const initial = getCacheSync<any>(`cache:quiz:${quizId}`);
+    const initial = getCacheSync<Quiz>(`cache:quiz:${quizId}`);
     return useQuery({
         queryKey: ["quizzes", quizId],
         queryFn: async () => {

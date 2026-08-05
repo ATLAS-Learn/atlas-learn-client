@@ -11,9 +11,7 @@ export default function useBackgroundSync() {
     const runOnce = async () => {
       try {
         await processQuizQueue();
-      }
-      // @ts-ignore
-      catch (error) {
+      } catch {
         // ignore
       }
     };

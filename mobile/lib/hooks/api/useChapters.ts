@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
+import { Chapter } from "@/lib/types";
 import { setCache, getCacheSync } from "@/lib/utils/cache";
 
 const STATIC_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 export function useChapters() {
-    const initial = getCacheSync<any[]>("cache:chapters");
+    const initial = getCacheSync<Chapter[]>("cache:chapters");
 
     return useQuery({
         queryKey: ["chapters"],

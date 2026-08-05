@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
+import { OverallProgressData, StreakData } from "@/lib/types";
 import { setCache, getCacheSync } from "@/lib/utils/cache";
 
 const PROGRESS_TTL = 1000 * 60 * 5; // 5 minutes
 
 export function useOverallProgress() {
-    const initial = getCacheSync<any>("cache:progress:overall");
+    const initial = getCacheSync<OverallProgressData>("cache:progress:overall");
     return useQuery({
         queryKey: ["progress", "overall"],
         queryFn: async () => {
@@ -23,7 +24,7 @@ export function useOverallProgress() {
 }
 
 export function useStreak() {
-    const initial = getCacheSync<any>("cache:progress:streak");
+    const initial = getCacheSync<StreakData>("cache:progress:streak");
     return useQuery({
         queryKey: ["progress", "streak"],
         queryFn: async () => {

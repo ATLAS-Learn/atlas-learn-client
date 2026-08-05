@@ -22,7 +22,6 @@ export default function RootLayout() {
   // Start background sync worker (process pending quiz submissions)
   // imported hook ensures queue is processed when app becomes active
   // and periodically while active
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useBackgroundSync();
 
   // Preload important caches so cached content can render immediately

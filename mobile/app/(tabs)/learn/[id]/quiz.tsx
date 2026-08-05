@@ -14,7 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import QuestionCard from "@/components/quizzes/question-card";
 import QuizProgress from "@/components/quizzes/quiz-progress";
 import { apiClient } from "@/lib/api";
-import { Chapter, Quiz } from "@/lib/types";
+import { Chapter, Quiz, QuizSubmission } from "@/lib/types";
 import { enqueueQuizSubmission } from "@/lib/utils/syncQueue";
 
 export default function QuizScreen() {
@@ -68,7 +68,7 @@ export default function QuizScreen() {
         }));
 
         // If we have the correct answer locally, show immediate feedback
-        const correctIndex = (currentQuestion as any).correctAnswerIndex ?? (currentQuestion as any).correctAnswer;
+        const correctIndex = currentQuestion.correctAnswerIndex;
         if (typeof correctIndex === "number") {
             const isCorrect = correctIndex === answerIndex;
             setFeedback((f) => ({ ...f, [currentQuestion.id]: isCorrect }));
@@ -100,7 +100,7 @@ export default function QuizScreen() {
         let totalPoints = 0;
         for (const q of quiz.questions) {
             const ans = answers[q.id];
-            const correctIdx = (q as any).correctAnswerIndex ?? (q as any).correctAnswer;
+            const correctIdx = q.correctAnswerIndex;
             const points = typeof q.points === "number" ? q.points : 1;
             totalPoints += points;
             if (typeof correctIdx === "number" && typeof ans === "number" && ans === correctIdx) {
@@ -154,8 +154,8 @@ export default function QuizScreen() {
         } as any);
 
         // Fire-and-forget background sync — enqueue if network fails
-        const submission = {
-            answers: quiz.questions.map((q) => answers[q.id]),
+        const submission: QuizSubmission = {
+            answers: quiz.questions.map((q) => answers[q.id] as number),
         };
 
         try {
