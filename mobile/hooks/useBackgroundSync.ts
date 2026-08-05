@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { AppState, AppStateStatus, NativeEventSubscription } from "react-native";
+import { AppState, AppStateStatus } from "react-native";
 import { processQuizQueue } from "@/lib/utils/syncQueue";
 
 export default function useBackgroundSync() {
