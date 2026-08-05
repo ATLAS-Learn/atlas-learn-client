@@ -9,6 +9,8 @@ import { SplashScreen } from "@/components/ui/splash-screen";
 import { useAppFlow } from "../hooks/useAppFlow";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { preloadCache } from "@/lib/utils/cache";
+import useBackgroundSync from "@/hooks/useBackgroundSync";
 
 export default function RootLayout() {
   const [showIntro, setShowIntro] = useState(true);
@@ -17,17 +19,30 @@ export default function RootLayout() {
   const { assessmentComplete, isAuthenticated, isLoading } = useAppFlow();
   const hasNavigated = useRef(false);
 
+  // Start background sync worker (process pending quiz submissions)
+  // imported hook ensures queue is processed when app becomes active
+  // and periodically while active
+  useBackgroundSync();
+
+  // Preload important caches so cached content can render immediately
+  useEffect(() => {
+    // keys we want preloaded synchronously for fast startup
+    preloadCache([
+      "cache:chapters",
+      "cache:progress:overall",
+    ]).catch(() => {});
+  }, []);
 
   useEffect(() => {
     // Wait for auth state to finish loading
     if (isLoading) return;
 
-    // Show splash screen for longer so user can see it (5 seconds minimum)
-    const minDisplayTime = 5000; // 5 seconds
+    // Keep splash visible just long enough for UI to not flicker
+    const minDisplayTime = 800; // 800ms minimum
     const timer = setTimeout(() => {
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 1000, // Slower fade out (1 second)
+        duration: 300,
         useNativeDriver: true,
       }).start(() => {
         setShowIntro(false); // hide splash
@@ -49,7 +64,7 @@ export default function RootLayout() {
           router.replace("/(onboarding)");
         }
       });
-    }, minDisplayTime); // Show splash for at least 5 seconds
+    }, minDisplayTime);
 
     return () => clearTimeout(timer);
   }, [fadeAnim, isAuthenticated, assessmentComplete, isLoading, router]);

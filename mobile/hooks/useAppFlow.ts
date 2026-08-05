@@ -11,11 +11,16 @@ export function useAppFlow() {
     null
   );
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, token, logout } = useAuthStore();
+  const { isAuthenticated, token, logout, hasHydrated } = useAuthStore();
   const { user, lastSyncedAt, setUser } = useUserStore();
 
   useEffect(() => {
     async function restoreSession() {
+      if (!hasHydrated) {
+        setIsLoading(true);
+        return;
+      }
+
       if (!isAuthenticated) {
         setIsLoading(false);
         return;
@@ -67,12 +72,17 @@ export function useAppFlow() {
       }
     }
 
-    if (isAuthenticated !== null && isAuthenticated) {
+    if (!hasHydrated) {
+      setIsLoading(true);
+      return;
+    }
+
+    if (isAuthenticated) {
       restoreSession();
     } else if (isAuthenticated === false) {
       setIsLoading(false);
     }
-  }, [isAuthenticated, token]);
+  }, [hasHydrated, isAuthenticated, token]);
 
   return { assessmentComplete, isAuthenticated, user, isLoading };
 }

@@ -8,6 +8,7 @@ interface AuthState {
   isAuthenticated: boolean;
   token: string | null;
   authMode: "token" | "cookie" | null;
+  hasHydrated: boolean;
   setAuth: (token: string | null) => void;
   setCookieAuth: () => void;
   logout: () => Promise<void>;
@@ -19,6 +20,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       token: null,
       authMode: null,
+      hasHydrated: false,
       setAuth: (token) => {
         set({ isAuthenticated: !!token, token, authMode: token ? "token" : null });
         if (token) {
@@ -40,6 +42,23 @@ export const useAuthStore = create<AuthState>()(
           set({ isAuthenticated: false, token: null, authMode: null });
           apiClient.setToken(null);
           useUserStore.getState().clearUser();
+          // clear cached content on logout
+          try {
+            // dynamic import to avoid cycles
+            const { clearCachePrefix, clearCaches } = await import("@/lib/utils/cache");
+            const { clearQuizQueue } = await import("@/lib/utils/syncQueue");
+            await Promise.all([
+              clearCaches([
+                "cache:chapters",
+                "cache:progress:overall",
+                "cache:progress:streak",
+              ]),
+              clearCachePrefix("cache:quizzes:"),
+              clearQuizQueue(),
+            ]);
+          } catch (e) {
+            // ignore
+          }
         }
       },
     }),
@@ -47,12 +66,26 @@ export const useAuthStore = create<AuthState>()(
       name: "auth",
       storage: createPersistStorage(),
       partialize: (state) => ({
+        isAuthenticated: state.isAuthenticated,
         token: state.token,
         authMode: state.authMode,
       }),
       onRehydrateStorage: () => (state) => {
-        if (state?.token) {
-          apiClient.setToken(state.token);
+        useAuthStore.setState({ hasHydrated: true });
+
+        if (state) {
+          const isAuthenticated = Boolean(state.token || state.authMode === "cookie" || state.isAuthenticated);
+          useAuthStore.setState({
+            isAuthenticated,
+            token: state.token,
+            authMode: state.authMode,
+          });
+
+          if (state.token) {
+            apiClient.setToken(state.token);
+          } else {
+            apiClient.setToken(null);
+          }
         }
       },
     }
