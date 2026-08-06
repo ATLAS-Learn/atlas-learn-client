@@ -28,8 +28,8 @@ export default function QuizScreen() {
     const [chapter, setChapter] = useState<Chapter | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, number>>({});
-    const [feedback, setFeedback] = useState<Record<string, boolean>>({}); // immediate correctness feedback
     const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
 
     const loadQuiz = useCallback(async () => {
         try {
@@ -61,21 +61,10 @@ export default function QuizScreen() {
     const handleSelectAnswer = (answerIndex: number) => {
         if (!quiz?.questions) return;
         const currentQuestion = quiz.questions[currentQuestionIndex];
-
-        // Immediate UI update (optimistic) — no spinner, feedback within 100ms
         setAnswers((prev) => ({
             ...prev,
             [currentQuestion.id]: answerIndex,
         }));
-
-        // If we have the correct answer locally, show immediate feedback
-        const correctIndex = currentQuestion.correctAnswerIndex;
-        if (typeof correctIndex === "number") {
-            const isCorrect = correctIndex === answerIndex;
-            setFeedback((f) => ({ ...f, [currentQuestion.id]: isCorrect }));
-        }
-
-        // Save locally for eventual sync (no server call yet). We'll enqueue on submit.
     };
 
     const handleNext = () => {
@@ -91,27 +80,6 @@ export default function QuizScreen() {
         if (currentQuestionIndex > 0) {
             setCurrentQuestionIndex(currentQuestionIndex - 1);
         }
-    };
-
-    const computeLocalResult = () => {
-        if (!quiz?.questions || !chapter) return null;
-        const total = quiz.questions.length;
-        let correct = 0;
-        let earnedPoints = 0;
-        let totalPoints = 0;
-        for (const q of quiz.questions) {
-            const ans = answers[q.id];
-            const correctIdx = q.correctAnswerIndex;
-            const points = typeof q.points === "number" ? q.points : 1;
-            totalPoints += points;
-            if (typeof correctIdx === "number" && typeof ans === "number" && ans === correctIdx) {
-                correct++;
-                earnedPoints += points;
-            }
-        }
-        const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
-        const passed = score >= chapter.unlockThreshold;
-        return { score, correctAnswers: correct, totalQuestions: total, passed };
     };
 
     const handleSubmit = async () => {
@@ -133,61 +101,85 @@ export default function QuizScreen() {
             return;
         }
 
-        // Compute and show result immediately (optimistic)
-        const localResult = computeLocalResult();
-        if (!localResult) return;
+        setSubmitting(true);
 
-        // Navigate immediately with the computed result (no spinner)
-        // Use replace so back button doesn't return to the quiz
-        router.replace({
-            pathname: "/(tabs)/learn/[id]/quiz-result",
-            params: {
-                id: chapterId!,
-                quizId: quiz.id,
-                subjectId: subjectKey || "",
-                score: localResult.score.toString(),
-                correctAnswers: localResult.correctAnswers.toString(),
-                totalQuestions: localResult.totalQuestions.toString(),
-                passed: localResult.passed.toString(),
-                unlockedNextChapter: "false",
-                nextChapterTitle: "",
-                nextChapterId: "",
-            },
-        } as any);
-
-        // Fire-and-forget background sync — enqueue if network fails
         const submission: QuizSubmission = {
             answers: quiz.questions.map((q) => answers[q.id] as number),
         };
 
         try {
-            // attempt immediate sync; if it fails, enqueue for retry
+            // Wait for server to score the quiz
             const result = await apiClient.submitQuiz(quiz.id, submission);
-            // refresh progress cache/queries
             await queryClient.invalidateQueries({ queryKey: ["progress"] });
-            // Update the navigation with the server attempt ID if available
-            const attemptId = result?.attemptId;
-            if (attemptId) {
-                router.replace({
-                    pathname: "/(tabs)/learn/[id]/quiz-result",
-                    params: {
-                        id: chapterId!,
-                        quizId: quiz.id,
-                        subjectId: subjectKey || "",
-                        score: localResult.score.toString(),
-                        correctAnswers: localResult.correctAnswers.toString(),
-                        totalQuestions: localResult.totalQuestions.toString(),
-                        passed: localResult.passed.toString(),
-                        unlockedNextChapter: "false",
-                        nextChapterTitle: "",
-                        nextChapterId: "",
-                        attemptId: attemptId,
-                    },
-                } as any);
+
+            // If passed, mark all lessons complete in background (don't block navigation)
+            if (result.passed && subjectKey) {
+                apiClient.getChapterLessons(chapterId!, true).then((lessons) => {
+                    lessons.forEach((lesson) => {
+                        apiClient.completeSubjectChapterLesson(subjectKey, chapterId!, lesson.id).catch(() => {});
+                    });
+                }).catch(() => {});
             }
+
+            // Invalidate learning path so home page shows next chapter
+            queryClient.invalidateQueries({ queryKey: ["recommendations", "learning-path"] });
+
+            // Navigate with SERVER-computed results
+            router.replace({
+                pathname: "/(tabs)/learn/[id]/quiz-result",
+                params: {
+                    id: chapterId!,
+                    quizId: quiz.id,
+                    subjectId: subjectKey || "",
+                    score: result.score.toString(),
+                    correctAnswers: result.correctAnswers.toString(),
+                    totalQuestions: result.totalQuestions.toString(),
+                    passed: result.passed.toString(),
+                    unlockedNextChapter: result.unlockedNextChapter ? "true" : "false",
+                    nextChapterTitle: result.unlockedNextChapter?.title || "",
+                    nextChapterId: result.unlockedNextChapter?.id || "",
+                    attemptId: result.attemptId,
+                },
+            } as any);
         } catch (err) {
+            // If network fails, enqueue and compute locally as fallback
             console.warn("Quiz submission failed, enqueueing for retry", err);
             await enqueueQuizSubmission(quiz.id, submission);
+
+            // Compute local fallback
+            let correct = 0;
+            let earnedPoints = 0;
+            let totalPoints = 0;
+            for (const q of quiz.questions) {
+                const ans = answers[q.id];
+                const correctIdx = q.correctAnswerIndex;
+                const points = typeof q.points === "number" ? q.points : 1;
+                totalPoints += points;
+                if (typeof correctIdx === "number" && typeof ans === "number" && ans === correctIdx) {
+                    correct++;
+                    earnedPoints += points;
+                }
+            }
+            const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+            const passed = score >= (chapter.unlockThreshold || 70);
+
+            router.replace({
+                pathname: "/(tabs)/learn/[id]/quiz-result",
+                params: {
+                    id: chapterId!,
+                    quizId: quiz.id,
+                    subjectId: subjectKey || "",
+                    score: score.toString(),
+                    correctAnswers: correct.toString(),
+                    totalQuestions: quiz.questions.length.toString(),
+                    passed: passed.toString(),
+                    unlockedNextChapter: "false",
+                    nextChapterTitle: "",
+                    nextChapterId: "",
+                },
+            } as any);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -237,8 +229,6 @@ export default function QuizScreen() {
                     question={currentQuestion}
                     selectedAnswer={answers[currentQuestion.id] ?? null}
                     onSelectAnswer={handleSelectAnswer}
-                    // pass immediate feedback to card so it can show green/red without loading
-                    feedback={feedback[currentQuestion.id]}
                 />
             </ScrollView>
 
@@ -256,16 +246,22 @@ export default function QuizScreen() {
                 <TouchableOpacity
                     style={[
                         styles.nextButton,
-                        !isAnswered && styles.nextButtonDisabled,
+                        (!isAnswered || submitting) && styles.nextButtonDisabled,
                     ]}
                     onPress={handleNext}
-                    disabled={!isAnswered}
+                    disabled={!isAnswered || submitting}
                 >
-                    <Text style={styles.nextButtonText}>
-                        {isLastQuestion ? "Submit" : "Next"}
-                    </Text>
-                    {!isLastQuestion && (
-                        <Ionicons name="arrow-forward" size={20} color="#fff" />
+                    {submitting ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                        <>
+                            <Text style={styles.nextButtonText}>
+                                {isLastQuestion ? "Submit" : "Next"}
+                            </Text>
+                            {!isLastQuestion && (
+                                <Ionicons name="arrow-forward" size={20} color="#fff" />
+                            )}
+                        </>
                     )}
                 </TouchableOpacity>
             </View>

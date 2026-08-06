@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { AssessmentCorrection } from "@/lib/types";
+import ScreenHeader from "@/components/ui/screen-header";
 
 export default function AssessmentCorrectionsScreen() {
     const router = useRouter();
@@ -44,13 +45,7 @@ export default function AssessmentCorrectionsScreen() {
     if (error || corrections.length === 0) {
         return (
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#000" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Corrections</Text>
-                    <View style={styles.backButton} />
-                </View>
+                <ScreenHeader title="Corrections" />
                 <View style={styles.errorContainer}>
                     <Ionicons name="document-text-outline" size={64} color="#CCC" />
                     <Text style={styles.errorText}>{error || "No corrections available."}</Text>
@@ -63,13 +58,7 @@ export default function AssessmentCorrectionsScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Corrections</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="Corrections" />
 
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.summaryCard}>
@@ -162,27 +151,6 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 16,
         color: "#666",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        paddingTop: 20,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
     },
     errorContainer: {
         flex: 1,

@@ -11,7 +11,6 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    TouchableWithoutFeedback,
     View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -221,7 +220,6 @@ export default function LessonDetailScreen() {
     }
 
     return (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <KeyboardAvoidingView
                 style={styles.container}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -360,7 +358,6 @@ export default function LessonDetailScreen() {
                 </View>
             </ScrollView>
             </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
     );
 }
 

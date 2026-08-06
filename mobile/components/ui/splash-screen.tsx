@@ -6,7 +6,7 @@ const { width, height } = Dimensions.get("window");
 export function SplashScreen() {
   return (
     <View style={styles.container}>
-      <StatusBar hidden={true} />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFD580" translucent={false} />
       <View style={styles.content}>
         <Image
           source={require("@/assets/images/logo/Blue atlas logo.png")}

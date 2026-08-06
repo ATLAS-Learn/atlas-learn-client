@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import ScreenHeader from "@/components/ui/screen-header";
 import { apiClient } from "@/lib/api";
 import { Subject } from "@/lib/types";
 
@@ -69,13 +70,7 @@ export default function SubjectsScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Subjects</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="Subjects" />
 
             <ScrollView
                 style={styles.scrollView}
@@ -121,17 +116,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FAFAFA",
     },
     loadingText: { marginTop: 16, fontSize: 16, color: "#666" },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: { width: 40, height: 40, justifyContent: "center", alignItems: "center" },
-    headerTitle: { fontSize: 20, fontWeight: "700", color: "#282F2E" },
+
     scrollView: { flex: 1 },
     content: { padding: 24 },
     emptyContainer: {

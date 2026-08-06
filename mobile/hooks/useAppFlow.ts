@@ -1,79 +1,77 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
 import { getItem, setItem } from "@/lib/utils/storage";
 import { apiClient } from "@/lib/api";
 
-const USER_CACHE_MAX_AGE_MS = 1000 * 60 * 30; // 30 minutes
+const USER_CACHE_MAX_AGE_MS = 1000 * 60 * 30;
 
 export function useAppFlow() {
-  const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(
-    null
-  );
+  const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, token, logout, hasHydrated } = useAuthStore();
   const { user, lastSyncedAt, setUser } = useUserStore();
   const appState = useRef(AppState.currentState);
+  const sessionChecked = useRef(false);
 
-  // Validate session by calling a lightweight endpoint
-  const validateSession = async (): Promise<boolean> => {
+  const validateSession = useCallback(async (): Promise<boolean> => {
     try {
       await apiClient.getCurrentUser();
       return true;
     } catch (error: any) {
-      // If 401 or unauthorized, session is invalid
       if (error?.message?.includes("401") || error?.message?.includes("Unauthorized") || error?.message?.includes("session")) {
         return false;
       }
-      // Other errors (network, etc.) - don't invalidate session
       return true;
     }
-  };
+  }, []);
 
+  // Session restore - runs once when hydration completes
   useEffect(() => {
+    if (!hasHydrated) return;
+
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Already checked this session
+    if (sessionChecked.current) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     async function restoreSession() {
-      if (!hasHydrated) {
-        setIsLoading(true);
-        return;
-      }
-
-      if (!isAuthenticated) {
-        setIsLoading(false);
-        return;
-      }
-
       try {
         apiClient.setToken(token || null);
 
-        // Validate the session is still valid on the server
         const isValid = await validateSession();
+        if (cancelled) return;
+
         if (!isValid) {
-          console.log("[useAppFlow] Session invalid, logging out");
           await logout();
           setIsLoading(false);
           return;
         }
 
         const hasUserIdentity = Boolean(user?.id && user?.email && user?.name?.trim());
-        const isFreshCache =
-          typeof lastSyncedAt === "number" &&
-          Date.now() - lastSyncedAt < USER_CACHE_MAX_AGE_MS;
-        const requiresFreshIdentity = !hasUserIdentity;
-        const shouldRefreshUser = requiresFreshIdentity || !isFreshCache;
+        const isFreshCache = typeof lastSyncedAt === "number" && Date.now() - lastSyncedAt < USER_CACHE_MAX_AGE_MS;
+        const shouldRefreshUser = !hasUserIdentity || !isFreshCache;
 
         if (shouldRefreshUser) {
           try {
             const freshUser = await apiClient.getCurrentUser();
-            setUser(freshUser, { markSynced: true });
+            if (!cancelled) setUser(freshUser, { markSynced: true });
           } catch (error) {
-            if (requiresFreshIdentity || !user) {
-              throw error;
-            }
+            if (!hasUserIdentity && !cancelled) throw error;
           }
         }
 
-        // Check assessment completion (prefer local, fallback to server once)
+        if (cancelled) return;
+
         const assessment = await getItem("assessmentComplete");
         if (assessment === "true") {
           setAssessmentComplete(true);
@@ -82,45 +80,41 @@ export function useAppFlow() {
         } else {
           try {
             const status = await apiClient.getAssessmentStatus();
-            const completed = Boolean(status?.completed);
-            setAssessmentComplete(completed);
-            await setItem("assessmentComplete", completed ? "true" : "false");
+            if (!cancelled) {
+              const completed = Boolean(status?.completed);
+              setAssessmentComplete(completed);
+              await setItem("assessmentComplete", completed ? "true" : "false");
+            }
           } catch {
-            setAssessmentComplete(false);
+            if (!cancelled) setAssessmentComplete(false);
           }
         }
 
-        setIsLoading(false);
+        sessionChecked.current = true;
+        if (!cancelled) setIsLoading(false);
       } catch (error: any) {
         console.error("Session restore failed:", error);
-        await logout();
-        setIsLoading(false);
+        if (!cancelled) {
+          await logout();
+          setIsLoading(false);
+        }
       }
     }
 
-    if (!hasHydrated) {
-      setIsLoading(true);
-      return;
-    }
+    restoreSession();
 
-    if (isAuthenticated) {
-      restoreSession();
-    } else if (isAuthenticated === false) {
-      setIsLoading(false);
-    }
-  }, [hasHydrated, isAuthenticated, token]);
+    return () => { cancelled = true; };
+  }, [hasHydrated, isAuthenticated]);
 
-  // Re-validate session when app comes to foreground
+  // Re-validate when app comes to foreground
   useEffect(() => {
     if (!isAuthenticated) return;
 
     const handleAppStateChange = async (nextState: AppStateStatus) => {
       if (appState.current.match(/inactive|background/) && nextState === "active") {
-        // App came to foreground - re-validate session
         apiClient.setToken(token || null);
         const isValid = await validateSession();
         if (!isValid) {
-          console.log("[useAppFlow] Session expired in background, logging out");
           await logout();
         }
       }
@@ -129,7 +123,7 @@ export function useAppFlow() {
 
     const subscription = AppState.addEventListener("change", handleAppStateChange);
     return () => subscription?.remove();
-  }, [isAuthenticated, token, logout]);
+  }, [isAuthenticated, token, logout, validateSession]);
 
   return { assessmentComplete, isAuthenticated, user, isLoading };
 }

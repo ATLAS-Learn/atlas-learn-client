@@ -7,7 +7,6 @@ interface QuestionCardProps {
     selectedAnswer: number | null;
     onSelectAnswer: (answerIndex: number) => void;
     showResult?: boolean;
-    feedback?: boolean | undefined; // immediate correctness hint (optimistic)
 }
 
 export default function QuestionCard({
@@ -15,25 +14,14 @@ export default function QuestionCard({
     selectedAnswer,
     onSelectAnswer,
     showResult = false,
-    feedback,
 }: QuestionCardProps) {
     const getOptionStyle = (index: number) => {
-        if (!showResult) {
-            // If optimistic feedback is available, show correct/incorrect immediately
-            if (typeof feedback === "boolean") {
-                if (index === question.correctAnswerIndex) return styles.optionCorrect;
-                if (selectedAnswer === index && index !== question.correctAnswerIndex) return styles.optionIncorrect;
-            }
-            return selectedAnswer === index ? styles.optionSelected : styles.option;
+        if (showResult) {
+            if (index === question.correctAnswerIndex) return styles.optionCorrect;
+            if (selectedAnswer === index && index !== question.correctAnswerIndex) return styles.optionIncorrect;
+            return styles.option;
         }
-
-        if (index === question.correctAnswerIndex) {
-            return styles.optionCorrect;
-        }
-        if (selectedAnswer === index && index !== question.correctAnswerIndex) {
-            return styles.optionIncorrect;
-        }
-        return styles.option;
+        return selectedAnswer === index ? styles.optionSelected : styles.option;
     };
 
     return (
@@ -51,8 +39,8 @@ export default function QuestionCard({
                             style={[
                                 styles.optionText,
                                 selectedAnswer === index && styles.optionTextSelected,
-                                (showResult || typeof feedback === "boolean") && index === question.correctAnswerIndex && styles.optionTextCorrect,
-                                (showResult || typeof feedback === "boolean") && selectedAnswer === index && index !== question.correctAnswerIndex && styles.optionTextIncorrect,
+                                showResult && index === question.correctAnswerIndex && styles.optionTextCorrect,
+                                showResult && selectedAnswer === index && index !== question.correctAnswerIndex && styles.optionTextIncorrect,
                             ]}
                         >
                             {option}

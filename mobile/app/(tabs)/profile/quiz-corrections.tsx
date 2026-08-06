@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
     View,
     Text,
@@ -8,8 +8,10 @@ import {
     TouchableOpacity,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
+import ScreenHeader from "@/components/ui/screen-header";
 
 interface QuizCorrection {
     questionIndex: number;
@@ -33,30 +35,41 @@ interface QuizCorrectionsData {
 
 export default function QuizCorrectionsScreen() {
     const router = useRouter();
-    const { attemptId } = useLocalSearchParams<{ attemptId: string }>();
+    const { attemptId, quizId } = useLocalSearchParams<{ attemptId?: string; quizId?: string }>();
     const [data, setData] = useState<QuizCorrectionsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!attemptId) {
-            setError("No attempt ID provided.");
-            setLoading(false);
-            return;
-        }
+    useFocusEffect(
+        useCallback(() => {
+            let cancelled = false;
 
-        const loadCorrections = async () => {
-            try {
-                const result = await apiClient.getQuizAttemptCorrections(attemptId);
-                setData(result);
-            } catch (err: any) {
-                setError(err.message || "Failed to load corrections.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadCorrections();
-    }, [attemptId]);
+            const loadCorrections = async () => {
+                setLoading(true);
+                setError(null);
+
+                const id = attemptId || quizId;
+                if (!id) {
+                    setError("No attempt or quiz ID provided.");
+                    setLoading(false);
+                    return;
+                }
+
+                try {
+                    const result = await apiClient.getQuizAttemptCorrections(id);
+                    if (!cancelled) setData(result);
+                } catch (err: any) {
+                    if (!cancelled) setError(err.message || "Failed to load corrections.");
+                } finally {
+                    if (!cancelled) setLoading(false);
+                }
+            };
+
+            loadCorrections();
+
+            return () => { cancelled = true; };
+        }, [attemptId, quizId])
+    );
 
     if (loading) {
         return (
@@ -70,13 +83,7 @@ export default function QuizCorrectionsScreen() {
     if (error || !data) {
         return (
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#000" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Quiz Corrections</Text>
-                    <View style={styles.backButton} />
-                </View>
+                <ScreenHeader title="Quiz Corrections" />
                 <View style={styles.errorContainer}>
                     <Ionicons name="document-text-outline" size={64} color="#CCC" />
                     <Text style={styles.errorText}>{error || "No corrections available."}</Text>
@@ -89,13 +96,7 @@ export default function QuizCorrectionsScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Quiz Corrections</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="Quiz Corrections" />
 
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.summaryCard}>
@@ -188,27 +189,6 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 16,
         color: "#666",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        paddingTop: 20,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
     },
     errorContainer: {
         flex: 1,

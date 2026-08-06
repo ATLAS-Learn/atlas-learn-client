@@ -992,7 +992,8 @@ class APIClient {
     }
 
     async getChapter(chapterId: string): Promise<Chapter> {
-        return this.request<Chapter>(`/chapters/${chapterId}`);
+        const response = await this.request<Chapter | { success?: boolean; data?: Chapter }>(`/chapters/${chapterId}`);
+        return this.unwrapData<Chapter>(response);
     }
 
     async updateChapter(chapterId: string, data: Partial<Chapter>): Promise<Chapter> {

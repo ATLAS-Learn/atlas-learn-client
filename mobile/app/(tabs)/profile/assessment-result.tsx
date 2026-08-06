@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { AssessmentResult, SubjectBreakdown, PerSubjectRecommendation } from "@/lib/types";
 import { LEVEL_INFO } from "@/lib/constants/levels";
+import ScreenHeader from "@/components/ui/screen-header";
 
 export default function ProfileAssessmentResultScreen() {
     const router = useRouter();
@@ -51,13 +52,7 @@ export default function ProfileAssessmentResultScreen() {
     if (error || !result) {
         return (
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#000" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Assessment Result</Text>
-                    <View style={styles.backButton} />
-                </View>
+                <ScreenHeader title="Assessment Result" />
                 <View style={styles.errorContainer}>
                     <Ionicons name="alert-circle-outline" size={64} color="#E57373" />
                     <Text style={styles.errorText}>{error || "No assessment result found."}</Text>
@@ -70,13 +65,7 @@ export default function ProfileAssessmentResultScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Assessment Result</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="Assessment Result" />
 
             <ScrollView contentContainerStyle={styles.content}>
                 {/* Level Badge */}
@@ -167,18 +156,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#FAFAFA",
     },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        paddingTop: 20,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: { width: 40, height: 40, justifyContent: "center", alignItems: "center" },
-    headerTitle: { fontSize: 20, fontWeight: "700", color: "#282F2E" },
     loadingContainer: {
         flex: 1,
         justifyContent: "center",

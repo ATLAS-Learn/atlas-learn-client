@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useUserStore } from "@/lib/store/user";
 import { useUserQuizAttempts } from "@/lib/hooks/api";
 import QuizScoresChart from "@/components/charts/QuizScoresChart";
+import ScreenHeader from "@/components/ui/screen-header";
 
 export default function QuizScoresScreen() {
     const router = useRouter();
@@ -45,13 +46,7 @@ export default function QuizScoresScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Quiz Scores</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="Quiz Scores" />
 
             <ScrollView
                 style={styles.scrollView}
@@ -162,26 +157,6 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 16,
         color: "#666",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
     },
     scrollView: {
         flex: 1,

@@ -11,6 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import QuestionCard from "@/components/quizzes/question-card";
+import ScreenHeader from "@/components/ui/screen-header";
 import QuizProgress from "@/components/quizzes/quiz-progress";
 import { apiClient } from "@/lib/api";
 import { setItem } from "@/lib/utils/storage";
@@ -162,13 +163,7 @@ export default function AssessmentScreen() {
     if (error) {
         return (
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#000" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Assessment</Text>
-                    <View style={styles.backButton} />
-                </View>
+                <ScreenHeader title="Assessment" />
                 <View style={styles.errorContainer}>
                     <Ionicons name="alert-circle-outline" size={64} color="#E57373" />
                     <Text style={styles.errorTitle}>Assessment Unavailable</Text>
@@ -207,13 +202,7 @@ export default function AssessmentScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Assessment</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="Assessment" />
 
             <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
                 <QuizProgress
@@ -360,26 +349,6 @@ const styles = StyleSheet.create({
         color: "#666",
         fontSize: 16,
         fontWeight: "600",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
     },
     content: {
         flex: 1,

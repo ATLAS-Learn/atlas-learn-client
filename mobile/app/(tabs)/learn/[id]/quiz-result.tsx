@@ -8,6 +8,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import QuizCelebration from "@/components/quizzes/quiz-celebration";
+import ScreenHeader from "@/components/ui/screen-header";
 
 export default function QuizResultScreen() {
     const router = useRouter();
@@ -15,7 +16,7 @@ export default function QuizResultScreen() {
 
     const score = parseInt(params.score as string) || 0;
     const correctAnswers = parseInt(params.correctAnswers as string) || 0;
-    const totalQuestions = parseInt(params.totalQuestions) || 0;
+    const totalQuestions = parseInt(params.totalQuestions as string) || 0;
     const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
     const passed = params.passed === "true";
     const unlockedNextChapter = params.unlockedNextChapter === "true";
@@ -23,12 +24,13 @@ export default function QuizResultScreen() {
     const nextChapterId = params.nextChapterId as string | undefined;
     const subjectId = params.subjectId as string | undefined;
     const attemptId = params.attemptId as string | undefined;
+    const quizId = params.quizId as string | undefined;
 
     const handleContinue = () => {
         if (unlockedNextChapter && nextChapterId) {
             router.replace({
                 pathname: "/(tabs)/learn/[id]",
-                params: { id: nextChapterId },
+                params: { id: nextChapterId, subjectId: subjectId || "" },
             } as any);
         } else if (subjectId) {
             router.replace({
@@ -42,7 +44,7 @@ export default function QuizResultScreen() {
 
     const handleReviewChapter = () => {
         if (params.id) {
-            router.push(`/(tabs)/learn/${params.id}`);
+            router.replace(`/(tabs)/learn/${params.id}`);
         } else {
             router.back();
         }
@@ -50,7 +52,7 @@ export default function QuizResultScreen() {
 
     const handleTryAgain = () => {
         if (params.id) {
-            router.push(`/(tabs)/learn/${params.id}/quiz`);
+            router.replace(`/(tabs)/learn/${params.id}/quiz`);
         } else {
             router.back();
         }
@@ -58,15 +60,23 @@ export default function QuizResultScreen() {
 
     const handleViewCorrections = () => {
         if (attemptId) {
-            router.push({
+            router.replace({
                 pathname: "/(tabs)/profile/quiz-corrections",
                 params: { attemptId },
+            } as any);
+        } else if (quizId) {
+            // Fallback: navigate to quiz corrections list for this quiz
+            router.replace({
+                pathname: "/(tabs)/profile/quiz-corrections",
+                params: { quizId },
             } as any);
         }
     };
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.container}>
+            <ScreenHeader title="Quiz Results" />
+            <ScrollView contentContainerStyle={styles.content}>
             {passed ? (
                 <>
                     <QuizCelebration
@@ -81,12 +91,10 @@ export default function QuizResultScreen() {
                         <Ionicons name="arrow-forward" size={20} color="#fff" />
                     </TouchableOpacity>
 
-                    {attemptId && (
-                        <TouchableOpacity style={styles.correctionsButton} onPress={handleViewCorrections}>
-                            <Ionicons name="document-text-outline" size={20} color="#F2B138" />
-                            <Text style={styles.correctionsButtonText}>View Corrections</Text>
-                        </TouchableOpacity>
-                    )}
+                    <TouchableOpacity style={styles.correctionsButton} onPress={handleViewCorrections}>
+                        <Ionicons name="document-text-outline" size={20} color="#F2B138" />
+                        <Text style={styles.correctionsButtonText}>View Corrections</Text>
+                    </TouchableOpacity>
                 </>
             ) : (
                 <>
@@ -129,20 +137,19 @@ export default function QuizResultScreen() {
                                 <Text style={styles.tryAgainButtonText}>Try Again</Text>
                             </TouchableOpacity>
 
-                            {attemptId && (
-                                <TouchableOpacity
-                                    style={styles.correctionsButton}
-                                    onPress={handleViewCorrections}
-                                >
-                                    <Ionicons name="document-text-outline" size={20} color="#F2B138" />
-                                    <Text style={styles.correctionsButtonText}>View Corrections</Text>
-                                </TouchableOpacity>
-                            )}
+                            <TouchableOpacity
+                                style={styles.correctionsButton}
+                                onPress={handleViewCorrections}
+                            >
+                                <Ionicons name="document-text-outline" size={20} color="#F2B138" />
+                                <Text style={styles.correctionsButtonText}>View Corrections</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </>
             )}
         </ScrollView>
+        </View>
     );
 }
 

@@ -487,10 +487,9 @@ export default function ProfileScreen() {
             <Modal
                 visible={editProfileModalVisible}
                 animationType="slide"
-                transparent
                 onRequestClose={() => setEditProfileModalVisible(false)}
             >
-                <View style={styles.requestModalOverlay}>
+                <View style={styles.feedbackModalOverlay}>
                     <View style={styles.requestModalCard}>
                         <Text style={styles.requestModalTitle}>Edit Profile</Text>
                         <Text style={styles.requestModalSubtitle}>Update the fields you want to change.</Text>
@@ -596,10 +595,9 @@ export default function ProfileScreen() {
             <Modal
                 visible={roleRequestModalVisible}
                 animationType="slide"
-                transparent
                 onRequestClose={closeRoleRequestModal}
             >
-                <View style={styles.requestModalOverlay}>
+                <View style={styles.feedbackModalOverlay}>
                     <View style={styles.requestModalCard}>
                         <Text style={styles.requestModalTitle}>Request Teacher Role</Text>
                         <Text style={styles.requestModalSubtitle}>
@@ -654,10 +652,9 @@ export default function ProfileScreen() {
             <Modal
                 visible={sessionsModalVisible}
                 animationType="slide"
-                presentationStyle="pageSheet"
                 onRequestClose={() => setSessionsModalVisible(false)}
             >
-                <View style={styles.modalContainer}>
+                <View style={styles.feedbackModalOverlay}>
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>Active Sessions</Text>
                         <TouchableOpacity onPress={() => setSessionsModalVisible(false)}>
@@ -724,10 +721,9 @@ export default function ProfileScreen() {
             <Modal
                 visible={feedbackModalVisible}
                 animationType="slide"
-                transparent
                 onRequestClose={() => setFeedbackModalVisible(false)}
             >
-                <View style={styles.requestModalOverlay}>
+                <View style={styles.feedbackModalOverlay}>
                     <View style={styles.requestModalCard}>
                         <Text style={styles.requestModalTitle}>Send Feedback</Text>
                         <Text style={styles.requestModalSubtitle}>
@@ -943,6 +939,12 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0, 0, 0, 0.4)",
         justifyContent: "center",
         padding: 20,
+    },
+    feedbackModalOverlay: {
+        flex: 1,
+        backgroundColor: "#FAFAFA",
+        padding: 20,
+        paddingTop: 60,
     },
     requestModalCard: {
         backgroundColor: "#fff",

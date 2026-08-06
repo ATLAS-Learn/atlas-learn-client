@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { StudentDetail, StudentStatus } from "@/lib/types";
 import { LEVEL_INFO } from "@/lib/constants/levels";
+import ScreenHeader from "@/components/ui/screen-header";
 
 export default function StudentDetailScreen() {
     const router = useRouter();
@@ -95,13 +96,7 @@ export default function StudentDetailScreen() {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Student Details</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="Student Details" />
 
             <View style={styles.card}>
                 <View style={styles.studentInfo}>
@@ -247,26 +242,6 @@ const styles = StyleSheet.create({
     errorText: {
         fontSize: 16,
         color: "#E57373",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
     },
     card: {
         backgroundColor: "#fff",
