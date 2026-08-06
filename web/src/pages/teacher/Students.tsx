@@ -14,9 +14,9 @@ export default function TeacherStudents() {
     setLoading(true)
     try {
       const res = await api.getTeacherStudents({ search: search || undefined, limit, offset: page * limit })
-      const data = res?.data?.students || res?.students || res?.data || res || []
+      const data = res?.data || res?.students || res || []
       setStudents(Array.isArray(data) ? data : [])
-      setTotal(res?.data?.total || res?.total || 0)
+      setTotal(res?.total || res?.data?.total || 0)
     } catch { setStudents([]) } finally { setLoading(false) }
   }, [search, page])
 

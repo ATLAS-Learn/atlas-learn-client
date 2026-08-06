@@ -45,6 +45,7 @@ export default function StudentDetail() {
 
   const overall = progress?.overall || progress
   const subjects = progress?.subjects || []
+  const topLevel = progress || {}
 
   return (
     <div className='space-y-6'>
@@ -63,9 +64,9 @@ export default function StudentDetail() {
       {/* Stats */}
       <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
         {[
-          { label: 'Overall Progress', value: `${overall?.completionPercentage ?? overall?.overall?.completionPercentage ?? 0}%`, color: 'bg-slate-100' },
-          { label: 'Level', value: overall?.level ?? overall?.overall?.level ?? 'N/A', color: 'bg-slate-100' },
-          { label: 'Assessment Score', value: overall?.assessmentScore ?? overall?.overall?.assessmentScore ?? 'N/A', color: 'bg-slate-100' },
+          { label: 'Overall Progress', value: `${overall?.completionPercentage ?? 0}%`, color: 'bg-slate-100' },
+          { label: 'Level', value: topLevel?.level ?? 'N/A', color: 'bg-slate-100' },
+          { label: 'Assessment Score', value: topLevel?.assessmentScore ?? 'N/A', color: 'bg-slate-100' },
           { label: 'Quiz Attempts', value: quizAttempts.length, color: 'bg-slate-100' },
         ].map((s, i) => (
           <div key={i} className='bg-white rounded-2xl border border-gray-200 p-5'>
@@ -115,9 +116,9 @@ export default function StudentDetail() {
                   </div>
                   <div className='grid grid-cols-3 gap-4'>
                     {[
-                      { label: 'Chapters', done: sub.chaptersCompleted ?? 0, total: sub.totalChapters ?? sub.chapters?.length ?? 0 },
-                      { label: 'Lessons', done: sub.lessonsCompleted ?? 0, total: sub.totalLessons ?? 0 },
-                      { label: 'Quizzes', done: sub.quizzesPassed ?? 0, total: sub.totalQuizzes ?? 0 },
+                      { label: 'Chapters', done: sub.chapters?.completed ?? 0, total: sub.chapters?.total ?? 0 },
+                      { label: 'Lessons', done: sub.lessons?.completed ?? 0, total: sub.lessons?.total ?? 0 },
+                      { label: 'Quizzes', done: sub.quizzes?.passed ?? 0, total: sub.quizzes?.total ?? 0 },
                     ].map((item, j) => (
                       <div key={j}>
                         <p className='text-xs text-gray-400 mb-0.5'>{item.label}</p>
