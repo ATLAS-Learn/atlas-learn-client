@@ -11,8 +11,10 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { apiClient } from "@/lib/api";
-import { Chapter, Lesson } from "@/lib/types";
+import { Chapter, LessonWithProgress } from "@/lib/types";
+import ScreenHeader from "@/components/ui/screen-header";
 
 export default function LessonsListScreen() {
     const router = useRouter();
@@ -21,8 +23,12 @@ export default function LessonsListScreen() {
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
 
     const [chapter, setChapter] = useState<Chapter | null>(null);
+<<<<<<< HEAD
     const [resolvedSubjectId, setResolvedSubjectId] = useState<string | null>(subjectKey || null);
     const [lessons, setLessons] = useState<Lesson[]>([]);
+=======
+    const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -57,11 +63,18 @@ export default function LessonsListScreen() {
     const loadLessons = useCallback(async (subjectIdOverride?: string) => {
         if (!chapterId) return;
         try {
+<<<<<<< HEAD
             const subjectIdForRequest = subjectIdOverride || resolvedSubjectId || subjectKey;
             const data = subjectIdForRequest
                 ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, { includeProgress: true })
                 : await apiClient.getChapterLessons(chapterId);
             setLessons(Array.isArray(data) ? data : []);
+=======
+            const data = resolvedSubjectId
+                ? await apiClient.getSubjectChapterLessons(resolvedSubjectId, chapterId, true)
+                : await apiClient.getChapterLessons(chapterId, true);
+            setLessons(Array.isArray(data) ? (data as LessonWithProgress[]) : []);
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to load lessons.");
         }
@@ -79,6 +92,14 @@ export default function LessonsListScreen() {
     useEffect(() => {
         initialize();
     }, [initialize]);
+
+    useFocusEffect(
+        useCallback(() => {
+            if (!loading) {
+                loadLessons();
+            }
+        }, [loading, loadLessons])
+    );
 
     const handleRefresh = async () => {
         setRefreshing(true);
@@ -113,13 +134,7 @@ export default function LessonsListScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Lessons</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="Lessons" />
 
             <ScrollView
                 style={styles.scrollView}
@@ -129,7 +144,7 @@ export default function LessonsListScreen() {
                 {chapter && (
                     <View style={styles.chapterCard}>
                         <Text style={styles.chapterTitle}>{chapter.title}</Text>
-                        <Text style={styles.chapterMeta}>Chapter {chapter.order}</Text>
+                        <Text style={styles.chapterMeta}>Chapter {chapter.orderIndex}</Text>
                     </View>
                 )}
 
@@ -139,6 +154,7 @@ export default function LessonsListScreen() {
                         <Text style={styles.emptyLessonsText}>No lessons yet.</Text>
                     </View>
                 ) : (
+<<<<<<< HEAD
                     lessons.map((lesson, index) => (
                         <TouchableOpacity key={lesson.id} style={styles.lessonCard} onPress={() => handleOpenLesson(lesson.id)}>
                             <View style={styles.lessonRow}>
@@ -173,11 +189,49 @@ export default function LessonsListScreen() {
                                             In progress • {Math.max(1, Math.ceil((getPrimaryLessonProgress(lesson)?.timeSpent || 0) / 60))} min spent
                                         </Text>
                                     ) : null}
+=======
+                    lessons.map((lesson, index) => {
+                        const isCompleted = lesson.isCompleted || (lesson.LessonProgress && lesson.LessonProgress.length > 0 && lesson.LessonProgress[0]?.isCompleted);
+                        return (
+                            <TouchableOpacity
+                                key={lesson.id}
+                                style={[
+                                    styles.lessonCard,
+                                    isCompleted && styles.lessonCardCompleted,
+                                ]}
+                                onPress={() => handleOpenLesson(lesson.id)}
+                            >
+                                <View style={styles.lessonRow}>
+                                    {isCompleted ? (
+                                        <View style={styles.lessonIndexCompleted}>
+                                            <Ionicons name="checkmark" size={14} color="#fff" />
+                                        </View>
+                                    ) : (
+                                        <Text style={styles.lessonIndex}>{lesson.orderIndex ?? index + 1}</Text>
+                                    )}
+                                    <View style={styles.lessonInfo}>
+                                        <Text
+                                            style={[
+                                                styles.lessonTitle,
+                                                isCompleted && styles.lessonTitleCompleted,
+                                            ]}
+                                            numberOfLines={2}
+                                        >
+                                            {lesson.title || "Untitled lesson"}
+                                        </Text>
+                                        <Text style={styles.lessonMeta}>
+                                            {lesson.durationMinutes
+                                                ? `${lesson.durationMinutes} min`
+                                                : "Time n/a"}
+                                            {isCompleted ? " \u2022 Completed" : ""}
+                                        </Text>
+                                    </View>
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                                 </View>
-                            </View>
-                            <Ionicons name="chevron-forward" size={20} color="#999" />
-                        </TouchableOpacity>
-                    ))
+                                <Ionicons name="chevron-forward" size={20} color={isCompleted ? "#4CAF50" : "#999"} />
+                            </TouchableOpacity>
+                        );
+                    })
                 )}
             </ScrollView>
         </View>
@@ -199,26 +253,6 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 16,
         color: "#666",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
     },
     scrollView: {
         flex: 1,
@@ -271,6 +305,10 @@ const styles = StyleSheet.create({
         borderColor: "#EAEAEA",
         marginBottom: 10,
     },
+    lessonCardCompleted: {
+        backgroundColor: "#E8F5E9",
+        borderColor: "#4CAF50",
+    },
     lessonRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -288,6 +326,14 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         fontSize: 13,
     },
+    lessonIndexCompleted: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: "#4CAF50",
+        alignItems: "center",
+        justifyContent: "center",
+    },
     lessonInfo: {
         flex: 1,
     },
@@ -301,6 +347,9 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: "#222",
         flex: 1,
+    },
+    lessonTitleCompleted: {
+        color: "#2E7D32",
     },
     lessonMeta: {
         marginTop: 4,

@@ -46,9 +46,17 @@ export default function SignIn() {
         });
       } catch (error: any) {
         const errorMessage = error.message || "Failed to send OTP. Please try again.";
-        
-        // If error is about email, show it inline
-        if (errorMessage.toLowerCase().includes("already exists") || errorMessage.toLowerCase().includes("email")) {
+
+        if (errorMessage.toLowerCase().includes("no account found") || errorMessage.toLowerCase().includes("please sign up")) {
+          Alert.alert(
+            "Account Not Found",
+            "No account exists with this email. Would you like to create one?",
+            [
+              { text: "Cancel", style: "cancel" },
+              { text: "Sign Up", onPress: () => router.push("/(auth)/signup") },
+            ]
+          );
+        } else if (errorMessage.toLowerCase().includes("email")) {
           setErrors({ email: errorMessage });
         } else {
           Alert.alert("Error", errorMessage);
@@ -77,13 +85,6 @@ export default function SignIn() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <TouchableOpacity
-            style={[styles.backArrow, { top: Math.max(32, Math.floor(height * 0.06)) }]}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-
           <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
             <Image
               source={require("@/assets/images/Blue atlas icon.png")}
@@ -110,7 +111,7 @@ export default function SignIn() {
             />
           </View>
           {errors.email && (
-            <Text style={{ color: "red", marginBottom: 10 }}>{errors.email}</Text>
+            <Text style={{ color: "#E57373", marginBottom: 10 }}>{errors.email}</Text>
           )}
 
           <TouchableOpacity
@@ -145,10 +146,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     paddingBottom: 100, // Increased bottom padding for keyboard
-  },
-  backArrow: {
-    position: "absolute",
-    left: 24,
   },
   logoContainer: {
     alignItems: "center",

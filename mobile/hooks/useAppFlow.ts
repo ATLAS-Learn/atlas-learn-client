@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
-import { useProgressStore } from "@/lib/store/progress";
 import { getItem, setItem } from "@/lib/utils/storage";
 import { apiClient } from "@/lib/api";
 
-const USER_CACHE_MAX_AGE_MS = 1000 * 60 * 15;
+const USER_CACHE_MAX_AGE_MS = 1000 * 60 * 30;
 
 function isBackendUserId(userId: string | undefined | null): userId is string {
   if (!userId) return false;
@@ -13,6 +13,7 @@ function isBackendUserId(userId: string | undefined | null): userId is string {
 }
 
 export function useAppFlow() {
+<<<<<<< HEAD
   const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(
     null
   );
@@ -49,12 +50,49 @@ export function useAppFlow() {
         setAssessmentComplete(null);
         setIsLoading(false);
         return;
-      }
+=======
+  const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, token, logout, hasHydrated } = useAuthStore();
+  const { user, lastSyncedAt, setUser } = useUserStore();
+  const appState = useRef(AppState.currentState);
+  const sessionChecked = useRef(false);
 
+  const validateSession = useCallback(async (): Promise<boolean> => {
+    try {
+      await apiClient.getCurrentUser();
+      return true;
+    } catch (error: any) {
+      if (error?.message?.includes("401") || error?.message?.includes("Unauthorized") || error?.message?.includes("session")) {
+        return false;
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
+      }
+      return true;
+    }
+  }, []);
+
+  // Session restore - runs once when hydration completes
+  useEffect(() => {
+    if (!hasHydrated) return;
+
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Already checked this session
+    if (sessionChecked.current) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function restoreSession() {
       try {
-        // Token sessions use Authorization header, cookie sessions rely on HTTP-only cookie.
         apiClient.setToken(token || null);
 
+<<<<<<< HEAD
         const hasUserIdentity = Boolean(
           isBackendUserId(user?.id) && user?.email && user?.name?.trim()
         );
@@ -63,21 +101,32 @@ export function useAppFlow() {
           Date.now() - lastSyncedAt < USER_CACHE_MAX_AGE_MS;
         const requiresFreshIdentity = !hasUserIdentity;
         const shouldRefreshUser = requiresFreshIdentity || !isFreshCache;
+=======
+        const isValid = await validateSession();
+        if (cancelled) return;
+
+        if (!isValid) {
+          await logout();
+          setIsLoading(false);
+          return;
+        }
+
+        const hasUserIdentity = Boolean(user?.id && user?.email && user?.name?.trim());
+        const isFreshCache = typeof lastSyncedAt === "number" && Date.now() - lastSyncedAt < USER_CACHE_MAX_AGE_MS;
+        const shouldRefreshUser = !hasUserIdentity || !isFreshCache;
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
         if (shouldRefreshUser) {
           try {
             const freshUser = await apiClient.getCurrentUser();
-            setUser(freshUser);
+            if (!cancelled) setUser(freshUser, { markSynced: true });
           } catch (error) {
-            // If user identity is incomplete, refresh is required for correct UI/auth state.
-            if (requiresFreshIdentity || !user) {
-              throw error;
-            }
-            // Otherwise keep cached user data on transient failures.
+            if (!hasUserIdentity && !cancelled) throw error;
           }
         }
 
-        // Check assessment completion (prefer local, fallback to server once)
+        if (cancelled) return;
+
         const assessment = await getItem("assessmentComplete");
         if (assessment === "true") {
           setAssessmentComplete(true);
@@ -86,30 +135,59 @@ export function useAppFlow() {
         } else {
           try {
             const status = await apiClient.getAssessmentStatus();
-            const completed = Boolean(status?.completed);
-            setAssessmentComplete(completed);
-            await setItem("assessmentComplete", completed ? "true" : "false");
+            if (!cancelled) {
+              const completed = Boolean(status?.completed);
+              setAssessmentComplete(completed);
+              await setItem("assessmentComplete", completed ? "true" : "false");
+            }
           } catch {
-            setAssessmentComplete(false);
+            if (!cancelled) setAssessmentComplete(false);
           }
         }
-        setIsLoading(false);
+
+        sessionChecked.current = true;
+        if (!cancelled) setIsLoading(false);
       } catch (error: any) {
-        // Token is invalid or expired (401/403)
         console.error("Session restore failed:", error);
-        
-        // Clear invalid token and logout
-        await logout();
-        setIsLoading(false);
+        if (!cancelled) {
+          await logout();
+          setIsLoading(false);
+        }
       }
     }
 
+<<<<<<< HEAD
     if (isAuthenticated !== null && isAuthenticated) {
       void restoreSession();
     } else if (isAuthenticated === false) {
       setIsLoading(false);
     }
   }, [bootstrapComplete, isAuthenticated, token, user, lastSyncedAt, setUser, logout]);
+=======
+    restoreSession();
+
+    return () => { cancelled = true; };
+  }, [hasHydrated, isAuthenticated]);
+
+  // Re-validate when app comes to foreground
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handleAppStateChange = async (nextState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextState === "active") {
+        apiClient.setToken(token || null);
+        const isValid = await validateSession();
+        if (!isValid) {
+          await logout();
+        }
+      }
+      appState.current = nextState;
+    };
+
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
+    return () => subscription?.remove();
+  }, [isAuthenticated, token, logout, validateSession]);
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
   return { onboardingComplete, assessmentComplete, isAuthenticated, user, isLoading };
 }

@@ -36,9 +36,12 @@ export default function QuestionCard({
     }
 
     const getOptionStyle = (index: number) => {
-        if (!showResult) {
-            return selectedAnswer === index ? styles.optionSelected : styles.option;
+        if (showResult) {
+            if (index === question.correctAnswerIndex) return styles.optionCorrect;
+            if (selectedAnswer === index && index !== question.correctAnswerIndex) return styles.optionIncorrect;
+            return styles.option;
         }
+<<<<<<< HEAD
 
         if (index === correctAnswer) {
             return styles.optionCorrect;
@@ -47,6 +50,9 @@ export default function QuestionCard({
             return styles.optionIncorrect;
         }
         return styles.option;
+=======
+        return selectedAnswer === index ? styles.optionSelected : styles.option;
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     };
 
     const handleSelectAnswer = (answerIndex: number) => {
@@ -68,13 +74,18 @@ export default function QuestionCard({
 
     return (
         <View style={styles.container}>
+<<<<<<< HEAD
             <Text style={styles.questionText}>{readableQuestion}</Text>
+=======
+            <Text style={styles.questionText}>{question.questionText}</Text>
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
             <View style={styles.optionsContainer}>
                 {question.options.map((option, index) => (
                     <Animated.View
                             key={index}
                         style={{ transform: [{ scale: pressAnimations.current[index] }] }}
                     >
+<<<<<<< HEAD
                         <TouchableOpacity
                             style={getOptionStyle(index)}
                             onPress={() => !showResult && handleSelectAnswer(index)}
@@ -98,6 +109,22 @@ export default function QuestionCard({
                             )}
                         </TouchableOpacity>
                     </Animated.View>
+=======
+                        <Text
+                            style={[
+                                styles.optionText,
+                                selectedAnswer === index && styles.optionTextSelected,
+                                showResult && index === question.correctAnswerIndex && styles.optionTextCorrect,
+                                showResult && selectedAnswer === index && index !== question.correctAnswerIndex && styles.optionTextIncorrect,
+                            ]}
+                        >
+                            {option}
+                        </Text>
+                        {showResult && index === question.correctAnswerIndex && (
+                            <Text style={styles.correctBadge}>✓ Correct</Text>
+                        )}
+                    </TouchableOpacity>
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                 ))}
             </View>
             {showResult && question.explanation && (
@@ -152,7 +179,7 @@ const styles = StyleSheet.create({
     },
     optionIncorrect: {
         borderWidth: 2,
-        borderColor: "#F44336",
+        borderColor: "#E57373",
         backgroundColor: "#FFEBEE",
         borderRadius: 12,
         padding: 16,
@@ -173,7 +200,7 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     optionTextIncorrect: {
-        color: "#C62828",
+        color: "#E57373",
         fontWeight: "600",
     },
     correctBadge: {

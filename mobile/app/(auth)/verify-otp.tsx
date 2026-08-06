@@ -21,7 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
-import { getItem } from "@/lib/utils/storage";
+import { getItem, setItem } from "@/lib/utils/storage";
 
 export default function VerifyOTPScreen() {
     const router = useRouter();
@@ -29,7 +29,7 @@ export default function VerifyOTPScreen() {
     const params = useLocalSearchParams<{ email?: string; mode?: string; fullName?: string }>();
     const { setAuth, setCookieAuth } = useAuthStore();
     const { setUser } = useUserStore();
-    
+
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(false);
     const [verificationState, setVerificationState] = useState<"idle" | "verifying" | "success">("idle");
@@ -42,6 +42,13 @@ export default function VerifyOTPScreen() {
     const email = params.email || "";
     const mode = params.mode === "signup" ? "signup" : "login";
     const fullName = params.fullName || "";
+
+    // Auto-verify when code reaches 6 digits
+    useEffect(() => {
+        if (code.length === 6 && !loading) {
+            handleVerify();
+        }
+    }, [code]);
 
     // Cleanup cooldown timer on unmount
     useEffect(() => {
@@ -64,7 +71,7 @@ export default function VerifyOTPScreen() {
                 return prev - 1;
             });
         }, 1000);
-        cooldownIntervalRef.current = interval;
+        cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
 
         return () => clearInterval(interval);
     }, []);
@@ -85,11 +92,12 @@ export default function VerifyOTPScreen() {
         setVerificationState("verifying");
         try {
             const response = await apiClient.verifyOTP(email, code);
-            
-            // Set auth token and user
-            if (response.token) {
-                await setAuth(response.token);
-                apiClient.setToken(response.token);
+
+            // Set auth token and user — server returns session.token from better-auth
+            const authToken = response.token || response.session?.token || null;
+            if (authToken) {
+                await setAuth(authToken);
+                apiClient.setToken(authToken);
             } else {
                 await setCookieAuth();
                 apiClient.setToken(null);
@@ -102,6 +110,7 @@ export default function VerifyOTPScreen() {
                 setUser(response.user, { markSynced: false });
             }
 
+<<<<<<< HEAD
             // Check if assessment is complete
             const assessmentComplete = await getItem("assessmentComplete");
             setVerificationState("success");
@@ -110,6 +119,22 @@ export default function VerifyOTPScreen() {
             setTimeout(() => {
                 router.replace(redirectTarget as any);
             }, 1200);
+=======
+            // New signups always go through onboarding (select subjects + assessment)
+            // Only check stored flag for returning users (login mode)
+            if (mode === "signup") {
+                // Clear assessment flag so useAppFlow doesn't override onboarding navigation
+                await setItem("assessmentComplete", "false");
+                router.replace("/(onboarding)");
+            } else {
+                const assessmentComplete = await getItem("assessmentComplete");
+                if (assessmentComplete === "true") {
+                    router.replace("/(tabs)");
+                } else {
+                    router.replace("/(onboarding)");
+                }
+            }
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
         } catch (error: any) {
             setVerificationState("idle");
             setError(error.message || "Invalid verification code. Please try again.");
@@ -140,7 +165,7 @@ export default function VerifyOTPScreen() {
                 await apiClient.requestOTP(email);
             }
             Alert.alert("Success", "Verification code has been resent to your email.");
-            
+
             // Start 60s cooldown timer
             setCooldown(60);
             if (cooldownIntervalRef.current) {
@@ -155,7 +180,7 @@ export default function VerifyOTPScreen() {
                     return prev - 1;
                 });
             }, 1000);
-            cooldownIntervalRef.current = interval;
+            cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to resend verification code.");
         } finally {
@@ -182,9 +207,74 @@ export default function VerifyOTPScreen() {
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                     >
+<<<<<<< HEAD
                         <TouchableOpacity
                             style={[styles.backArrow, { top: Math.max(32, Math.floor(height * 0.06)) }]}
                             onPress={() => router.back()}
+=======
+                        <Ionicons name="arrow-back" size={24} color="#000" />
+                    </TouchableOpacity>
+
+                    <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
+                        <Ionicons name="keypad-outline" size={80} color="#F2B138" />
+                    </View>
+
+                    <Text style={styles.title}>Enter Verification Code</Text>
+                    <Text style={styles.subtitle}>
+                        We&apos;ve sent a verification code to {email ? email : "your email"}. Please enter it below.
+                    </Text>
+
+                    <TouchableOpacity style={styles.otpContainer} onPress={() => otpInputRef.current?.focus()}>
+                        {Array.from({ length: 6 }).map((_, index) => {
+                            const digit = code[index] || "";
+                            const isActive = code.length === index;
+                            return (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.otpBox,
+                                        isActive && styles.otpBoxActive,
+                                    ]}
+                                >
+                                    <Text style={styles.otpDigit}>{digit}</Text>
+                                </View>
+                            );
+                        })}
+                        <TextInput
+                            ref={otpInputRef}
+                            value={code}
+                            onChangeText={(text) => {
+                                setCode(text.replace(/\D/g, "").slice(0, 6));
+                                setError("");
+                            }}
+                            keyboardType="number-pad"
+                            maxLength={6}
+                            style={styles.hiddenInput}
+                            autoFocus
+                        />
+                    </TouchableOpacity>
+                    {error && <Text style={styles.errorText}>{error}</Text>}
+
+                    <TouchableOpacity
+                        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                        onPress={handleVerify}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.submitButtonText}>
+                                {mode === "signup" ? "Verify & Create Account" : "Verify & Sign In"}
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+
+                    <View style={styles.resendContainer}>
+                        <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
+                        <TouchableOpacity
+                            onPress={handleResend}
+                            disabled={resending || cooldown > 0}
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                         >
                             <Ionicons name="arrow-back" size={24} color="#000" />
                         </TouchableOpacity>
@@ -378,7 +468,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     errorText: {
-        color: "red",
+        color: "#E57373",
         marginBottom: 10,
         fontSize: 12,
         textAlign: "center",

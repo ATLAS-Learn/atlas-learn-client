@@ -10,18 +10,34 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+<<<<<<< HEAD
       "bundleIdentifier": "com.anonymous.atlaslearnmobile"
+=======
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow Atlas Learn to access your camera to take a profile picture.",
+        "NSPhotoLibraryUsageDescription": "Allow Atlas Learn to access your photos to select a profile picture."
+      },
+      "bundleIdentifier": "com.atlaslearn.app"
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     },
     "android": {
+      "package": "com.atlaslearn.app",
       "adaptiveIcon": {
-        "backgroundColor": "#FAFAFA",
+        "backgroundColor": "#1F2524",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+<<<<<<< HEAD
       "package": "com.anonymous.atlaslearnmobile"
+=======
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO"
+      ]
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     },
     "web": {
       "output": "static",
@@ -30,19 +46,33 @@
     },
     "plugins": [
       "expo-router",
+      "expo-image-picker",
       [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#FAFAFA"
+          "backgroundColor": "#1F2524"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2296911e-108a-4fae-94d1-293dc9e547cc"
+      }
+    },
+    "owner": "oumate",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/2296911e-108a-4fae-94d1-293dc9e547cc"
     }
   }
 }

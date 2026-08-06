@@ -1,9 +1,10 @@
 import React, { createContext, useContext } from "react";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
+import { User } from "@/lib/types";
 
 type AuthContextType = {
-  user: ReturnType<typeof useUserStore>["user"];
+  user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
 };

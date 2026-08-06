@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import ScreenHeader from "@/components/ui/screen-header";
 import { apiClient } from "@/lib/api";
 import { Chapter } from "@/lib/types";
 import { useUserStore } from "@/lib/store/user";
@@ -32,6 +33,7 @@ export default function ChaptersListScreen() {
     const highlightAnimation = useRef(new Animated.Value(0)).current;
     const [chapters, setChapters] = useState<Chapter[]>([]);
     const [completedChapters, setCompletedChapters] = useState<Set<string>>(new Set());
+    const [lessonCounts, setLessonCounts] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [activeHighlightChapterId, setActiveHighlightChapterId] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export default function ChaptersListScreen() {
                 apiClient.getOverallProgress(),
             ]);
 
-            const sortedAllChapters = [...data].sort((a, b) => a.order - b.order);
+            const sortedAllChapters = [...data].sort((a, b) => a.orderIndex - b.orderIndex);
             const completedCount = Math.max(
                 0,
                 Math.min(progressData?.overall?.chapters?.completed || 0, sortedAllChapters.length)
@@ -54,13 +56,24 @@ export default function ChaptersListScreen() {
 
             // Filter chapters by user level if set
             let filteredChapters = data;
-            if (user?.level) {
-                filteredChapters = data.filter((chapter) => chapter.level === user.level);
-            }
-            // Sort by order
-            filteredChapters.sort((a, b) => a.order - b.order);
+            // Sort by orderIndex
+            filteredChapters.sort((a, b) => a.orderIndex - b.orderIndex);
             setChapters(filteredChapters);
             setCompletedChapters(completedChapterIds);
+
+            // Fetch lesson counts for each chapter in parallel
+            const counts: Record<string, number> = {};
+            await Promise.all(
+                filteredChapters.map(async (chapter) => {
+                    try {
+                        const lessons = await apiClient.getChapterLessons(chapter.id);
+                        counts[chapter.id] = lessons.length;
+                    } catch {
+                        counts[chapter.id] = 0;
+                    }
+                })
+            );
+            setLessonCounts(counts);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to load chapters. Please try again.");
         } finally {
@@ -192,13 +205,7 @@ export default function ChaptersListScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>All Chapters</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="All Chapters" />
 
             <ScrollView
                 ref={scrollViewRef}
@@ -215,6 +222,7 @@ export default function ChaptersListScreen() {
                     chapters.map((chapter, index) => {
                         const completed = isChapterCompleted(chapter.id);
                         const locked = isChapterLocked(chapter, index);
+<<<<<<< HEAD
                         const levelColor = getLevelColor(chapter.level);
                         const isHighlighted = activeHighlightChapterId === chapter.id;
                         const highlightedBackground = highlightAnimation.interpolate({
@@ -229,6 +237,8 @@ export default function ChaptersListScreen() {
                             inputRange: [0, 1],
                             outputRange: [1, 1.015],
                         });
+=======
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
                         return (
                             <Animated.View
@@ -254,6 +264,7 @@ export default function ChaptersListScreen() {
                                     chapterOffsetsRef.current[chapter.id] = event.nativeEvent.layout.y;
                                 }}
                             >
+<<<<<<< HEAD
                                 <TouchableOpacity
                                     style={styles.chapterTapArea}
                                     onPress={() => !locked && handleChapterPress(chapter.id)}
@@ -309,6 +320,44 @@ export default function ChaptersListScreen() {
                                     </View>
                                 </TouchableOpacity>
                             </Animated.View>
+=======
+                                <View style={styles.chapterTitleRow}>
+                                    <Text style={styles.chapterNumber}>Chapter {chapter.orderIndex}</Text>
+                                    {completed && (
+                                        <View style={styles.completedBadge}>
+                                            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                                            <Text style={styles.completedText}>Completed</Text>
+                                        </View>
+                                    )}
+                                    {locked && (
+                                        <View style={styles.lockedBadge}>
+                                            <Ionicons name="lock-closed" size={16} color="#999" />
+                                            <Text style={styles.lockedText}>Locked</Text>
+                                        </View>
+                                    )}
+                                </View>
+                                <Text style={styles.chapterTitle}>{chapter.title}</Text>
+                                {!!chapter.description && (
+                                    <Text style={styles.chapterDescription} numberOfLines={2}>
+                                        {chapter.description}
+                                    </Text>
+                                )}
+
+                                <View style={styles.chapterFooter}>
+                                    <View style={styles.metaInfo}>
+                                        <Ionicons name="time-outline" size={14} color="#666" />
+                                        <Text style={styles.metaText}>{chapter.estimatedMinutes} min</Text>
+                                    </View>
+                                    <View style={styles.metaInfo}>
+                                        <Ionicons name="book-outline" size={14} color="#666" />
+                                        <Text style={styles.metaText}>{lessonCounts[chapter.id] ?? 0} lessons</Text>
+                                    </View>
+                                    {!locked && (
+                                        <Ionicons name="chevron-forward" size={20} color="#999" style={{ marginLeft: "auto" }} />
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                         );
                     })
                 )}
@@ -333,26 +382,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: "#666",
     },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
-    },
+
     scrollView: {
         flex: 1,
     },
@@ -387,15 +417,6 @@ const styles = StyleSheet.create({
     chapterCardCompleted: {
         borderColor: "#4CAF50",
         borderWidth: 2,
-    },
-    chapterHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        marginBottom: 12,
-    },
-    chapterInfo: {
-        flex: 1,
     },
     chapterTitleRow: {
         flexDirection: "row",

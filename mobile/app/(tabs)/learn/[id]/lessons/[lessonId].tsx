@@ -2,7 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Keyboard,
+    KeyboardAvoidingView,
     Linking,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -12,8 +15,15 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
+import Markdown from "react-native-markdown-display";
 import { apiClient } from "@/lib/api";
-import { Lesson } from "@/lib/types";
+import { Lesson, LessonWithProgress } from "@/lib/types";
+import ScreenHeader from "@/components/ui/screen-header";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+
+const LESSON_CACHE_PREFIX = "cache:lesson:";
+const LESSON_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 const safeNumber = (value: string): number | undefined => {
     const trimmed = value.trim();
@@ -38,6 +48,7 @@ const normalizeStringArray = (value: unknown): string[] => {
 
 export default function LessonDetailScreen() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { id, lessonId, subjectId } = useLocalSearchParams<{
         id: string;
         lessonId: string;
@@ -47,13 +58,29 @@ export default function LessonDetailScreen() {
     const lessonKey = Array.isArray(lessonId) ? lessonId[0] : lessonId;
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
 
-    const [lesson, setLesson] = useState<Lesson | null>(null);
+    const [lesson, setLesson] = useState<LessonWithProgress | null>(null);
     const [loading, setLoading] = useState(true);
     const [updatingProgress, setUpdatingProgress] = useState(false);
     const [completingLesson, setCompletingLesson] = useState(false);
+<<<<<<< HEAD
     const [watchTime, setWatchTime] = useState("300");
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const watchTimePresets = [300, 600, 1200, 1800];
+=======
+    const [watchTime, setWatchTime] = useState("");
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
+    const watchTimePresets = [300, 600, 1200, 1800];
+
+    // Set default watch time from lesson's estimated duration
+    useEffect(() => {
+        if (lesson?.durationMinutes && !watchTime) {
+            setWatchTime(String(lesson.durationMinutes * 60));
+        }
+    }, [lesson?.durationMinutes]);
+
+    const isLessonCompleted = lesson?.isCompleted ||
+        (lesson?.LessonProgress && lesson.LessonProgress.length > 0 && lesson.LessonProgress[0]?.isCompleted) || false;
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
     const examples = useMemo(() => normalizeStringArray(lesson?.examples), [lesson]);
     const keyPoints = useMemo(() => normalizeStringArray(lesson?.keyPoints), [lesson]);
@@ -68,13 +95,28 @@ export default function LessonDetailScreen() {
             router.back();
             return;
         }
-        setLoading(true);
+
+        const cacheKey = `${LESSON_CACHE_PREFIX}${subjectKey}:${chapterId}:${lessonKey}`;
+
+        // Try loading from cache first for instant display
+        const cached = getCacheSync<LessonWithProgress>(cacheKey);
+        if (cached) {
+            setLesson(cached);
+            setLoading(false);
+        }
+
+        // Always fetch fresh data from server
         try {
-            const data = await apiClient.getSubjectChapterLesson(subjectKey, chapterId, lessonKey);
+            const data = await apiClient.getSubjectChapterLesson(subjectKey, chapterId, lessonKey, true);
             setLesson(data);
+            // Cache the lesson content for offline/fast subsequent loads
+            setCache(cacheKey, data, LESSON_CACHE_TTL).catch(() => {});
         } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to load lesson.");
-            router.back();
+            if (!cached) {
+                Alert.alert("Error", error.message || "Failed to load lesson.");
+                router.back();
+            }
+            // If we have cached data, keep showing it even if fetch fails
         } finally {
             setLoading(false);
         }
@@ -117,7 +159,11 @@ export default function LessonDetailScreen() {
         setUpdatingProgress(true);
         setStatusMessage(null);
         try {
+<<<<<<< HEAD
             const timeSpent = safeNumber(watchTime) ?? 0;
+=======
+            const timeSpent = safeNumber(watchTime) || 0;
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
             const response = await apiClient.updateSubjectChapterLessonProgress(
                 subjectKey,
                 chapterId,
@@ -127,6 +173,7 @@ export default function LessonDetailScreen() {
                 }
             );
             setStatusMessage(response.message || "Progress updated.");
+            await queryClient.invalidateQueries({ queryKey: ["progress"] });
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to update lesson progress.");
         } finally {
@@ -139,11 +186,36 @@ export default function LessonDetailScreen() {
         setCompletingLesson(true);
         setStatusMessage(null);
         try {
+<<<<<<< HEAD
             const timeSpent = safeNumber(watchTime) ?? 0;
             const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey, {
                 timeSpent,
             });
+=======
+            // Auto-save progress with estimated time before completing
+            const timeSpent = safeNumber(watchTime) || (lesson?.durationMinutes ? lesson.durationMinutes * 60 : 0);
+            if (timeSpent > 0) {
+                try {
+                    await apiClient.updateSubjectChapterLessonProgress(
+                        subjectKey,
+                        chapterId,
+                        lessonKey,
+                        { timeSpent }
+                    );
+                } catch {
+                    // Progress save is best-effort; continue with completion
+                }
+            }
+            const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey);
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
             setStatusMessage(response.message || "Lesson marked as completed.");
+            await queryClient.invalidateQueries({ queryKey: ["progress"] });
+            // Use dismiss to pop back to the lessons list without stacking entries
+            router.dismiss();
+            Alert.alert(
+                "Lesson Complete",
+                "Great job! Moving to the next lesson."
+            );
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to complete lesson.");
         } finally {
@@ -169,15 +241,14 @@ export default function LessonDetailScreen() {
     }
 
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Lesson</Text>
-                <View style={styles.backButton} />
-            </View>
+            <KeyboardAvoidingView
+                style={styles.container}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+            >
+                <ScreenHeader title="Lesson" />
 
+<<<<<<< HEAD
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
                 <View style={styles.lessonHeaderRow}>
                     <Text style={styles.lessonTitle}>{lesson.title || "Untitled lesson"}</Text>
@@ -193,6 +264,16 @@ export default function LessonDetailScreen() {
                     <Text style={styles.lessonMeta}>
                         Estimated {Math.ceil(lesson.durationSeconds / 60)} min
                     </Text>
+=======
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.content}
+                    keyboardShouldPersistTaps="handled"
+                >
+                <Text style={styles.lessonTitle}>{lesson.title || "Untitled lesson"}</Text>
+                {lesson.durationMinutes ? (
+                    <Text style={styles.lessonMeta}>Estimated {lesson.durationMinutes} min</Text>
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                 ) : null}
                 {primaryProgress?.isCompleted ? (
                     <Text style={styles.progressSummaryText}>
@@ -207,7 +288,13 @@ export default function LessonDetailScreen() {
                     </Text>
                 ) : null}
 
-                {lesson.content ? <Text style={styles.lessonContent}>{lesson.content}</Text> : null}
+                {lesson.content ? (
+                    <View style={styles.markdownContainer}>
+                        <Markdown style={markdownStyles}>
+                            {lesson.content}
+                        </Markdown>
+                    </View>
+                ) : null}
 
                 {examples.length > 0 && (
                     <View style={styles.sectionCard}>
@@ -249,6 +336,7 @@ export default function LessonDetailScreen() {
 
                 <View style={styles.sectionCard}>
                     <Text style={styles.sectionTitle}>Track Your Progress</Text>
+<<<<<<< HEAD
                     <Text style={styles.sectionHelper}>
                         1) Add study time, then tap Save Progress.
                     </Text>
@@ -258,23 +346,62 @@ export default function LessonDetailScreen() {
                     <Text style={styles.fieldLabel}>Quick Study Time</Text>
                     <View style={styles.quickRow}>
                         {watchTimePresets.map((value) => (
+=======
+                    {isLessonCompleted ? (
+                        <View style={styles.completedBadge}>
+                            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                            <Text style={styles.completedBadgeText}>Lesson Completed</Text>
+                        </View>
+                    ) : (
+                        <>
+                            <Text style={styles.sectionHelper}>
+                                Add study time and tap Save Progress. When you finish, tap Mark Lesson Complete.
+                            </Text>
+                            <Text style={styles.fieldLabel}>Quick Study Time</Text>
+                            <View style={styles.quickRow}>
+                                {watchTimePresets.map((value) => (
+                                    <TouchableOpacity
+                                        key={value}
+                                        style={[
+                                            styles.quickButton,
+                                            watchTime === String(value) && styles.quickButtonActive,
+                                        ]}
+                                        onPress={() => setWatchTime(String(value))}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.quickButtonText,
+                                                watchTime === String(value) && styles.quickButtonTextActive,
+                                            ]}
+                                        >
+                                            {Math.round(value / 60)}m
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                            <View style={styles.inputWrap}>
+                                <Text style={styles.fieldLabel}>Study Time (seconds)</Text>
+                                <TextInput
+                                    style={styles.progressInput}
+                                    value={watchTime}
+                                    onChangeText={setWatchTime}
+                                    keyboardType="number-pad"
+                                    placeholder="e.g. 300"
+                                />
+                            </View>
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                             <TouchableOpacity
-                                key={value}
-                                style={[
-                                    styles.quickButton,
-                                    watchTime === String(value) && styles.quickButtonActive,
-                                ]}
-                                onPress={() => setWatchTime(String(value))}
+                                style={styles.progressButton}
+                                onPress={handleUpdateProgress}
+                                disabled={updatingProgress}
                             >
-                                <Text
-                                    style={[
-                                        styles.quickButtonText,
-                                        watchTime === String(value) && styles.quickButtonTextActive,
-                                    ]}
-                                >
-                                    {Math.round(value / 60)}m
-                                </Text>
+                                {updatingProgress ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.progressButtonText}>Save Progress</Text>
+                                )}
                             </TouchableOpacity>
+<<<<<<< HEAD
                         ))}
                     </View>
                     <View style={styles.progressRow}>
@@ -314,10 +441,28 @@ export default function LessonDetailScreen() {
                             <Text style={styles.completeButtonText}>Mark Lesson Complete</Text>
                         )}
                     </TouchableOpacity>
+=======
+                            <Text style={styles.sectionHelper}>
+                                Your dashboard progress updates after this is saved by the server.
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.completeButton}
+                                onPress={handleCompleteLesson}
+                                disabled={completingLesson}
+                            >
+                                {completingLesson ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.completeButtonText}>Mark Lesson Complete</Text>
+                                )}
+                            </TouchableOpacity>
+                        </>
+                    )}
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                     {statusMessage ? <Text style={styles.statusMessage}>{statusMessage}</Text> : null}
                 </View>
             </ScrollView>
-        </View>
+            </KeyboardAvoidingView>
     );
 }
 
@@ -325,26 +470,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#FAFAFA",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
     },
     scrollView: {
         flex: 1,
@@ -513,6 +638,20 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         fontSize: 14,
     },
+    completedBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        backgroundColor: "#E8F5E9",
+        padding: 12,
+        borderRadius: 10,
+        marginBottom: 12,
+    },
+    completedBadgeText: {
+        color: "#2E7D32",
+        fontWeight: "700",
+        fontSize: 14,
+    },
     statusMessage: {
         marginTop: 12,
         fontSize: 12,
@@ -532,6 +671,103 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 16,
-        color: "#F44336",
+        color: "#E57373",
+    },
+    markdownContainer: {
+        marginBottom: 20,
     },
 });
+
+const markdownStyles = {
+    body: {
+        fontSize: 16,
+        color: "#333",
+        lineHeight: 24,
+    },
+    heading1: {
+        fontSize: 22,
+        fontWeight: "700" as const,
+        color: "#1F2524",
+        marginBottom: 12,
+        marginTop: 16,
+    },
+    heading2: {
+        fontSize: 20,
+        fontWeight: "700" as const,
+        color: "#1F2524",
+        marginBottom: 10,
+        marginTop: 14,
+    },
+    heading3: {
+        fontSize: 18,
+        fontWeight: "700" as const,
+        color: "#1F2524",
+        marginBottom: 8,
+        marginTop: 12,
+    },
+    paragraph: {
+        fontSize: 16,
+        color: "#333",
+        lineHeight: 24,
+        marginBottom: 12,
+    },
+    strong: {
+        fontWeight: "700" as const,
+        color: "#1F2524",
+    },
+    em: {
+        fontStyle: "italic" as const,
+    },
+    link: {
+        color: "#F2B138",
+        textDecorationLine: "underline" as const,
+    },
+    bullet_list: {
+        marginBottom: 12,
+    },
+    listItem: {
+        fontSize: 16,
+        color: "#333",
+        lineHeight: 24,
+        marginBottom: 4,
+    },
+    code_inline: {
+        backgroundColor: "#F0F0F0",
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: 4,
+        fontSize: 14,
+        fontFamily: "monospace",
+        color: "#E65100",
+    },
+    code_block: {
+        backgroundColor: "#F0F0F0",
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 12,
+        fontFamily: "monospace",
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    fence: {
+        backgroundColor: "#F0F0F0",
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 12,
+        fontFamily: "monospace",
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    blockquote: {
+        borderLeftWidth: 3,
+        borderLeftColor: "#F2B138",
+        paddingLeft: 12,
+        marginLeft: 0,
+        marginBottom: 12,
+    },
+    hr: {
+        backgroundColor: "#E0E0E0",
+        height: 1,
+        marginVertical: 16,
+    },
+};

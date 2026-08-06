@@ -12,9 +12,11 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import QuizCelebration from "@/components/quizzes/quiz-celebration";
+import ScreenHeader from "@/components/ui/screen-header";
 
 export default function QuizResultScreen() {
     const router = useRouter();
+<<<<<<< HEAD
     const params = useLocalSearchParams<{
         id: string;
         subjectId?: string;
@@ -26,13 +28,17 @@ export default function QuizResultScreen() {
         unlockedNextChapter: string;
         quizId?: string;
     }>();
+=======
+    const params = useLocalSearchParams<{ id: string; score: string; correctAnswers: string; totalQuestions: string; passed: string; unlockedNextChapter: string; nextChapterTitle?: string; nextChapterId?: string; quizId?: string; subjectId?: string; attemptId?: string }>();
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
     const score = parseInt(params.score as string) || 0;
+    const correctAnswers = parseInt(params.correctAnswers as string) || 0;
     const totalQuestions = parseInt(params.totalQuestions as string) || 0;
-    const percentage = parseFloat(params.percentage as string) || 0;
+    const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
     const passed = params.passed === "true";
-    const pastPaperReference = params.pastPaperReference as string | undefined;
     const unlockedNextChapter = params.unlockedNextChapter === "true";
+<<<<<<< HEAD
     const subjectId = Array.isArray(params.subjectId) ? params.subjectId[0] : params.subjectId;
     const headerAnimation = useRef(new Animated.Value(0)).current;
     const scoreAnimation = useRef(new Animated.Value(0)).current;
@@ -132,18 +138,40 @@ export default function QuizResultScreen() {
             Alert.alert("Error", error?.message || "Could not open the unlocked chapter list.");
         } finally {
             setContinuing(false);
+=======
+    const nextChapterTitle = params.nextChapterTitle as string | undefined;
+    const nextChapterId = params.nextChapterId as string | undefined;
+    const subjectId = params.subjectId as string | undefined;
+    const attemptId = params.attemptId as string | undefined;
+    const quizId = params.quizId as string | undefined;
+
+    const handleContinue = () => {
+        if (unlockedNextChapter && nextChapterId) {
+            router.replace({
+                pathname: "/(tabs)/learn/[id]",
+                params: { id: nextChapterId, subjectId: subjectId || "" },
+            } as any);
+        } else if (subjectId) {
+            router.replace({
+                pathname: "/(tabs)/learn/subjects/[subjectId]",
+                params: { subjectId },
+            } as any);
+        } else {
+            router.replace("/(tabs)/learn");
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
         }
     };
 
     const handleReviewChapter = () => {
         if (params.id) {
-            router.push(`/(tabs)/learn/${params.id}`);
+            router.replace(`/(tabs)/learn/${params.id}`);
         } else {
             router.back();
         }
     };
 
     const handleTryAgain = () => {
+<<<<<<< HEAD
         if (!params.id) {
             return router.back();
         }
@@ -152,30 +180,74 @@ export default function QuizResultScreen() {
                 pathname: "/(tabs)/learn/[id]/quiz",
                 params: { id: params.id, subjectId },
             } as any);
+=======
+        if (params.id) {
+            router.replace(`/(tabs)/learn/${params.id}/quiz`);
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
         } else {
             router.push(`/(tabs)/learn/${params.id}/quiz`);
         }
     };
 
+    const handleViewCorrections = () => {
+        if (attemptId) {
+            router.push({
+                pathname: "/(tabs)/profile/quiz-corrections",
+                params: { attemptId },
+            } as any);
+        } else if (quizId) {
+            router.push({
+                pathname: "/(tabs)/profile/quiz-corrections",
+                params: { quizId },
+            } as any);
+        }
+    };
+
     return (
+<<<<<<< HEAD
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <Animated.View style={headerStyle}>
                 {passed ? (
+=======
+        <View style={styles.container}>
+            <ScreenHeader title="Quiz Results" />
+            <ScrollView contentContainerStyle={styles.content}>
+            {passed ? (
+                <>
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                     <QuizCelebration
-                        score={score}
+                        score={correctAnswers}
                         totalQuestions={totalQuestions}
-                        pastPaperReference={pastPaperReference}
                     />
+<<<<<<< HEAD
                 ) : (
+=======
+
+                    <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+                        <Text style={styles.continueButtonText}>
+                            {unlockedNextChapter ? "Continue to Next Chapter" : "Back to Dashboard"}
+                        </Text>
+                        <Ionicons name="arrow-forward" size={20} color="#fff" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.correctionsButton} onPress={handleViewCorrections}>
+                        <Ionicons name="document-text-outline" size={20} color="#F2B138" />
+                        <Text style={styles.correctionsButtonText}>View Corrections</Text>
+                    </TouchableOpacity>
+                </>
+            ) : (
+                <>
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                     <View style={styles.failureContainer}>
                         <View style={styles.iconContainer}>
                             <View style={styles.iconCircle}>
-                                <Ionicons name="refresh" size={60} color="#F44336" />
+                                <Ionicons name="refresh" size={60} color="#E57373" />
                             </View>
                         </View>
 
                         <Text style={styles.failureTitle}>Let&apos;s Review That Again</Text>
 
+<<<<<<< HEAD
                         <Animated.View style={scoreStyle}>
                             <View style={styles.scoreContainer}>
                                 <Text style={styles.scoreText}>
@@ -184,6 +256,14 @@ export default function QuizResultScreen() {
                                 <Text style={styles.percentageText}>{Math.round(percentage)}%</Text>
                             </View>
                         </Animated.View>
+=======
+                        <View style={styles.scoreContainer}>
+                            <Text style={styles.scoreText}>
+                                {correctAnswers} / {totalQuestions}
+                            </Text>
+                            <Text style={styles.percentageText}>{Math.round(percentage)}%</Text>
+                        </View>
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
                         <View style={styles.messageContainer}>
                             <Text style={styles.messageText}>
@@ -207,6 +287,14 @@ export default function QuizResultScreen() {
                                 <Ionicons name="refresh" size={20} color="#fff" />
                                 <Text style={styles.tryAgainButtonText}>Try Again</Text>
                             </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.correctionsButton}
+                                onPress={handleViewCorrections}
+                            >
+                                <Ionicons name="document-text-outline" size={20} color="#F2B138" />
+                                <Text style={styles.correctionsButtonText}>View Corrections</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 )}
@@ -225,6 +313,7 @@ export default function QuizResultScreen() {
                 </TouchableOpacity>
             </Animated.View>
         </ScrollView>
+        </View>
     );
 }
 
@@ -341,7 +430,27 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "700",
     },
+<<<<<<< HEAD
     continueButtonDisabled: {
         opacity: 0.7,
+=======
+    correctionsButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        backgroundColor: "#fff",
+        borderWidth: 2,
+        borderColor: "#F2B138",
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 25,
+        marginTop: 12,
+    },
+    correctionsButtonText: {
+        color: "#F2B138",
+        fontSize: 16,
+        fontWeight: "700",
+>>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     },
 });

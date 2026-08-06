@@ -47,7 +47,7 @@ export default function AdminRoleUpgradesScreen() {
   };
 
   const handleApprove = (request: PendingRoleUpgradeRequest) => {
-    const userId = request.userId || request.user?.id;
+    const userId = request.user?.id;
     if (!userId) {
       Alert.alert("Error", "User id missing for this request.");
       return;
@@ -62,7 +62,7 @@ export default function AdminRoleUpgradesScreen() {
           try {
             const response = await apiClient.approveRoleUpgrade(userId);
             Alert.alert("Success", response.message || "Role upgraded successfully.");
-            setRequests((prev) => prev.filter((item) => item.id !== request.id));
+            setRequests((prev) => prev.filter((item) => item.requestId !== request.requestId));
           } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to approve request.");
           } finally {
@@ -74,7 +74,7 @@ export default function AdminRoleUpgradesScreen() {
   };
 
   const handleReject = (request: PendingRoleUpgradeRequest) => {
-    const userId = request.userId || request.user?.id;
+    const userId = request.user?.id;
     if (!userId) {
       Alert.alert("Error", "User id missing for this request.");
       return;
@@ -90,7 +90,7 @@ export default function AdminRoleUpgradesScreen() {
           try {
             const response = await apiClient.rejectRoleUpgrade(userId);
             Alert.alert("Success", response.message || "Role upgrade rejected.");
-            setRequests((prev) => prev.filter((item) => item.id !== request.id));
+            setRequests((prev) => prev.filter((item) => item.requestId !== request.requestId));
           } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to reject request.");
           } finally {
@@ -136,11 +136,11 @@ export default function AdminRoleUpgradesScreen() {
           </View>
         ) : (
           requests.map((request) => {
-            const userId = request.userId || request.user?.id || "";
+            const userId = request.user?.id || "";
             const busy = processingUserId === userId;
 
             return (
-              <View key={request.id} style={styles.card}>
+              <View key={request.requestId} style={styles.card}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.nameText}>{request.user?.name || "Unknown User"}</Text>
                   <Text style={styles.statusText}>Pending</Text>
@@ -149,11 +149,11 @@ export default function AdminRoleUpgradesScreen() {
 
                 <View style={styles.fieldRow}>
                   <Text style={styles.fieldLabel}>School:</Text>
-                  <Text style={styles.fieldValue}>{request.school || "Not provided"}</Text>
+                  <Text style={styles.fieldValue}>{request.details?.school || "Not provided"}</Text>
                 </View>
                 <View style={styles.fieldRow}>
                   <Text style={styles.fieldLabel}>Reason:</Text>
-                  <Text style={styles.fieldValue}>{request.reason || "Not provided"}</Text>
+                  <Text style={styles.fieldValue}>{request.details?.reason || "Not provided"}</Text>
                 </View>
 
                 <View style={styles.actionRow}>
@@ -163,7 +163,7 @@ export default function AdminRoleUpgradesScreen() {
                     disabled={busy}
                   >
                     {busy ? (
-                      <ActivityIndicator size="small" color="#F44336" />
+                      <ActivityIndicator size="small" color="#E57373" />
                     ) : (
                       <Text style={styles.rejectButtonText}>Reject</Text>
                     )}
@@ -298,11 +298,11 @@ const styles = StyleSheet.create({
   },
   rejectButton: {
     borderWidth: 1,
-    borderColor: "#FFCDD2",
+    borderColor: "#FFEBEE",
     backgroundColor: "#fff",
   },
   rejectButtonText: {
-    color: "#F44336",
+    color: "#E57373",
     fontWeight: "700",
   },
   approveButton: {

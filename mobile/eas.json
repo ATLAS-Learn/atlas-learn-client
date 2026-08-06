@@ -1,0 +1,22 @@
+{
+  "build": {
+    "production": {
+      "channel": "production",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://atlas-learn-server-production.up.railway.app/api/v1"
+      }
+    },
+    "preview": {
+      "channel": "preview",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://atlas-learn-server-production.up.railway.app/api/v1"
+      }
+    }
+  }
+}

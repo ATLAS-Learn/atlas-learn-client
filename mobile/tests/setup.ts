@@ -8,6 +8,16 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
+// Mock MMKV so lazy storage loading stays safe in tests
+jest.mock('react-native-mmkv', () => ({
+  MMKV: jest.fn().mockImplementation(() => ({
+    getString: jest.fn(() => undefined),
+    set: jest.fn(),
+    delete: jest.fn(),
+    getAllKeys: jest.fn(() => []),
+  })),
+}));
+
 // Mock Expo Router
 jest.mock('expo-router', () => ({
   useRouter: () => ({

@@ -41,7 +41,7 @@ export default function TeacherHeader({ dashboardData }: TeacherHeaderProps) {
 
                 <View style={styles.statCard}>
                     <View style={[styles.statIcon, { backgroundColor: "#FFEBEE" }]}>
-                        <Ionicons name="alert-circle" size={24} color="#F44336" />
+                        <Ionicons name="alert-circle" size={24} color="#E57373" />
                     </View>
                     <Text style={styles.statNumber}>{dashboardData.atRiskCount}</Text>
                     <Text style={styles.statLabel}>At Risk</Text>

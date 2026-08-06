@@ -10,17 +10,22 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import QuestionCard from "@/components/quizzes/question-card";
 import QuizProgress from "@/components/quizzes/quiz-progress";
 import { apiClient } from "@/lib/api";
-import { Quiz } from "@/lib/types";
+import { Chapter, Quiz, QuizSubmission } from "@/lib/types";
+import { enqueueQuizSubmission } from "@/lib/utils/syncQueue";
+import ScreenHeader from "@/components/ui/screen-header";
 
 export default function QuizScreen() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { id, subjectId } = useLocalSearchParams<{ id: string; subjectId?: string }>();
     const chapterId = Array.isArray(id) ? id[0] : id;
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
     const [quiz, setQuiz] = useState<Quiz | null>(null);
+    const [chapter, setChapter] = useState<Chapter | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
@@ -47,8 +52,12 @@ export default function QuizScreen() {
             if (!chapterId) {
                 throw new Error("Missing chapter ID");
             }
-            const data = await apiClient.getChapterQuiz(chapterId, subjectKey);
-            setQuiz(data);
+            const [quizData, chapterData] = await Promise.all([
+                apiClient.getChapterQuiz(chapterId),
+                apiClient.getChapter(chapterId),
+            ]);
+            setQuiz(quizData);
+            setChapter(chapterData);
         } catch {
             Alert.alert("Error", "Failed to load quiz. Please try again.");
             router.back();
@@ -66,17 +75,16 @@ export default function QuizScreen() {
     }, [chapterId, loadQuiz]);
 
     const handleSelectAnswer = (answerIndex: number) => {
-        if (!quiz) return;
+        if (!quiz?.questions) return;
         const currentQuestion = quiz.questions[currentQuestionIndex];
-        const questionKey = getQuestionKey(currentQuestion, currentQuestionIndex);
-        setAnswers({
-            ...answers,
-            [questionKey]: answerIndex,
-        });
+        setAnswers((prev) => ({
+            ...prev,
+            [currentQuestion.id]: answerIndex,
+        }));
     };
 
     const handleNext = () => {
-        if (!quiz) return;
+        if (!quiz?.questions) return;
         if (currentQuestionIndex < quiz.questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
         } else {
@@ -91,7 +99,11 @@ export default function QuizScreen() {
     };
 
     const handleSubmit = async () => {
-        if (!quiz || submitLockRef.current || submitting) return;
+        if (!quiz?.questions) return;
+        if (!chapter) {
+            Alert.alert("Error", "Quiz settings are still loading. Please try again.");
+            return;
+        }
 
         const unansweredQuestions = quiz.questions.filter(
             (q, index) => answers[getQuestionKey(q, index)] === undefined
@@ -107,29 +119,89 @@ export default function QuizScreen() {
 
         submitLockRef.current = true;
         setSubmitting(true);
-        try {
-            const submission = {
-                answers: quiz.questions.map((q, index) => answers[getQuestionKey(q, index)]),
-            };
 
+        const submission: QuizSubmission = {
+            answers: quiz.questions.map((q) => answers[q.id] as number),
+        };
+
+        try {
+            // Wait for server to score the quiz
             const result = await apiClient.submitQuiz(quiz.id, submission);
 
-            router.push({
+            // If passed, mark all lessons complete before navigating
+            if (result.passed && subjectKey) {
+                try {
+                    const lessons = await apiClient.getChapterLessons(chapterId!, true);
+                    await Promise.all(
+                        lessons.map((lesson) =>
+                            apiClient.completeSubjectChapterLesson(subjectKey, chapterId!, lesson.id).catch(() => {})
+                        )
+                    );
+                } catch {
+                    // Lesson completions failed but quiz still passed
+                }
+            }
+
+            // Invalidate all relevant caches
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["progress"] }),
+                queryClient.invalidateQueries({ queryKey: ["recommendations", "learning-path"] }),
+            ]);
+
+            // Navigate with SERVER-computed results
+            router.replace({
                 pathname: "/(tabs)/learn/[id]/quiz-result",
                 params: {
                     id: chapterId!,
                     quizId: quiz.id,
+                    subjectId: subjectKey || "",
                     score: result.score.toString(),
+                    correctAnswers: result.correctAnswers.toString(),
                     totalQuestions: result.totalQuestions.toString(),
-                    percentage: result.percentage.toString(),
                     passed: result.passed.toString(),
-                    pastPaperReference: result.pastPaperReference || "",
-                    unlockedNextChapter: result.unlockedNextChapter.toString(),
-                    ...(subjectKey ? { subjectId: subjectKey } : {}),
+                    unlockedNextChapter: result.unlockedNextChapter ? "true" : "false",
+                    nextChapterTitle: result.unlockedNextChapter?.title || "",
+                    nextChapterId: result.unlockedNextChapter?.id || "",
+                    attemptId: result.attemptId,
                 },
             } as any);
-        } catch {
-            Alert.alert("Error", "Failed to submit quiz. Please try again.");
+        } catch (err) {
+            // If network fails, enqueue and compute locally as fallback
+            console.warn("Quiz submission failed, enqueueing for retry", err);
+            await enqueueQuizSubmission(quiz.id, submission);
+
+            // Compute local fallback
+            let correct = 0;
+            let earnedPoints = 0;
+            let totalPoints = 0;
+            for (const q of quiz.questions) {
+                const ans = answers[q.id];
+                const correctIdx = q.correctAnswerIndex;
+                const points = typeof q.points === "number" ? q.points : 1;
+                totalPoints += points;
+                if (typeof correctIdx === "number" && typeof ans === "number" && ans === correctIdx) {
+                    correct++;
+                    earnedPoints += points;
+                }
+            }
+            const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+            const passed = score >= (chapter.unlockThreshold || 70);
+
+            router.replace({
+                pathname: "/(tabs)/learn/[id]/quiz-result",
+                params: {
+                    id: chapterId!,
+                    quizId: quiz.id,
+                    subjectId: subjectKey || "",
+                    score: score.toString(),
+                    correctAnswers: correct.toString(),
+                    totalQuestions: quiz.questions.length.toString(),
+                    passed: passed.toString(),
+                    unlockedNextChapter: "false",
+                    nextChapterTitle: "",
+                    nextChapterId: "",
+                },
+            } as any);
         } finally {
             submitLockRef.current = false;
             setSubmitting(false);
@@ -153,10 +225,13 @@ export default function QuizScreen() {
         );
     }
 
-    if (quiz.questions.length === 0) {
+    if (!quiz.questions || quiz.questions.length === 0) {
         return (
-            <View style={styles.loadingContainer}>
-                <Text style={styles.errorText}>This quiz has no available questions yet.</Text>
+            <View style={styles.container}>
+                <ScreenHeader title="Chapter Quiz" />
+                <View style={styles.loadingContainer}>
+                    <Text style={styles.errorText}>No questions available</Text>
+                </View>
             </View>
         );
     }
@@ -168,13 +243,7 @@ export default function QuizScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Chapter Quiz</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="Chapter Quiz" />
 
             <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
                 <QuizProgress
@@ -203,14 +272,13 @@ export default function QuizScreen() {
                 <TouchableOpacity
                     style={[
                         styles.nextButton,
-                        !isAnswered && styles.nextButtonDisabled,
-                        submitting && styles.nextButtonDisabled,
+                        (!isAnswered || submitting) && styles.nextButtonDisabled,
                     ]}
                     onPress={handleNext}
                     disabled={!isAnswered || submitting}
                 >
                     {submitting ? (
-                        <ActivityIndicator color="#fff" />
+                        <ActivityIndicator size="small" color="#fff" />
                     ) : (
                         <>
                             <Text style={styles.nextButtonText}>
@@ -245,27 +313,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 16,
-        color: "#F44336",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
+        color: "#E57373",
     },
     content: {
         flex: 1,
