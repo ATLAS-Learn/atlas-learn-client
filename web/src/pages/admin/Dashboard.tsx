@@ -1,6 +1,22 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 
+const CACHE_TTL = 30 * 60 * 1000 // 30 minutes
+
+function getCached<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(`admin_cache:${key}`)
+    if (!raw) return null
+    const { data, expiresAt } = JSON.parse(raw)
+    if (Date.now() > expiresAt) { localStorage.removeItem(`admin_cache:${key}`); return null }
+    return data as T
+  } catch { return null }
+}
+
+function setCache(key: string, data: any) {
+  try { localStorage.setItem(`admin_cache:${key}`, JSON.stringify({ data, expiresAt: Date.now() + CACHE_TTL })) } catch {}
+}
+
 function StatCard({ label, value, sub, icon, color = 'bg-white' }: { label: string; value: any; sub?: string; icon?: React.ReactNode; color?: string }) {
   return (
     <div className={`${color} rounded-2xl p-5 flex flex-col gap-2`}>
@@ -73,6 +89,22 @@ export default function AdminDashboard() {
   useEffect(() => {
     const load = async () => {
       try {
+        // Check cache first
+        const cachedOv = getCached('overview')
+        const cachedCc = getCached('chapterCompletion')
+        const cachedQs = getCached('quizStats')
+        const cachedW = getCached('wau')
+        const cachedSt = getCached('signupTrend')
+
+        if (cachedOv && cachedCc && cachedQs && cachedW && cachedSt) {
+          setOverview(cachedOv)
+          setChapterCompletion(cachedCc)
+          setQuizStats(cachedQs)
+          setWau(cachedW)
+          setSignupTrend(cachedSt)
+          return
+        }
+
         const [ov, cc, qs, w, st] = await Promise.allSettled([
           api.getAnalyticsOverview(),
           api.getChapterCompletion(),
@@ -80,15 +112,15 @@ export default function AdminDashboard() {
           api.getWAU(),
           api.getSignupTrend(),
         ])
-        if (ov.status === 'fulfilled') setOverview(ov.value)
+        if (ov.status === 'fulfilled') { setOverview(ov.value); setCache('overview', ov.value) }
         else console.error('Overview failed:', ov.reason)
-        if (cc.status === 'fulfilled') setChapterCompletion(cc.value)
+        if (cc.status === 'fulfilled') { setChapterCompletion(cc.value); setCache('chapterCompletion', cc.value) }
         else console.error('Chapter completion failed:', cc.reason)
-        if (qs.status === 'fulfilled') setQuizStats(qs.value)
+        if (qs.status === 'fulfilled') { setQuizStats(qs.value); setCache('quizStats', qs.value) }
         else console.error('Quiz stats failed:', qs.reason)
-        if (w.status === 'fulfilled') setWau(w.value)
+        if (w.status === 'fulfilled') { setWau(w.value); setCache('wau', w.value) }
         else console.error('WAU failed:', w.reason)
-        if (st.status === 'fulfilled') setSignupTrend(st.value)
+        if (st.status === 'fulfilled') { setSignupTrend(st.value); setCache('signupTrend', st.value) }
         else console.error('Signup trend failed:', st.reason)
       } finally {
         setLoading(false)

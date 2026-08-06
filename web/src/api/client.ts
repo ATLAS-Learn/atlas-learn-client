@@ -175,6 +175,10 @@ class WebAPIClient {
     });
   }
 
+  async getRoleUpgradeHistory() {
+    return this.request<any>('/auth/role-upgrade-history');
+  }
+
   // Subjects
   async getSubjects(params?: any) {
     const res = await this.request<any>('/subjects', {
