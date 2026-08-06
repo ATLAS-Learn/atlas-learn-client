@@ -1,7 +1,8 @@
-name: Create Production Builds
+name: Create Preview Build
 
 jobs:
   build_android:
-    type: build # This job type creates a production build for Android
+    type: build
     params:
       platform: android
+      profile: preview
