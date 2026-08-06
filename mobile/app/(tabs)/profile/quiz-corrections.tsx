@@ -83,7 +83,7 @@ export default function QuizCorrectionsScreen() {
     if (error || !data) {
         return (
             <View style={styles.container}>
-                <ScreenHeader title="Quiz Corrections" />
+            <ScreenHeader title="Quiz Corrections" />
                 <View style={styles.errorContainer}>
                     <Ionicons name="document-text-outline" size={64} color="#CCC" />
                     <Text style={styles.errorText}>{error || "No corrections available."}</Text>

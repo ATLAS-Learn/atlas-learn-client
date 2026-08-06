@@ -60,13 +60,12 @@ export default function QuizResultScreen() {
 
     const handleViewCorrections = () => {
         if (attemptId) {
-            router.replace({
+            router.push({
                 pathname: "/(tabs)/profile/quiz-corrections",
                 params: { attemptId },
             } as any);
         } else if (quizId) {
-            // Fallback: navigate to quiz corrections list for this quiz
-            router.replace({
+            router.push({
                 pathname: "/(tabs)/profile/quiz-corrections",
                 params: { quizId },
             } as any);

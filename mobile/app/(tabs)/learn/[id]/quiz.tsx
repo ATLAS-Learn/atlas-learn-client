@@ -110,19 +110,26 @@ export default function QuizScreen() {
         try {
             // Wait for server to score the quiz
             const result = await apiClient.submitQuiz(quiz.id, submission);
-            await queryClient.invalidateQueries({ queryKey: ["progress"] });
 
-            // If passed, mark all lessons complete in background (don't block navigation)
+            // If passed, mark all lessons complete before navigating
             if (result.passed && subjectKey) {
-                apiClient.getChapterLessons(chapterId!, true).then((lessons) => {
-                    lessons.forEach((lesson) => {
-                        apiClient.completeSubjectChapterLesson(subjectKey, chapterId!, lesson.id).catch(() => {});
-                    });
-                }).catch(() => {});
+                try {
+                    const lessons = await apiClient.getChapterLessons(chapterId!, true);
+                    await Promise.all(
+                        lessons.map((lesson) =>
+                            apiClient.completeSubjectChapterLesson(subjectKey, chapterId!, lesson.id).catch(() => {})
+                        )
+                    );
+                } catch {
+                    // Lesson completions failed but quiz still passed
+                }
             }
 
-            // Invalidate learning path so home page shows next chapter
-            queryClient.invalidateQueries({ queryKey: ["recommendations", "learning-path"] });
+            // Invalidate all relevant caches
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["progress"] }),
+                queryClient.invalidateQueries({ queryKey: ["recommendations", "learning-path"] }),
+            ]);
 
             // Navigate with SERVER-computed results
             router.replace({

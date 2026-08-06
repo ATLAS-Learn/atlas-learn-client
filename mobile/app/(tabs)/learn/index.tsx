@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useOverallProgress } from "@/lib/hooks/api";
 import { SubjectProgress } from "@/lib/types";
 import { apiClient } from "@/lib/api";
+import ScreenHeader from "@/components/ui/screen-header";
 
 function SubjectCard({ subject }: { subject: SubjectProgress }) {
     const router = useRouter();
@@ -94,9 +95,7 @@ export default function LearnScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Continue Learning</Text>
-            </View>
+            <ScreenHeader title="Continue Learning" showBack={false} />
 
             <ScrollView
                 style={styles.scrollView}
@@ -144,17 +143,6 @@ const styles = StyleSheet.create({
     },
     loadingText: { marginTop: 16, fontSize: 16, color: "#666" },
     errorText: { fontSize: 16, color: "#E57373" },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        paddingTop: 20,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    headerTitle: { fontSize: 24, fontWeight: "800", color: "#1F2524" },
     scrollView: { flex: 1 },
     content: { padding: 24 },
     emptyContainer: {
