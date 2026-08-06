@@ -30,6 +30,7 @@ export default function QuestionCard({
         }
         return typeof question.correctAnswerIndex === "number" ? question.correctAnswerIndex : -1;
     }, [question.correctAnswer, question.correctAnswerIndex]);
+
     const pressAnimations = useRef<Animated.Value[]>([]);
     if (pressAnimations.current.length !== question.options.length) {
         pressAnimations.current = question.options.map(() => new Animated.Value(1));
@@ -37,22 +38,15 @@ export default function QuestionCard({
 
     const getOptionStyle = (index: number) => {
         if (showResult) {
-            if (index === question.correctAnswerIndex) return styles.optionCorrect;
-            if (selectedAnswer === index && index !== question.correctAnswerIndex) return styles.optionIncorrect;
+            if (index === correctAnswer) return styles.optionCorrect;
+            if (selectedAnswer === index && index !== correctAnswer) return styles.optionIncorrect;
             return styles.option;
         }
-<<<<<<< HEAD
 
-        if (index === correctAnswer) {
-            return styles.optionCorrect;
-        }
-        if (selectedAnswer === index && index !== correctAnswer) {
-            return styles.optionIncorrect;
+        if (selectedAnswer === index) {
+            return styles.optionSelected;
         }
         return styles.option;
-=======
-        return selectedAnswer === index ? styles.optionSelected : styles.option;
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     };
 
     const handleSelectAnswer = (answerIndex: number) => {
@@ -74,18 +68,13 @@ export default function QuestionCard({
 
     return (
         <View style={styles.container}>
-<<<<<<< HEAD
             <Text style={styles.questionText}>{readableQuestion}</Text>
-=======
-            <Text style={styles.questionText}>{question.questionText}</Text>
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
             <View style={styles.optionsContainer}>
                 {question.options.map((option, index) => (
                     <Animated.View
-                            key={index}
+                        key={index}
                         style={{ transform: [{ scale: pressAnimations.current[index] }] }}
                     >
-<<<<<<< HEAD
                         <TouchableOpacity
                             style={getOptionStyle(index)}
                             onPress={() => !showResult && handleSelectAnswer(index)}
@@ -109,22 +98,6 @@ export default function QuestionCard({
                             )}
                         </TouchableOpacity>
                     </Animated.View>
-=======
-                        <Text
-                            style={[
-                                styles.optionText,
-                                selectedAnswer === index && styles.optionTextSelected,
-                                showResult && index === question.correctAnswerIndex && styles.optionTextCorrect,
-                                showResult && selectedAnswer === index && index !== question.correctAnswerIndex && styles.optionTextIncorrect,
-                            ]}
-                        >
-                            {option}
-                        </Text>
-                        {showResult && index === question.correctAnswerIndex && (
-                            <Text style={styles.correctBadge}>✓ Correct</Text>
-                        )}
-                    </TouchableOpacity>
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                 ))}
             </View>
             {showResult && question.explanation && (

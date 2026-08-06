@@ -18,15 +18,7 @@ export default function QuizScoresChart({ attempts }: QuizScoresChartProps) {
 
     const orderedAttempts = [...attempts]
         .sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime())
-<<<<<<< HEAD
         .slice(-6);
-=======
-        .map((attempt, index) => ({
-            x: index + 1,
-            y: attempt.score ?? 0,
-            label: `${Math.round(attempt.score ?? 0)}%`,
-        }));
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
     const chartData = orderedAttempts.map((attempt, index) => ({
         x: index + 1,
@@ -51,7 +43,6 @@ export default function QuizScoresChart({ attempts }: QuizScoresChartProps) {
 
     return (
         <View style={styles.container}>
-<<<<<<< HEAD
             <View style={styles.header}>
                 <View>
                     <Text style={styles.title}>Progress Trend</Text>
@@ -118,51 +109,6 @@ export default function QuizScoresChart({ attempts }: QuizScoresChartProps) {
                     />
                 </VictoryChart>
             </View>
-=======
-            <Text style={styles.title}>Quiz Performance Over Time</Text>
-            <VictoryChart
-                width={screenWidth}
-                height={220}
-                theme={VictoryTheme.material}
-                padding={{ left: 70, right: 20, top: 20, bottom: 60 }}
-            >
-                <VictoryAxis
-                    label="Attempt Number"
-                    style={{
-                        axisLabel: { padding: 45, fontSize: 12 },
-                        tickLabels: { fontSize: 10 },
-                    }}
-                />
-                <VictoryAxis
-                    dependentAxis
-                    label="Score (%)"
-                    style={{
-                        axisLabel: { padding: 55, fontSize: 12 },
-                        tickLabels: { fontSize: 10 },
-                    }}
-                />
-                <VictoryArea
-                    data={chartData}
-                    style={{
-                        data: {
-                            fill: "#F2B138",
-                            fillOpacity: 0.3,
-                            stroke: "#F2B138",
-                            strokeWidth: 2,
-                        },
-                    }}
-                />
-                <VictoryLine
-                    data={chartData}
-                    style={{
-                        data: {
-                            stroke: "#F2B138",
-                            strokeWidth: 2,
-                        },
-                    }}
-                />
-            </VictoryChart>
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
         </View>
     );
 }

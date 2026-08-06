@@ -13,45 +13,8 @@ function isBackendUserId(userId: string | undefined | null): userId is string {
 }
 
 export function useAppFlow() {
-<<<<<<< HEAD
-  const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(
-    null
-  );
-  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [bootstrapComplete, setBootstrapComplete] = useState(false);
-  const { isAuthenticated, loadAuth, token, logout } = useAuthStore();
-  const { user, lastSyncedAt, setUser, loadUser } = useUserStore();
-  const { loadProgress } = useProgressStore();
-
-  useEffect(() => {
-    async function initialize() {
-      setIsLoading(true);
-      try {
-        const onboarding = await getItem("onboardingComplete");
-        setOnboardingComplete(onboarding === "true");
-        await Promise.all([loadAuth(), loadUser(), loadProgress()]);
-      } finally {
-        setBootstrapComplete(true);
-      }
-    }
-    void initialize();
-  }, [loadAuth, loadUser, loadProgress]);
-
-  useEffect(() => {
-    if (!bootstrapComplete) {
-      return;
-    }
-
-    async function restoreSession() {
-      if (!isAuthenticated) {
-        setAssessmentComplete(null);
-        setIsLoading(false);
-        return;
-=======
   const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(null);
+  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, token, logout, hasHydrated } = useAuthStore();
   const { user, lastSyncedAt, setUser } = useUserStore();
@@ -65,10 +28,17 @@ export function useAppFlow() {
     } catch (error: any) {
       if (error?.message?.includes("401") || error?.message?.includes("Unauthorized") || error?.message?.includes("session")) {
         return false;
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
       }
       return true;
     }
+  }, []);
+
+  useEffect(() => {
+    async function loadOnboarding() {
+      const onboarding = await getItem("onboardingComplete");
+      setOnboardingComplete(onboarding === "true");
+    }
+    void loadOnboarding();
   }, []);
 
   // Session restore - runs once when hydration completes
@@ -92,16 +62,6 @@ export function useAppFlow() {
       try {
         apiClient.setToken(token || null);
 
-<<<<<<< HEAD
-        const hasUserIdentity = Boolean(
-          isBackendUserId(user?.id) && user?.email && user?.name?.trim()
-        );
-        const isFreshCache =
-          typeof lastSyncedAt === "number" &&
-          Date.now() - lastSyncedAt < USER_CACHE_MAX_AGE_MS;
-        const requiresFreshIdentity = !hasUserIdentity;
-        const shouldRefreshUser = requiresFreshIdentity || !isFreshCache;
-=======
         const isValid = await validateSession();
         if (cancelled) return;
 
@@ -111,10 +71,13 @@ export function useAppFlow() {
           return;
         }
 
-        const hasUserIdentity = Boolean(user?.id && user?.email && user?.name?.trim());
-        const isFreshCache = typeof lastSyncedAt === "number" && Date.now() - lastSyncedAt < USER_CACHE_MAX_AGE_MS;
+        const hasUserIdentity = Boolean(
+          isBackendUserId(user?.id) && user?.email && user?.name?.trim()
+        );
+        const isFreshCache =
+          typeof lastSyncedAt === "number" &&
+          Date.now() - lastSyncedAt < USER_CACHE_MAX_AGE_MS;
         const shouldRefreshUser = !hasUserIdentity || !isFreshCache;
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
         if (shouldRefreshUser) {
           try {
@@ -156,18 +119,10 @@ export function useAppFlow() {
       }
     }
 
-<<<<<<< HEAD
-    if (isAuthenticated !== null && isAuthenticated) {
-      void restoreSession();
-    } else if (isAuthenticated === false) {
-      setIsLoading(false);
-    }
-  }, [bootstrapComplete, isAuthenticated, token, user, lastSyncedAt, setUser, logout]);
-=======
     restoreSession();
 
     return () => { cancelled = true; };
-  }, [hasHydrated, isAuthenticated]);
+  }, [hasHydrated, isAuthenticated, token, user, lastSyncedAt, setUser, logout, validateSession]);
 
   // Re-validate when app comes to foreground
   useEffect(() => {
@@ -187,7 +142,6 @@ export function useAppFlow() {
     const subscription = AppState.addEventListener("change", handleAppStateChange);
     return () => subscription?.remove();
   }, [isAuthenticated, token, logout, validateSession]);
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
   return { onboardingComplete, assessmentComplete, isAuthenticated, user, isLoading };
 }

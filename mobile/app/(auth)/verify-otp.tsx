@@ -110,20 +110,7 @@ export default function VerifyOTPScreen() {
                 setUser(response.user, { markSynced: false });
             }
 
-<<<<<<< HEAD
-            // Check if assessment is complete
-            const assessmentComplete = await getItem("assessmentComplete");
-            setVerificationState("success");
-
-            const redirectTarget = assessmentComplete === "true" ? "/(tabs)" : "/(onboarding)";
-            setTimeout(() => {
-                router.replace(redirectTarget as any);
-            }, 1200);
-=======
-            // New signups always go through onboarding (select subjects + assessment)
-            // Only check stored flag for returning users (login mode)
             if (mode === "signup") {
-                // Clear assessment flag so useAppFlow doesn't override onboarding navigation
                 await setItem("assessmentComplete", "false");
                 router.replace("/(onboarding)");
             } else {
@@ -134,7 +121,6 @@ export default function VerifyOTPScreen() {
                     router.replace("/(onboarding)");
                 }
             }
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
         } catch (error: any) {
             setVerificationState("idle");
             setError(error.message || "Invalid verification code. Please try again.");

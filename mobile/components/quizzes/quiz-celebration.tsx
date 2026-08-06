@@ -135,11 +135,7 @@ export default function QuizCelebration({
             <View style={styles.messageContainer}>
                 <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
                 <Text style={styles.messageText}>
-<<<<<<< HEAD
-                    Great work! You&apos;ve unlocked the next chapter.
-=======
-                    Great work! You&aposve unlocked the next chapter.
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
+                    Great work! You've unlocked the next chapter.
                 </Text>
             </View>
         </View>

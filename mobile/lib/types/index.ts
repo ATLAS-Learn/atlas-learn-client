@@ -331,28 +331,20 @@ export interface Lesson {
     id: string;
     title: string;
     content?: string;
-<<<<<<< HEAD
     orderIndex?: number;
     isFree?: boolean;
     estimatedMinutes?: number;
-=======
-    orderIndex: number;
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     videoUrl?: string;
     durationMinutes: number;
-    isFree: boolean;
     requiredScoreToUnlock: number;
     pdfUrl?: string;
     externalLinks?: ExternalLink[];
-<<<<<<< HEAD
     LessonProgress?: Array<{
         isCompleted?: boolean;
         timeSpent?: number;
         completedAt?: string;
         [key: string]: unknown;
     }>;
-=======
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     examples?: unknown;
     keyPoints?: string[];
     chapterId: string;
@@ -389,17 +381,14 @@ export interface UpdateLessonPayload {
 }
 
 export interface LessonProgressUpdatePayload {
-<<<<<<< HEAD
     timeSpent?: number;
+    isCompleted?: boolean;
     [key: string]: unknown;
 }
 
 export interface LessonCompletionPayload {
     timeSpent?: number;
     [key: string]: unknown;
-=======
-    timeSpent: number;
-    isCompleted?: boolean;
 }
 
 export interface LessonProgressEntry {
@@ -414,7 +403,6 @@ export interface LessonProgressEntry {
 export interface LessonWithProgress extends Lesson {
     LessonProgress?: LessonProgressEntry[];
     isCompleted?: boolean;
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 }
 
 export interface LessonCompletionResponse {
@@ -487,50 +475,30 @@ export interface ChapterSection {
 // Quiz Types
 export interface QuizQuestion {
     id: string;
-<<<<<<< HEAD
-    question: string;
+    question?: string;
     questionText?: string;
     options: string[];
     correctAnswer?: number;
     correctAnswerIndex?: number;
     explanation?: string;
     points?: number;
-=======
-    questionText: string;
-    options: string[];
-    correctAnswerIndex: number;
-    explanation?: string;
-    points: number;
-    quizId: string;
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
+    quizId?: string;
 }
 
 export interface Quiz {
     id: string;
-<<<<<<< HEAD
     title?: string;
     description?: string;
     isSkipQuiz?: boolean;
     timeLimit?: number;
     chapterId?: string;
-    questions: QuizQuestion[];
-    passingScore?: number; // percentage, e.g., 80
-=======
-    title: string;
-    description?: string;
-    isSkipQuiz: boolean;
-    timeLimit?: number;
-    chapterId: string;
     questions?: QuizQuestion[];
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
+    passingScore?: number;
 }
 
 export interface QuizSubmission {
     answers: number[];
-<<<<<<< HEAD
-=======
     timeSpent?: number;
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 }
 
 export interface QuizResult {
@@ -825,12 +793,34 @@ export interface TeacherStudentQuizAttemptsResponse {
     data: TeacherStudentQuizAttemptApiItem[];
 }
 
-<<<<<<< HEAD
-export interface AdminUserListItem extends User {
+export interface AdminUsersQueryParams {
+    search?: string;
+    role?: UserRole;
     isActive?: boolean;
+    level?: Level;
+    limit?: number;
+    offset?: number;
+}
+
+export interface AdminUserListItem extends User {
+    id: string;
+    email: string;
+    name: string;
+    username?: string;
+    role: UserRole;
+    level?: Level;
+    school?: string;
+    examYear?: number;
+    isActive?: boolean;
+    emailVerified?: boolean;
+    image?: string;
+    createdAt: string;
+    lastLoginAt?: string;
     deactivatedAt?: string | null;
     [key: string]: unknown;
 }
+
+export type AdminUser = AdminUserListItem;
 
 export interface AdminUsersQueryParams {
     search?: string;
@@ -846,35 +836,10 @@ export interface AdminUsersListResponse {
     count?: number;
     total?: number;
     pagination?: {
-=======
-// Admin Types
-export interface AdminUser {
-    id: string;
-    email: string;
-    name: string;
-    username?: string;
-    role: UserRole;
-    level?: Level;
-    school?: string;
-    examYear?: number;
-    isActive: boolean;
-    emailVerified?: boolean;
-    image?: string;
-    createdAt: string;
-    lastLoginAt?: string;
-}
-
-export interface AdminUsersListResponse {
-    success: boolean;
-    count: number;
-    total: number;
-    pagination: {
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
         limit: number;
         offset: number;
         hasMore: boolean;
     };
-<<<<<<< HEAD
     data: AdminUserListItem[];
     [key: string]: unknown;
 }
@@ -898,6 +863,8 @@ export interface AdminAnalyticsOverview {
     [key: string]: unknown;
 }
 
+export type AdminPlatformOverview = AdminAnalyticsOverview;
+
 export interface AdminAnalyticsChapterCompletion {
     primaryMetric?: {
         label?: string;
@@ -905,32 +872,74 @@ export interface AdminAnalyticsChapterCompletion {
         chapter1QuizPassRate?: number;
         [key: string]: unknown;
     };
+    allChapters?: Array<{
+        chapterId: string;
+        title: string;
+        completionRate: number;
+        quizPassRate: number;
+        enrolledStudents: number;
+        [key: string]: unknown;
+    }>;
     [key: string]: unknown;
 }
+
+export type AdminChapterCompletion = AdminAnalyticsChapterCompletion;
 
 export interface AdminAnalyticsQuizStats {
     summary?: {
         totalQuizzes?: number;
         totalAttempts?: number;
         overallPassRate?: number;
+        averageScore?: number;
         [key: string]: unknown;
     };
+    totalAttempts?: number;
+    passRate?: number;
+    averageScore?: number;
+    byChapter?: Array<{
+        chapterId: string;
+        title: string;
+        attempts: number;
+        passRate: number;
+        [key: string]: unknown;
+    }>;
     [key: string]: unknown;
 }
 
+export type AdminQuizStats = AdminAnalyticsQuizStats;
+
 export interface AdminAnalyticsWAU {
+    weeks?: Array<{
+        weekStart: string;
+        activeUsers: number;
+        [key: string]: unknown;
+    }>;
     currentWAU?: number;
     previousWAU?: number;
     wauChangePercent?: number;
+    growthPercent?: number;
     [key: string]: unknown;
 }
 
+export type AdminWAU = AdminAnalyticsWAU;
+
 export interface AdminAnalyticsTeacherActivity {
+    teachers?: Array<{
+        teacherId: string;
+        name: string;
+        email: string;
+        studentCount: number;
+        lastActiveAt?: string;
+        [key: string]: unknown;
+    }>;
     totalTeachers?: number;
     activeTeachersWeekly?: number;
     weeklyActiveRate?: number;
+    totalActiveTeachers?: number;
     [key: string]: unknown;
 }
+
+export type AdminTeacherActivity = AdminAnalyticsTeacherActivity;
 
 export interface AdminAnalyticsSignups {
     summary?: {
@@ -946,92 +955,19 @@ export interface AdminAnalyticsSignups {
         students?: number;
         teachers?: number;
         admins?: number;
+        count?: number;
         [key: string]: unknown;
     }>;
-    [key: string]: unknown;
-=======
-    data: AdminUser[];
-}
-
-export interface AdminPlatformOverview {
-    users: {
-        total: number;
-        students: number;
-        teachers: number;
-        admins: number;
-        deactivated: number;
-    };
-    activeUsers: {
-        weekly: number;
-        monthly: number;
-    };
-    content: {
-        subjects: number;
-        chapters: number;
-        lessons: number;
-        quizzes: number;
-    };
-    quizzes: {
-        totalAttempts: number;
-        averageScore: number;
-    };
-}
-
-export interface AdminChapterCompletion {
-    primaryMetric: {
-        label: string;
-        chapter1CompletionRate: number;
-        chapter1QuizPassRate: number;
-    };
-    allChapters: {
-        chapterId: string;
-        title: string;
-        completionRate: number;
-        quizPassRate: number;
-        enrolledStudents: number;
-    }[];
-}
-
-export interface AdminQuizStats {
-    totalAttempts: number;
-    passRate: number;
-    averageScore: number;
-    byChapter: {
-        chapterId: string;
-        title: string;
-        attempts: number;
-        passRate: number;
-    }[];
-}
-
-export interface AdminWAU {
-    weeks: {
-        weekStart: string;
-        activeUsers: number;
-    }[];
-    currentWAU: number;
-    previousWAU: number;
-    growthPercent: number;
-}
-
-export interface AdminTeacherActivity {
-    teachers: {
-        teacherId: string;
-        name: string;
-        email: string;
-        studentCount: number;
-        lastActiveAt?: string;
-    }[];
-    totalActiveTeachers: number;
-}
-
-export interface AdminSignupTrend {
-    signups: {
+    signups?: Array<{
         date: string;
         count: number;
-    }[];
-    totalSignups: number;
+        [key: string]: unknown;
+    }>;
+    totalSignups?: number;
+    [key: string]: unknown;
 }
+
+export type AdminSignupTrend = AdminAnalyticsSignups;
 
 export interface Feedback {
     id: string;
@@ -1044,5 +980,5 @@ export interface Feedback {
     adminReply: string | null;
     createdAt: string;
     updatedAt: string;
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
+    [key: string]: unknown;
 }

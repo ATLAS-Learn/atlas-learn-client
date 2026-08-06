@@ -1,29 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-<<<<<<< HEAD
-import { UserRole } from "@/lib/types";
-import { useUserStore } from "@/lib/store/user";
-
-export function useOverallProgress() {
-    const { user } = useUserStore();
-    const isStudent = user?.role === UserRole.STUDENT;
-
-    return useQuery({
-        queryKey: ["progress", "overall", user?.id || "anonymous"],
-        queryFn: () => apiClient.getOverallProgress(),
-        staleTime: 1000 * 60 * 5,
-        refetchOnMount: false,
-        enabled: Boolean(user?.id && isStudent),
-=======
-import { OverallProgressData, StreakData } from "@/lib/types";
+import { OverallProgressData, StreakData, UserRole } from "@/lib/types";
 import { setCache, getCacheSync } from "@/lib/utils/cache";
+import { useUserStore } from "@/lib/store/user";
 
 const PROGRESS_TTL = 1000 * 60 * 5; // 5 minutes
 
 export function useOverallProgress() {
+    const { user } = useUserStore();
+    const isStudent = !user || user?.role === UserRole.STUDENT;
     const initial = getCacheSync<OverallProgressData>("cache:progress:overall");
+
     return useQuery({
-        queryKey: ["progress", "overall"],
+        queryKey: ["progress", "overall", user?.id || "anonymous"],
         queryFn: async () => {
             const data = await apiClient.getOverallProgress();
             try {
@@ -34,6 +23,7 @@ export function useOverallProgress() {
         staleTime: PROGRESS_TTL,
         refetchOnMount: true,
         refetchOnWindowFocus: false,
+        enabled: isStudent,
         initialData: initial ?? undefined,
     });
 }
@@ -52,6 +42,5 @@ export function useStreak() {
         staleTime: PROGRESS_TTL,
         refetchOnMount: true,
         initialData: initial ?? undefined,
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     });
 }

@@ -10,15 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-<<<<<<< HEAD
-      "bundleIdentifier": "com.anonymous.atlaslearnmobile"
-=======
       "infoPlist": {
         "NSCameraUsageDescription": "Allow Atlas Learn to access your camera to take a profile picture.",
         "NSPhotoLibraryUsageDescription": "Allow Atlas Learn to access your photos to select a profile picture."
       },
       "bundleIdentifier": "com.atlaslearn.app"
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     },
     "android": {
       "package": "com.atlaslearn.app",
@@ -30,14 +26,10 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-<<<<<<< HEAD
-      "package": "com.anonymous.atlaslearnmobile"
-=======
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.RECORD_AUDIO"
       ]
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     },
     "web": {
       "output": "static",
