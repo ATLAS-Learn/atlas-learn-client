@@ -11,17 +11,18 @@ import QuizCelebration from "@/components/quizzes/quiz-celebration";
 
 export default function QuizResultScreen() {
     const router = useRouter();
-    const params = useLocalSearchParams<{ id: string; score: string; correctAnswers: string; totalQuestions: string; passed: string; unlockedNextChapter: string; nextChapterTitle?: string; nextChapterId?: string; quizId?: string; subjectId?: string }>();
+    const params = useLocalSearchParams<{ id: string; score: string; correctAnswers: string; totalQuestions: string; passed: string; unlockedNextChapter: string; nextChapterTitle?: string; nextChapterId?: string; quizId?: string; subjectId?: string; attemptId?: string }>();
 
     const score = parseInt(params.score as string) || 0;
     const correctAnswers = parseInt(params.correctAnswers as string) || 0;
-    const totalQuestions = parseInt(params.totalQuestions as string) || 0;
+    const totalQuestions = parseInt(params.totalQuestions) || 0;
     const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
     const passed = params.passed === "true";
     const unlockedNextChapter = params.unlockedNextChapter === "true";
     const nextChapterTitle = params.nextChapterTitle as string | undefined;
     const nextChapterId = params.nextChapterId as string | undefined;
     const subjectId = params.subjectId as string | undefined;
+    const attemptId = params.attemptId as string | undefined;
 
     const handleContinue = () => {
         if (unlockedNextChapter && nextChapterId) {
@@ -55,6 +56,15 @@ export default function QuizResultScreen() {
         }
     };
 
+    const handleViewCorrections = () => {
+        if (attemptId) {
+            router.push({
+                pathname: "/(tabs)/profile/quiz-corrections",
+                params: { attemptId },
+            } as any);
+        }
+    };
+
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             {passed ? (
@@ -70,6 +80,13 @@ export default function QuizResultScreen() {
                         </Text>
                         <Ionicons name="arrow-forward" size={20} color="#fff" />
                     </TouchableOpacity>
+
+                    {attemptId && (
+                        <TouchableOpacity style={styles.correctionsButton} onPress={handleViewCorrections}>
+                            <Ionicons name="document-text-outline" size={20} color="#F2B138" />
+                            <Text style={styles.correctionsButtonText}>View Corrections</Text>
+                        </TouchableOpacity>
+                    )}
                 </>
             ) : (
                 <>
@@ -111,6 +128,16 @@ export default function QuizResultScreen() {
                                 <Ionicons name="refresh" size={20} color="#fff" />
                                 <Text style={styles.tryAgainButtonText}>Try Again</Text>
                             </TouchableOpacity>
+
+                            {attemptId && (
+                                <TouchableOpacity
+                                    style={styles.correctionsButton}
+                                    onPress={handleViewCorrections}
+                                >
+                                    <Ionicons name="document-text-outline" size={20} color="#F2B138" />
+                                    <Text style={styles.correctionsButtonText}>View Corrections</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </View>
                 </>
@@ -228,6 +255,24 @@ const styles = StyleSheet.create({
     continueButtonText: {
         color: "#fff",
         fontSize: 18,
+        fontWeight: "700",
+    },
+    correctionsButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        backgroundColor: "#fff",
+        borderWidth: 2,
+        borderColor: "#F2B138",
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 25,
+        marginTop: 12,
+    },
+    correctionsButtonText: {
+        color: "#F2B138",
+        fontSize: 16,
         fontWeight: "700",
     },
 });

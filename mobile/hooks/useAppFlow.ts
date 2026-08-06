@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
 import { getItem, setItem } from "@/lib/utils/storage";
@@ -13,6 +14,22 @@ export function useAppFlow() {
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, token, logout, hasHydrated } = useAuthStore();
   const { user, lastSyncedAt, setUser } = useUserStore();
+  const appState = useRef(AppState.currentState);
+
+  // Validate session by calling a lightweight endpoint
+  const validateSession = async (): Promise<boolean> => {
+    try {
+      await apiClient.getCurrentUser();
+      return true;
+    } catch (error: any) {
+      // If 401 or unauthorized, session is invalid
+      if (error?.message?.includes("401") || error?.message?.includes("Unauthorized") || error?.message?.includes("session")) {
+        return false;
+      }
+      // Other errors (network, etc.) - don't invalidate session
+      return true;
+    }
+  };
 
   useEffect(() => {
     async function restoreSession() {
@@ -28,6 +45,15 @@ export function useAppFlow() {
 
       try {
         apiClient.setToken(token || null);
+
+        // Validate the session is still valid on the server
+        const isValid = await validateSession();
+        if (!isValid) {
+          console.log("[useAppFlow] Session invalid, logging out");
+          await logout();
+          setIsLoading(false);
+          return;
+        }
 
         const hasUserIdentity = Boolean(user?.id && user?.email && user?.name?.trim());
         const isFreshCache =
@@ -83,6 +109,27 @@ export function useAppFlow() {
       setIsLoading(false);
     }
   }, [hasHydrated, isAuthenticated, token]);
+
+  // Re-validate session when app comes to foreground
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handleAppStateChange = async (nextState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextState === "active") {
+        // App came to foreground - re-validate session
+        apiClient.setToken(token || null);
+        const isValid = await validateSession();
+        if (!isValid) {
+          console.log("[useAppFlow] Session expired in background, logging out");
+          await logout();
+        }
+      }
+      appState.current = nextState;
+    };
+
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
+    return () => subscription?.remove();
+  }, [isAuthenticated, token, logout]);
 
   return { assessmentComplete, isAuthenticated, user, isLoading };
 }

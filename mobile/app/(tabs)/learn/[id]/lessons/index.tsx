@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { apiClient } from "@/lib/api";
 import { Chapter, LessonWithProgress } from "@/lib/types";
+import ScreenHeader from "@/components/ui/screen-header";
 
 export default function LessonsListScreen() {
     const router = useRouter();
@@ -108,13 +109,7 @@ export default function LessonsListScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Lessons</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="Lessons" />
 
             <ScrollView
                 style={styles.scrollView}
@@ -196,26 +191,6 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 16,
         color: "#666",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
     },
     scrollView: {
         flex: 1,

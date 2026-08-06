@@ -610,6 +610,14 @@ class APIClient {
         return this.unwrapData<StreakData>(response);
     }
 
+    async bulkCompleteChapters(subjectId: string, beforeChapterId: string): Promise<{ completed: number; message: string }> {
+        const response = await this.request<{ completed: number; message: string }>("/progress/bulk-complete", {
+            method: "POST",
+            data: { subjectId, beforeChapterId },
+        });
+        return this.unwrapData<{ completed: number; message: string }>(response);
+    }
+
     // Assessment management endpoints (Admin/Teacher)
     async getAssessments(): Promise<AssessmentAdminItem[]> {
         const response = await this.request<AssessmentAdminItem[] | { data?: AssessmentAdminItem[] }>("/assessments");

@@ -2,19 +2,29 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Keyboard,
+    KeyboardAvoidingView,
     Linking,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
+import Markdown from "react-native-markdown-display";
 import { apiClient } from "@/lib/api";
 import { Lesson, LessonWithProgress } from "@/lib/types";
+import ScreenHeader from "@/components/ui/screen-header";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+
+const LESSON_CACHE_PREFIX = "cache:lesson:";
+const LESSON_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 const safeNumber = (value: string): number | undefined => {
     const trimmed = value.trim();
@@ -76,13 +86,28 @@ export default function LessonDetailScreen() {
             router.back();
             return;
         }
-        setLoading(true);
+
+        const cacheKey = `${LESSON_CACHE_PREFIX}${subjectKey}:${chapterId}:${lessonKey}`;
+
+        // Try loading from cache first for instant display
+        const cached = getCacheSync<LessonWithProgress>(cacheKey);
+        if (cached) {
+            setLesson(cached);
+            setLoading(false);
+        }
+
+        // Always fetch fresh data from server
         try {
             const data = await apiClient.getSubjectChapterLesson(subjectKey, chapterId, lessonKey, true);
             setLesson(data);
+            // Cache the lesson content for offline/fast subsequent loads
+            setCache(cacheKey, data, LESSON_CACHE_TTL).catch(() => {});
         } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to load lesson.");
-            router.back();
+            if (!cached) {
+                Alert.alert("Error", error.message || "Failed to load lesson.");
+                router.back();
+            }
+            // If we have cached data, keep showing it even if fetch fails
         } finally {
             setLoading(false);
         }
@@ -165,20 +190,11 @@ export default function LessonDetailScreen() {
             const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey);
             setStatusMessage(response.message || "Lesson marked as completed.");
             await queryClient.invalidateQueries({ queryKey: ["progress"] });
+            // Use dismiss to pop back to the lessons list without stacking entries
+            router.dismiss();
             Alert.alert(
                 "Lesson Complete",
-                "Great job! Moving to the next lesson.",
-                [
-                    {
-                        text: "OK",
-                        onPress: () => {
-                            router.replace({
-                                pathname: "/(tabs)/learn/[id]/lessons",
-                                params: { id: chapterId, subjectId: subjectKey || "" },
-                            } as any);
-                        },
-                    },
-                ]
+                "Great job! Moving to the next lesson."
             );
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to complete lesson.");
@@ -205,22 +221,31 @@ export default function LessonDetailScreen() {
     }
 
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Lesson</Text>
-                <View style={styles.backButton} />
-            </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <KeyboardAvoidingView
+                style={styles.container}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+            >
+                <ScreenHeader title="Lesson" />
 
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.content}
+                    keyboardShouldPersistTaps="handled"
+                >
                 <Text style={styles.lessonTitle}>{lesson.title || "Untitled lesson"}</Text>
                 {lesson.durationMinutes ? (
                     <Text style={styles.lessonMeta}>Estimated {lesson.durationMinutes} min</Text>
                 ) : null}
 
-                {lesson.content ? <Text style={styles.lessonContent}>{lesson.content}</Text> : null}
+                {lesson.content ? (
+                    <View style={styles.markdownContainer}>
+                        <Markdown style={markdownStyles}>
+                            {lesson.content}
+                        </Markdown>
+                    </View>
+                ) : null}
 
                 {examples.length > 0 && (
                     <View style={styles.sectionCard}>
@@ -334,7 +359,8 @@ export default function LessonDetailScreen() {
                     {statusMessage ? <Text style={styles.statusMessage}>{statusMessage}</Text> : null}
                 </View>
             </ScrollView>
-        </View>
+            </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
     );
 }
 
@@ -342,26 +368,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#FAFAFA",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
     },
     scrollView: {
         flex: 1,
@@ -542,4 +548,101 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: "#E57373",
     },
+    markdownContainer: {
+        marginBottom: 20,
+    },
 });
+
+const markdownStyles = {
+    body: {
+        fontSize: 16,
+        color: "#333",
+        lineHeight: 24,
+    },
+    heading1: {
+        fontSize: 22,
+        fontWeight: "700" as const,
+        color: "#1F2524",
+        marginBottom: 12,
+        marginTop: 16,
+    },
+    heading2: {
+        fontSize: 20,
+        fontWeight: "700" as const,
+        color: "#1F2524",
+        marginBottom: 10,
+        marginTop: 14,
+    },
+    heading3: {
+        fontSize: 18,
+        fontWeight: "700" as const,
+        color: "#1F2524",
+        marginBottom: 8,
+        marginTop: 12,
+    },
+    paragraph: {
+        fontSize: 16,
+        color: "#333",
+        lineHeight: 24,
+        marginBottom: 12,
+    },
+    strong: {
+        fontWeight: "700" as const,
+        color: "#1F2524",
+    },
+    em: {
+        fontStyle: "italic" as const,
+    },
+    link: {
+        color: "#F2B138",
+        textDecorationLine: "underline" as const,
+    },
+    bullet_list: {
+        marginBottom: 12,
+    },
+    listItem: {
+        fontSize: 16,
+        color: "#333",
+        lineHeight: 24,
+        marginBottom: 4,
+    },
+    code_inline: {
+        backgroundColor: "#F0F0F0",
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: 4,
+        fontSize: 14,
+        fontFamily: "monospace",
+        color: "#E65100",
+    },
+    code_block: {
+        backgroundColor: "#F0F0F0",
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 12,
+        fontFamily: "monospace",
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    fence: {
+        backgroundColor: "#F0F0F0",
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 12,
+        fontFamily: "monospace",
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    blockquote: {
+        borderLeftWidth: 3,
+        borderLeftColor: "#F2B138",
+        paddingLeft: 12,
+        marginLeft: 0,
+        marginBottom: 12,
+    },
+    hr: {
+        backgroundColor: "#E0E0E0",
+        height: 1,
+        marginVertical: 16,
+    },
+};

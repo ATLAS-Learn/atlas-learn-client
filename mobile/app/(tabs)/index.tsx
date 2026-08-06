@@ -165,8 +165,11 @@ export default function HomeTab() {
                                 style={styles.pathCard}
                                 onPress={() =>
                                     router.push({
-                                        pathname: "/(tabs)/learn/subjects/[subjectId]",
-                                        params: { subjectId: subject.subjectId },
+                                        pathname: "/(tabs)/learn/[id]",
+                                        params: {
+                                            id: next.id,
+                                            subjectId: subject.subjectId,
+                                        },
                                     } as any)
                                 }
                                 activeOpacity={0.7}
@@ -206,6 +209,11 @@ export default function HomeTab() {
                                 <Ionicons name="person-outline" size={20} color="#1F2524" />
                                 <Text style={styles.actionTitle}>Profile</Text>
                                 <Text style={styles.actionDesc}>View progress</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push({ pathname: "/(tabs)/profile", params: { openFeedback: "true" } } as any)} activeOpacity={0.7}>
+                                <Ionicons name="chatbubble-outline" size={20} color="#1F2524" />
+                                <Text style={styles.actionTitle}>Feedback</Text>
+                                <Text style={styles.actionDesc}>Send feedback</Text>
                             </TouchableOpacity>
                         </>
                     ) : (
@@ -337,9 +345,10 @@ const styles = StyleSheet.create({
     studyPlan: { fontSize: 12, color: "#999", fontStyle: "italic", marginTop: 4 },
 
     // Actions
-    actionsRow: { flexDirection: "row", gap: 10 },
+    actionsRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
     actionCard: {
         flex: 1,
+        minWidth: 100,
         backgroundColor: "#fff",
         borderRadius: 12,
         padding: 16,

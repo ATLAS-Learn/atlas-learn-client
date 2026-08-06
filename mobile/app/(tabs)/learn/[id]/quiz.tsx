@@ -16,6 +16,7 @@ import QuizProgress from "@/components/quizzes/quiz-progress";
 import { apiClient } from "@/lib/api";
 import { Chapter, Quiz, QuizSubmission } from "@/lib/types";
 import { enqueueQuizSubmission } from "@/lib/utils/syncQueue";
+import ScreenHeader from "@/components/ui/screen-header";
 
 export default function QuizScreen() {
     const router = useRouter();
@@ -137,7 +138,8 @@ export default function QuizScreen() {
         if (!localResult) return;
 
         // Navigate immediately with the computed result (no spinner)
-        router.push({
+        // Use replace so back button doesn't return to the quiz
+        router.replace({
             pathname: "/(tabs)/learn/[id]/quiz-result",
             params: {
                 id: chapterId!,
@@ -160,9 +162,29 @@ export default function QuizScreen() {
 
         try {
             // attempt immediate sync; if it fails, enqueue for retry
-            await apiClient.submitQuiz(quiz.id, submission);
+            const result = await apiClient.submitQuiz(quiz.id, submission);
             // refresh progress cache/queries
             await queryClient.invalidateQueries({ queryKey: ["progress"] });
+            // Update the navigation with the server attempt ID if available
+            const attemptId = result?.attemptId;
+            if (attemptId) {
+                router.replace({
+                    pathname: "/(tabs)/learn/[id]/quiz-result",
+                    params: {
+                        id: chapterId!,
+                        quizId: quiz.id,
+                        subjectId: subjectKey || "",
+                        score: localResult.score.toString(),
+                        correctAnswers: localResult.correctAnswers.toString(),
+                        totalQuestions: localResult.totalQuestions.toString(),
+                        passed: localResult.passed.toString(),
+                        unlockedNextChapter: "false",
+                        nextChapterTitle: "",
+                        nextChapterId: "",
+                        attemptId: attemptId,
+                    },
+                } as any);
+            }
         } catch (err) {
             console.warn("Quiz submission failed, enqueueing for retry", err);
             await enqueueQuizSubmission(quiz.id, submission);
@@ -189,13 +211,7 @@ export default function QuizScreen() {
     if (!quiz.questions || quiz.questions.length === 0) {
         return (
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#000" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Chapter Quiz</Text>
-                    <View style={styles.backButton} />
-                </View>
+                <ScreenHeader title="Chapter Quiz" />
                 <View style={styles.loadingContainer}>
                     <Text style={styles.errorText}>No questions available</Text>
                 </View>
@@ -209,13 +225,7 @@ export default function QuizScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Chapter Quiz</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="Chapter Quiz" />
 
             <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
                 <QuizProgress
@@ -282,26 +292,6 @@ const styles = StyleSheet.create({
     errorText: {
         fontSize: 16,
         color: "#E57373",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
     },
     content: {
         flex: 1,

@@ -85,13 +85,6 @@ export default function SignIn() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <TouchableOpacity
-            style={[styles.backArrow, { top: Math.max(32, Math.floor(height * 0.06)) }]}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-
           <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
             <Image
               source={require("@/assets/images/Blue atlas icon.png")}
@@ -153,10 +146,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     paddingBottom: 100, // Increased bottom padding for keyboard
-  },
-  backArrow: {
-    position: "absolute",
-    left: 24,
   },
   logoContainer: {
     alignItems: "center",

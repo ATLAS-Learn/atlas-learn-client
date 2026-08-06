@@ -1,11 +1,12 @@
 import React from "react";
-import { Dimensions, Image, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Image, StatusBar, StyleSheet, Text, View } from "react-native";
 
 const { width, height } = Dimensions.get("window");
 
 export function SplashScreen() {
   return (
     <View style={styles.container}>
+      <StatusBar hidden={true} />
       <View style={styles.content}>
         <Image
           source={require("@/assets/images/logo/Blue atlas logo.png")}

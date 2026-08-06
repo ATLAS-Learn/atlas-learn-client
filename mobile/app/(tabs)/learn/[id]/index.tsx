@@ -16,6 +16,7 @@ import { apiClient } from "@/lib/api";
 import { Chapter, Lesson, LessonWithProgress } from "@/lib/types";
 import ChapterHeader from "@/components/lessons/chapter-header";
 import ContentSection from "@/components/lessons/content-section";
+import ScreenHeader from "@/components/ui/screen-header";
 
 export default function ChapterScreen() {
     const router = useRouter();
@@ -253,13 +254,7 @@ export default function ChapterScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Chapter</Text>
-                <View style={styles.backButton} />
-            </View>
+            <ScreenHeader title="Chapter" />
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
                 <ChapterHeader chapter={chapter} lessons={lessons} />
@@ -382,26 +377,6 @@ const styles = StyleSheet.create({
     errorText: {
         fontSize: 16,
         color: "#E57373",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
     },
     scrollView: {
         flex: 1,

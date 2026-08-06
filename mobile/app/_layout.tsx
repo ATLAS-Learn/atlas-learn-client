@@ -2,7 +2,7 @@ import "../styles/global.css";
 
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, StatusBar } from "react-native";
+import { Animated } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { FontLoader } from "@/components/ui/font-loader";
 import { SplashScreen } from "@/components/ui/splash-screen";
@@ -75,7 +75,6 @@ export default function RootLayout() {
       <QueryProvider>
         <AuthProvider>
           <FontLoader>
-            <StatusBar hidden={true} />
             {showIntro && (
               <Animated.View
                 style={[
