@@ -10,8 +10,10 @@ type MMKVStore = {
 
 let mmkvStore: MMKVStore | null | undefined;
 
+const isServer = typeof window === "undefined";
+
 function getMMKVStore(): MMKVStore | null {
-  if (Platform.OS === "web") {
+  if (Platform.OS === "web" || isServer) {
     return null;
   }
 
@@ -37,6 +39,7 @@ export const storage = {
     if (mmkv) {
       return mmkv.getString(key) ?? null;
     }
+    if (isServer) return null;
     return AsyncStorage.getItem(key);
   },
   async setItem(key: string, value: string) {
@@ -45,6 +48,7 @@ export const storage = {
       mmkv.set(key, value);
       return;
     }
+    if (isServer) return;
     await AsyncStorage.setItem(key, value);
   },
   async removeItem(key: string) {
@@ -53,6 +57,7 @@ export const storage = {
       mmkv.delete(key);
       return;
     }
+    if (isServer) return;
     await AsyncStorage.removeItem(key);
   },
   async multiGet(keys: string[]) {
@@ -60,6 +65,7 @@ export const storage = {
     if (mmkv) {
       return keys.map((key) => [key, mmkv.getString(key) ?? null] as [string, string | null]);
     }
+    if (isServer) return keys.map((key) => [key, null] as [string, string | null]);
     return AsyncStorage.multiGet(keys);
   },
   async multiRemove(keys: string[]) {
@@ -70,6 +76,7 @@ export const storage = {
       }
       return;
     }
+    if (isServer) return;
     await AsyncStorage.multiRemove(keys);
   },
   async getAllKeys() {
@@ -77,6 +84,7 @@ export const storage = {
     if (mmkv) {
       return mmkv.getAllKeys?.() ?? [];
     }
+    if (isServer) return [];
     return AsyncStorage.getAllKeys();
   },
   getItemSync(key: string) {
