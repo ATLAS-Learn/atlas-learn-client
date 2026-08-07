@@ -58,18 +58,7 @@ export default function ProfileScreen() {
     const [editBio, setEditBio] = useState("");
     const [editSchool, setEditSchool] = useState("");
     const [editExamYear, setEditExamYear] = useState("");
-<<<<<<< HEAD
     const isStudentRole = (user?.role || "").toLowerCase() === UserRole.STUDENT;
-=======
-    const [editPickedImage, setEditPickedImage] = useState<string | null>(null);
-    const [uploadingImage, setUploadingImage] = useState(false);
-    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
-    const [submittingFeedback, setSubmittingFeedback] = useState(false);
-    const [feedbackCategory, setFeedbackCategory] = useState<string>("general");
-    const [feedbackSubject, setFeedbackSubject] = useState("");
-    const [feedbackMessage, setFeedbackMessage] = useState("");
-    const [feedbackRating, setFeedbackRating] = useState<number>(0);
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
     const refreshUser = useCallback(async () => {
         try {

@@ -213,7 +213,6 @@ export default function AssessmentScreen() {
     if (error) {
         return (
             <View style={styles.container}>
-<<<<<<< HEAD
                 {!showAlreadyCompleted ? (
                     <View style={styles.header}>
                         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -228,12 +227,6 @@ export default function AssessmentScreen() {
                     <Text style={styles.errorTitle}>
                         {showAlreadyCompleted ? "Assessment Already Completed" : "Assessment Unavailable"}
                     </Text>
-=======
-                <ScreenHeader title="Assessment" />
-                <View style={styles.errorContainer}>
-                    <Ionicons name="alert-circle-outline" size={64} color="#E57373" />
-                    <Text style={styles.errorTitle}>Assessment Unavailable</Text>
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                     <Text style={styles.errorMessage}>{error}</Text>
                     {showAlreadyCompleted ? (
                         <Text style={styles.redirectMessage}>

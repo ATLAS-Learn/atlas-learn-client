@@ -66,7 +66,6 @@ export default function QuizScoresScreen() {
         });
     };
 
-<<<<<<< HEAD
     const formatShortDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString("en-US", {
@@ -88,8 +87,6 @@ export default function QuizScoresScreen() {
         (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
     );
 
-=======
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
@@ -108,13 +105,8 @@ export default function QuizScoresScreen() {
                 contentContainerStyle={styles.content}
                 refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
             >
-<<<<<<< HEAD
                 {quizAttempts.length > 0 && <QuizScoresChart attempts={sortedAttempts} />}
                 
-=======
-                {quizAttempts.length > 0 && <QuizScoresChart attempts={quizAttempts} />}
-
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                 {quizAttempts.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="document-text-outline" size={64} color="#CCC" />
@@ -124,7 +116,6 @@ export default function QuizScoresScreen() {
                         </Text>
                     </View>
                 ) : (
-<<<<<<< HEAD
                     sortedAttempts.map((attempt, index) => {
                         const passed = attempt.passed;
                         const percentage = typeof attempt.percentage === "number" ? attempt.percentage : attempt.score;
@@ -133,13 +124,6 @@ export default function QuizScoresScreen() {
                         const scoreOutOf = typeof attempt.answers?.length === "number" && attempt.answers.length > 0
                             ? `out of ${attempt.answers.length}`
                             : "points";
-=======
-                    quizAttempts.map((attempt) => {
-                        const threshold = attempt.quiz?.chapter?.unlockThreshold ?? 70;
-                        const passed = attempt.score >= threshold;
-                        const percentage = attempt.score ?? 0;
-                        const quizTitle = attempt.quiz?.title || `Quiz ${attempt.quizId.slice(0, 8)}`;
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
                         return (
                             <TouchableOpacity
@@ -151,11 +135,7 @@ export default function QuizScoresScreen() {
                                 <View style={styles.scoreHeader}>
                                     <View style={styles.scoreInfo}>
                                         <Text style={styles.quizTitle}>
-<<<<<<< HEAD
                                             {attemptTitle}
-=======
-                                            {quizTitle}
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                                         </Text>
                                         {attempt.quiz?.chapter?.subject && (
                                             <Text style={styles.quizSubject}>
@@ -188,7 +168,6 @@ export default function QuizScoresScreen() {
                                                     : "time-outline"
                                             }
                                             size={16}
-<<<<<<< HEAD
                                             color={
                                                 hasPassFail
                                                     ? passed
@@ -196,9 +175,6 @@ export default function QuizScoresScreen() {
                                                         : "#F44336"
                                                     : "#084A59"
                                             }
-=======
-                                            color={passed ? "#4CAF50" : "#E57373"}
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                                         />
                                         <Text
                                             style={[

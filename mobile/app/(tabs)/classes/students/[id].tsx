@@ -13,11 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { StudentDetail, StudentStatus, UserRole } from "@/lib/types";
 import { LEVEL_INFO } from "@/lib/constants/levels";
-<<<<<<< HEAD
 import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
-=======
-import ScreenHeader from "@/components/ui/screen-header";
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
 export default function StudentDetailScreen() {
     const router = useRouter();

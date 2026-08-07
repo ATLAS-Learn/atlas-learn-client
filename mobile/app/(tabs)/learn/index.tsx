@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
@@ -9,19 +8,8 @@ import {
     Text,
     TouchableOpacity,
     View,
-=======
-import React, { useEffect, useMemo, useState } from "react";
-import {
-    View,
-    Text,
-    ScrollView,
-    StyleSheet,
-    ActivityIndicator,
-    TouchableOpacity,
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-<<<<<<< HEAD
 import { useRouter } from "expo-router";
 import { apiClient } from "@/lib/api";
 import { Subject, SubjectProgress } from "@/lib/types";
@@ -116,85 +104,10 @@ export default function LearnHubScreen() {
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#D88A1C" />
                 <Text style={styles.loadingText}>Setting up your study space...</Text>
-=======
-import { useOverallProgress } from "@/lib/hooks/api";
-import { SubjectProgress } from "@/lib/types";
-import { apiClient } from "@/lib/api";
-import ScreenHeader from "@/components/ui/screen-header";
-
-function SubjectCard({ subject }: { subject: SubjectProgress }) {
-    const router = useRouter();
-    const chapters = subject.chapters as unknown as { total: number; completed: number };
-    const lessons = subject.lessons as unknown as { total: number; completed: number };
-
-    return (
-        <TouchableOpacity
-            style={styles.subjectCard}
-            onPress={() =>
-                router.push({
-                    pathname: "/(tabs)/learn/subjects/[subjectId]",
-                    params: { subjectId: subject.subjectId, subjectCode: subject.code },
-                } as any)
-            }
-        >
-            <View style={styles.subjectInfo}>
-                <Text style={styles.subjectName}>{subject.name}</Text>
-                <Text style={styles.subjectCode}>{subject.code}</Text>
-                <View style={styles.progressRow}>
-                    <View style={styles.progressBadge}>
-                        <Ionicons name="book-outline" size={14} color="#666" />
-                        <Text style={styles.progressBadgeText}>
-                            {chapters.completed}/{chapters.total} chapters
-                        </Text>
-                    </View>
-                    <View style={styles.progressBadge}>
-                        <Ionicons name="document-text-outline" size={14} color="#666" />
-                        <Text style={styles.progressBadgeText}>
-                            {lessons.completed}/{lessons.total} lessons
-                        </Text>
-                    </View>
-                </View>
-                <View style={styles.progressBarBg}>
-                    <View
-                        style={[
-                            styles.progressBarFill,
-                            { width: `${Math.min(subject.completionPercentage, 100)}%` },
-                        ]}
-                    />
-                </View>
-                <Text style={styles.progressPercent}>{subject.completionPercentage}% complete</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={22} color="#999" />
-        </TouchableOpacity>
-    );
-}
-
-export default function LearnScreen() {
-    const router = useRouter();
-    const { data: progressData, isLoading, error } = useOverallProgress();
-    const [preferredIds, setPreferredIds] = useState<string[] | null>(null);
-
-    useEffect(() => {
-        apiClient.getPreferredSubjects().then(setPreferredIds).catch(() => setPreferredIds([]));
-    }, []);
-
-    const subjects = useMemo(() => {
-        const allSubjects = progressData?.subjects || [];
-        if (!preferredIds || preferredIds.length === 0) return [];
-        return allSubjects.filter((s: SubjectProgress) => preferredIds.includes(s.subjectId));
-    }, [progressData, preferredIds]);
-
-    if (isLoading || preferredIds === null) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#F2B138" />
-                <Text style={styles.loadingText}>Loading your progress...</Text>
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
             </View>
         );
     }
 
-<<<<<<< HEAD
     return (
         <ScrollView
             style={styles.container}
@@ -290,58 +203,10 @@ export default function LearnScreen() {
                 })
             )}
         </ScrollView>
-=======
-    if (error || !progressData) {
-        return (
-            <View style={styles.loadingContainer}>
-                <Text style={styles.errorText}>Failed to load progress</Text>
-            </View>
-        );
-    }
-
-    return (
-        <View style={styles.container}>
-            <ScreenHeader title="Continue Learning" showBack={false} />
-
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.content}
-            >
-                {subjects.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="school-outline" size={56} color="#CCC" />
-                        <Text style={styles.emptyText}>No subjects selected yet</Text>
-                        <Text style={styles.emptySubtext}>Browse and add subjects to start learning</Text>
-                        <TouchableOpacity
-                            style={styles.browseAllButton}
-                            onPress={() => router.push("/(tabs)/learn/browse-subjects")}
-                        >
-                            <Ionicons name="add-circle-outline" size={18} color="#F2B138" />
-                            <Text style={styles.browseAllText}>Browse All Subjects</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <>
-                        {subjects.map((subject: SubjectProgress) => (
-                            <SubjectCard key={subject.subjectId} subject={subject} />
-                        ))}
-                        <TouchableOpacity
-                            style={styles.browseAllButton}
-                            onPress={() => router.push("/(tabs)/learn/browse-subjects")}
-                        >
-                            <Ionicons name="add-circle-outline" size={18} color="#F2B138" />
-                            <Text style={styles.browseAllText}>Browse All Subjects</Text>
-                        </TouchableOpacity>
-                    </>
-                )}
-            </ScrollView>
-        </View>
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     );
 }
 
 const styles = StyleSheet.create({
-<<<<<<< HEAD
     container: {
         flex: 1,
         backgroundColor: "#F6F4EE",
@@ -350,14 +215,10 @@ const styles = StyleSheet.create({
         padding: 20,
         paddingBottom: 36,
     },
-=======
-    container: { flex: 1, backgroundColor: "#FAFAFA" },
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     loadingContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-<<<<<<< HEAD
         backgroundColor: "#F6F4EE",
     },
     loadingText: {
@@ -571,74 +432,4 @@ const styles = StyleSheet.create({
         fontWeight: "800",
         color: "#1F2524",
     },
-=======
-        backgroundColor: "#FAFAFA",
-    },
-    loadingText: { marginTop: 16, fontSize: 16, color: "#666" },
-    errorText: { fontSize: 16, color: "#E57373" },
-    scrollView: { flex: 1 },
-    content: { padding: 24 },
-    emptyContainer: {
-        alignItems: "center",
-        justifyContent: "center",
-        paddingVertical: 40,
-        backgroundColor: "#fff",
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: "#EEE",
-    },
-    emptyText: { marginTop: 12, fontSize: 14, color: "#999", fontWeight: "600" },
-    emptySubtext: { marginTop: 4, fontSize: 12, color: "#BBB", marginBottom: 8 },
-    browseAllButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        paddingVertical: 14,
-        backgroundColor: "#FFF9E6",
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: "#FFE082",
-        marginTop: 12,
-    },
-    browseAllText: { fontSize: 14, fontWeight: "700", color: "#F2B138" },
-    subjectCard: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        backgroundColor: "#fff",
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: "#EAEAEA",
-        marginBottom: 12,
-    },
-    subjectInfo: { flex: 1, marginRight: 12 },
-    subjectName: { fontSize: 16, fontWeight: "700", color: "#1F2524" },
-    subjectCode: { marginTop: 2, fontSize: 12, color: "#999", fontWeight: "700" },
-    progressRow: {
-        flexDirection: "row",
-        gap: 12,
-        marginTop: 8,
-    },
-    progressBadge: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-    },
-    progressBadgeText: { fontSize: 12, color: "#666" },
-    progressBarBg: {
-        height: 6,
-        backgroundColor: "#EEE",
-        borderRadius: 3,
-        marginTop: 8,
-        overflow: "hidden",
-    },
-    progressBarFill: {
-        height: "100%",
-        backgroundColor: "#F2B138",
-        borderRadius: 3,
-    },
-    progressPercent: { marginTop: 4, fontSize: 12, color: "#999", fontWeight: "600" },
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 });

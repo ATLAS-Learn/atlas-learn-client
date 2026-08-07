@@ -222,7 +222,6 @@ export default function ChaptersListScreen() {
                     chapters.map((chapter, index) => {
                         const completed = isChapterCompleted(chapter.id);
                         const locked = isChapterLocked(chapter, index);
-<<<<<<< HEAD
                         const levelColor = getLevelColor(chapter.level);
                         const isHighlighted = activeHighlightChapterId === chapter.id;
                         const highlightedBackground = highlightAnimation.interpolate({
@@ -237,8 +236,6 @@ export default function ChaptersListScreen() {
                             inputRange: [0, 1],
                             outputRange: [1, 1.015],
                         });
-=======
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
                         return (
                             <Animated.View
@@ -264,7 +261,6 @@ export default function ChaptersListScreen() {
                                     chapterOffsetsRef.current[chapter.id] = event.nativeEvent.layout.y;
                                 }}
                             >
-<<<<<<< HEAD
                                 <TouchableOpacity
                                     style={styles.chapterTapArea}
                                     onPress={() => !locked && handleChapterPress(chapter.id)}
@@ -320,44 +316,6 @@ export default function ChaptersListScreen() {
                                     </View>
                                 </TouchableOpacity>
                             </Animated.View>
-=======
-                                <View style={styles.chapterTitleRow}>
-                                    <Text style={styles.chapterNumber}>Chapter {chapter.orderIndex}</Text>
-                                    {completed && (
-                                        <View style={styles.completedBadge}>
-                                            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                                            <Text style={styles.completedText}>Completed</Text>
-                                        </View>
-                                    )}
-                                    {locked && (
-                                        <View style={styles.lockedBadge}>
-                                            <Ionicons name="lock-closed" size={16} color="#999" />
-                                            <Text style={styles.lockedText}>Locked</Text>
-                                        </View>
-                                    )}
-                                </View>
-                                <Text style={styles.chapterTitle}>{chapter.title}</Text>
-                                {!!chapter.description && (
-                                    <Text style={styles.chapterDescription} numberOfLines={2}>
-                                        {chapter.description}
-                                    </Text>
-                                )}
-
-                                <View style={styles.chapterFooter}>
-                                    <View style={styles.metaInfo}>
-                                        <Ionicons name="time-outline" size={14} color="#666" />
-                                        <Text style={styles.metaText}>{chapter.estimatedMinutes} min</Text>
-                                    </View>
-                                    <View style={styles.metaInfo}>
-                                        <Ionicons name="book-outline" size={14} color="#666" />
-                                        <Text style={styles.metaText}>{lessonCounts[chapter.id] ?? 0} lessons</Text>
-                                    </View>
-                                    {!locked && (
-                                        <Ionicons name="chevron-forward" size={20} color="#999" style={{ marginLeft: "auto" }} />
-                                    )}
-                                </View>
-                            </TouchableOpacity>
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                         );
                     })
                 )}

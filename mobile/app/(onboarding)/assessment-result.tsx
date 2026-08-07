@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import React, { useEffect, useMemo, useState } from "react";
-=======
-import React, { useEffect, useMemo } from "react";
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 import {
     ActivityIndicator,
     Alert,
@@ -69,7 +65,6 @@ export default function AssessmentResultScreen() {
     const percentage = (score / totalQuestions) * 100;
 
     useEffect(() => {
-<<<<<<< HEAD
         let mounted = true;
 
         const loadResult = async () => {
@@ -103,8 +98,6 @@ export default function AssessmentResultScreen() {
 
     useEffect(() => {
         // Update user level in store
-=======
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
         updateLevel(level);
     }, [level, updateLevel]);
 

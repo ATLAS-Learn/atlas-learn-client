@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-=======
-import React, { useCallback, useEffect, useState, useMemo } from "react";
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 import {
     ActivityIndicator,
     Alert,
@@ -18,7 +14,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import ScreenHeader from "@/components/ui/screen-header";
 import { apiClient } from "@/lib/api";
-<<<<<<< HEAD
 import { Subject, SubjectChapter } from "@/lib/types";
 import { useOverallProgress } from "@/lib/hooks/api/useProgress";
 
@@ -41,18 +36,6 @@ const getString = (record: UnknownRecord, keys: string[]): string | undefined =>
 
 const getBoolean = (record: UnknownRecord, keys: string[]): boolean =>
     keys.some((key) => record[key] === true);
-=======
-import { Subject, SubjectChapter, SubjectProgress } from "@/lib/types";
-import { useOverallProgress } from "@/lib/hooks/api";
-
-type ChapterStatus = "completed" | "current" | "locked";
-
-interface ChapterWithProgress extends SubjectChapter {
-    status: ChapterStatus;
-    lessonProgress?: { completed: number; total: number };
-    quizPassed?: boolean;
-}
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
 export default function SubjectDetailScreen() {
     const router = useRouter();
@@ -78,56 +61,7 @@ export default function SubjectDetailScreen() {
     const [resolvedSubjectId, setResolvedSubjectId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-<<<<<<< HEAD
     const [activeHighlightChapterId, setActiveHighlightChapterId] = useState<string | null>(null);
-=======
-    const { data: progressData, refetch: refetchProgress } = useOverallProgress();
-
-    const chaptersWithStatus = useMemo<ChapterWithProgress[]>(() => {
-        if (!progressData || chapters.length === 0) return chapters as ChapterWithProgress[];
-
-        const subjectProgress = progressData.subjects?.find(
-            (s: SubjectProgress) => s.subjectId === resolvedSubjectId || s.subjectId === subjectKey
-        );
-        const chapterDetails = (subjectProgress?.chapterDetails || []) as {
-            chapterId: string;
-            isCompleted: boolean;
-            isUnlocked: boolean;
-            lessons?: { completed: number; total: number };
-            quizzes?: { passed: number; total: number };
-        }[];
-
-        return chapters.map((chapter) => {
-            const detail = chapterDetails.find((d) => d.chapterId === chapter.id);
-
-            let status: ChapterStatus = "locked";
-            if (detail?.isCompleted) {
-                status = "completed";
-            } else if (detail?.isUnlocked && detail?.lessons && detail.lessons.completed > 0) {
-                status = "current";
-            } else if (detail?.isUnlocked) {
-                status = "current";
-            }
-
-            return {
-                ...chapter,
-                status,
-                lessonProgress: detail?.lessons,
-                quizPassed: detail?.quizzes ? detail.quizzes.passed > 0 : undefined,
-            };
-        });
-    }, [chapters, progressData, resolvedSubjectId, subjectKey]);
-
-    useEffect(() => {
-        console.log("[ID_TRACE] SubjectDetail route params", {
-            rawSubjectId: subjectId,
-            rawSubjectCode: subjectCode,
-            subjectKey,
-            subjectCodeKey,
-            resolvedSubjectId,
-        });
-    }, [resolvedSubjectId, subjectId, subjectCode, subjectKey, subjectCodeKey]);
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
     const toSubjectChapterArray = (value: unknown): SubjectChapter[] => {
         if (!Array.isArray(value)) return [];
@@ -203,7 +137,6 @@ export default function SubjectDetailScreen() {
         } as any);
     };
 
-<<<<<<< HEAD
     const completedChapterIds = useMemo((): Set<string> => {
         const activeSubjectId = resolvedSubjectId || subjectKey;
         if (!activeSubjectId || !Array.isArray(overallProgress?.subjects)) {
@@ -317,51 +250,6 @@ export default function SubjectDetailScreen() {
             loop.stop();
         };
     }, [chapters, derivedHighlightedChapterId, highlightAnimation]);
-=======
-    const getStatusIcon = (status: ChapterStatus) => {
-        switch (status) {
-            case "completed":
-                return <Ionicons name="checkmark-circle" size={22} color="#4CAF50" />;
-            case "current":
-                return <Ionicons name="play-circle" size={22} color="#F2B138" />;
-            case "locked":
-                return <Ionicons name="lock-closed" size={20} color="#CCC" />;
-        }
-    };
-
-    const getStatusLabel = (status: ChapterStatus) => {
-        switch (status) {
-            case "completed":
-                return "Completed";
-            case "current":
-                return "In Progress";
-            case "locked":
-                return "Not Started";
-        }
-    };
-
-    const getStatusColor = (status: ChapterStatus) => {
-        switch (status) {
-            case "completed":
-                return "#E8F5E9";
-            case "current":
-                return "#FFF8E1";
-            case "locked":
-                return "#F5F5F5";
-        }
-    };
-
-    const getBorderColor = (status: ChapterStatus) => {
-        switch (status) {
-            case "completed":
-                return "#4CAF50";
-            case "current":
-                return "#F2B138";
-            case "locked":
-                return "#EAEAEA";
-        }
-    };
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
     if (loading) {
         return (
@@ -403,7 +291,6 @@ export default function SubjectDetailScreen() {
                         <Text style={styles.emptyText}>No chapters yet.</Text>
                     </View>
                 ) : (
-<<<<<<< HEAD
                     chapters.map((chapter, index) => {
                         const locked = isChapterLocked(chapter, index);
                         const completed = completedChapterIds.has(chapter.id);
@@ -489,56 +376,6 @@ export default function SubjectDetailScreen() {
                             </Animated.View>
                         );
                     })
-=======
-                    chaptersWithStatus.map((chapter) => (
-                        <TouchableOpacity
-                            key={chapter.id}
-                            style={[
-                                styles.chapterCard,
-                                {
-                                    backgroundColor: getStatusColor(chapter.status),
-                                    borderColor: getBorderColor(chapter.status),
-                                },
-                            ]}
-                            onPress={() => handleOpenChapter(chapter.id, chapter.status)}
-                            disabled={chapter.status === "locked"}
-                        >
-                            <View style={styles.chapterIconContainer}>
-                                {getStatusIcon(chapter.status)}
-                            </View>
-                            <View style={styles.chapterInfo}>
-                                <View style={styles.chapterTitleRow}>
-                                    <Text
-                                        style={[
-                                            styles.chapterTitle,
-                                            chapter.status === "locked" && styles.chapterTitleLocked,
-                                        ]}
-                                    >
-                                        {chapter.title}
-                                    </Text>
-                                    <Text style={[styles.statusLabel, { color: getBorderColor(chapter.status) }]}>
-                                        {getStatusLabel(chapter.status)}
-                                    </Text>
-                                </View>
-                                {!!chapter.description && (
-                                    <Text style={styles.chapterDescription} numberOfLines={2}>
-                                        {chapter.description}
-                                    </Text>
-                                )}
-                                <Text style={styles.chapterMeta}>
-                                    {chapter.orderIndex ? `Chapter ${chapter.orderIndex}` : "Chapter"}
-                                    {chapter.estimatedMinutes
-                                        ? ` \u2022 ${chapter.estimatedMinutes} min`
-                                        : ""}
-                                    {chapter.lessonProgress
-                                        ? ` \u2022 ${chapter.lessonProgress.completed}/${chapter.lessonProgress.total} lessons`
-                                        : ""}
-                                </Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={20} color={chapter.status === "locked" ? "#CCC" : "#999"} />
-                        </TouchableOpacity>
-                    ))
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                 )}
             </ScrollView>
         </View>
@@ -587,19 +424,11 @@ const styles = StyleSheet.create({
     },
     emptyText: { marginTop: 8, fontSize: 13, color: "#999", fontWeight: "600" },
     chapterCard: {
-<<<<<<< HEAD
         backgroundColor: "#fff",
-=======
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 14,
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
         borderRadius: 12,
         borderWidth: 1,
         marginBottom: 10,
     },
-<<<<<<< HEAD
     chapterTapArea: {
         flexDirection: "row",
         alignItems: "center",
@@ -623,21 +452,6 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     chapterTitle: { flexShrink: 1, fontSize: 15, fontWeight: "700", color: "#222" },
-=======
-    chapterIconContainer: {
-        width: 32,
-        alignItems: "center",
-    },
-    chapterInfo: { flex: 1, marginRight: 8 },
-    chapterTitleRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-    },
-    chapterTitle: { fontSize: 15, fontWeight: "700", color: "#222", flex: 1 },
-    chapterTitleLocked: { color: "#999" },
-    statusLabel: { fontSize: 11, fontWeight: "700", marginLeft: 8 },
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     chapterDescription: { marginTop: 4, fontSize: 13, color: "#666" },
     chapterMeta: { marginTop: 6, fontSize: 12, color: "#777", fontWeight: "600" },
     completedBadge: {

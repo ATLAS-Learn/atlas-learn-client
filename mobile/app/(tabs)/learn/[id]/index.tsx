@@ -65,7 +65,6 @@ export default function ChapterScreen() {
 
     const handleStartQuiz = () => {
         if (!chapterId) return;
-<<<<<<< HEAD
         const subjectIdForQuiz =
             resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
         const params: { id: string; subjectId?: string } = { id: chapterId };
@@ -75,12 +74,6 @@ export default function ChapterScreen() {
         router.push({
             pathname: "/(tabs)/learn/[id]/quiz",
             params,
-=======
-        const subjectIdForRoute = resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
-        router.push({
-            pathname: `/(tabs)/learn/${chapterId}/quiz`,
-            params: { subjectId: subjectIdForRoute || "" },
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
         } as any);
     };
 
@@ -166,15 +159,9 @@ export default function ChapterScreen() {
             }
             lastLessonsRequestKeyRef.current = requestKey;
             const data = subjectIdForRequest
-<<<<<<< HEAD
                 ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, { includeProgress: true })
                 : await apiClient.getChapterLessons(chapterId);
             setLessons(Array.isArray(data) ? data : []);
-=======
-                ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, true)
-                : await apiClient.getChapterLessons(chapterId, true);
-            setLessons(Array.isArray(data) ? (data as LessonWithProgress[]) : []);
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to fetch chapter lessons.");
         } finally {
@@ -188,17 +175,6 @@ export default function ChapterScreen() {
         }
     }, [chapter, chapterId, loadLessons]);
 
-<<<<<<< HEAD
-=======
-    useFocusEffect(
-        useCallback(() => {
-            if (chapter && !loading) {
-                loadLessons();
-            }
-        }, [chapter, loading, loadLessons])
-    );
-
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
     const handleViewProgress = async () => {
         if (!chapterId) return;
         setLoadingInsight(true);
@@ -306,7 +282,6 @@ export default function ChapterScreen() {
             <ScreenHeader title="Chapter" />
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-<<<<<<< HEAD
                 <ChapterHeader chapter={chapter} />
                 <View style={styles.actionRow}>
                     <TouchableOpacity style={styles.actionButton} onPress={handleViewPdf} disabled={loadingInsight}>
@@ -322,9 +297,6 @@ export default function ChapterScreen() {
                         <Text style={styles.actionButtonText}>Exam Hints</Text>
                     </TouchableOpacity>
                 </View>
-=======
-                <ChapterHeader chapter={chapter} lessons={lessons} />
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
 
                 <View style={styles.lessonsHeader}>
                     <View>
@@ -352,7 +324,6 @@ export default function ChapterScreen() {
                         <Text style={styles.emptyLessonsText}>No lessons yet.</Text>
                     </View>
                 ) : (
-<<<<<<< HEAD
                     lessons.map((lesson, index) => (
                         <TouchableOpacity key={lesson.id} style={styles.lessonCard} onPress={() => handleOpenLesson(lesson.id)}>
                             <View style={styles.lessonRow}>
@@ -387,47 +358,10 @@ export default function ChapterScreen() {
                                             In progress • {Math.max(1, Math.ceil((getPrimaryLessonProgress(lesson)?.timeSpent || 0) / 60))} min spent
                                         </Text>
                                     ) : null}
-=======
-                    lessons.map((lesson, index) => {
-                        const isCompleted = lesson.isCompleted || (lesson.LessonProgress && lesson.LessonProgress.length > 0 && lesson.LessonProgress[0]?.isCompleted);
-                        return (
-                            <TouchableOpacity
-                                key={lesson.id}
-                                style={[
-                                    styles.lessonCard,
-                                    isCompleted && styles.lessonCardCompleted,
-                                ]}
-                                onPress={() => handleOpenLesson(lesson.id)}
-                            >
-                                <View style={styles.lessonRow}>
-                                    {isCompleted ? (
-                                        <View style={styles.lessonIndexCompleted}>
-                                            <Ionicons name="checkmark" size={14} color="#fff" />
-                                        </View>
-                                    ) : (
-                                        <Text style={styles.lessonIndex}>{lesson.orderIndex ?? index + 1}</Text>
-                                    )}
-                                    <View style={styles.lessonInfo}>
-                                        <Text
-                                            style={[
-                                                styles.lessonTitle,
-                                                isCompleted && styles.lessonTitleCompleted,
-                                            ]}
-                                            numberOfLines={2}
-                                        >
-                                            {lesson.title || "Untitled lesson"}
-                                        </Text>
-                                        <Text style={styles.lessonMeta}>
-                                            {lesson.durationMinutes
-                                                ? `${lesson.durationMinutes} min`
-                                                : "Time n/a"}
-                                            {isCompleted ? " \u2022 Completed" : ""}
-                                        </Text>
-                                    </View>
->>>>>>> a002d08eb23fa2a95a9ce0a65519a47508d9f906
                                 </View>
-                                <Ionicons name="chevron-forward" size={20} color={isCompleted ? "#4CAF50" : "#999"} />
-                            </TouchableOpacity>
+                                 <Ionicons name="chevron-forward" size={20} color={isCompleted ? "#4CAF50" : "#999"} />
+                             </View>
+                         </TouchableOpacity>
                         );
                     })
                 )}
