@@ -13,6 +13,10 @@ import { useOverallProgress } from "@/lib/hooks/api";
 import { SubjectProgress } from "@/lib/types";
 import { apiClient } from "@/lib/api";
 import ScreenHeader from "@/components/ui/screen-header";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+
+const PREFERRED_SUBJECTS_CACHE_KEY = "cache:preferred-subjects";
+const PREFERRED_SUBJECTS_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 function SubjectCard({ subject }: { subject: SubjectProgress }) {
     const router = useRouter();
@@ -67,7 +71,18 @@ export default function LearnScreen() {
     const [preferredIds, setPreferredIds] = useState<string[] | null>(null);
 
     useEffect(() => {
-        apiClient.getPreferredSubjects().then(setPreferredIds).catch(() => setPreferredIds([]));
+        const cached = getCacheSync<string[]>(PREFERRED_SUBJECTS_CACHE_KEY);
+        if (cached) {
+            setPreferredIds(cached);
+        }
+        apiClient.getPreferredSubjects()
+            .then((ids) => {
+                setPreferredIds(ids);
+                setCache(PREFERRED_SUBJECTS_CACHE_KEY, ids, PREFERRED_SUBJECTS_TTL).catch(() => {});
+            })
+            .catch(() => {
+                if (!cached) setPreferredIds([]);
+            });
     }, []);
 
     const subjects = useMemo(() => {

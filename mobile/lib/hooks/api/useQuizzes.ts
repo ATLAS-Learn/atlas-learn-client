@@ -47,10 +47,24 @@ export function useSubmitQuiz() {
 }
 
 export function useUserQuizAttempts(userId: string | undefined) {
+    const cacheKey = `cache:quiz-attempts:${userId}`;
+    const initial = getCacheSync<QuizAttempt[]>(cacheKey);
     return useQuery({
         queryKey: ["users", userId, "quiz-attempts"],
-        queryFn: () => apiClient.getUserQuizAttempts(userId!),
+        queryFn: async () => {
+            try {
+                const data = await apiClient.getUserQuizAttempts(userId!);
+                await setCache(cacheKey, data, STATIC_TTL);
+                return data;
+            } catch {
+                const cached = getCacheSync<QuizAttempt[]>(cacheKey);
+                if (cached) return cached;
+                throw new Error("Offline");
+            }
+        },
         enabled: !!userId,
-        staleTime: 1000 * 60, // 1 minute - attempts change frequently
+        staleTime: 1000 * 60,
+        initialData: initial ?? undefined,
+        retry: false,
     });
 }

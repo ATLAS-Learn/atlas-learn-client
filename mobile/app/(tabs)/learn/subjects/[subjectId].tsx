@@ -15,6 +15,10 @@ import ScreenHeader from "@/components/ui/screen-header";
 import { apiClient } from "@/lib/api";
 import { Subject, SubjectChapter, SubjectProgress } from "@/lib/types";
 import { useOverallProgress } from "@/lib/hooks/api";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+
+const SUBJECT_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+const CHAPTERS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 type ChapterStatus = "completed" | "current" | "locked";
 
@@ -115,6 +119,18 @@ export default function SubjectDetailScreen() {
     const loadSubjectAndChapters = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
         console.log("[ID_TRACE] loadSubjectAndChapters", { targetSubjectId, targetSubjectCode });
 
+        const cacheKey = `cache:subject:${targetSubjectId}`;
+        const chaptersCacheKey = `cache:subject-chapters:${targetSubjectId}`;
+
+        // Try cache first for instant display
+        const cachedSubject = getCacheSync<Subject>(cacheKey);
+        const cachedChapters = getCacheSync<SubjectChapter[]>(chaptersCacheKey);
+        if (cachedSubject && cachedChapters) {
+            setResolvedSubjectId(cachedSubject.id || targetSubjectId);
+            setSubject(cachedSubject);
+            setChapters(cachedChapters);
+        }
+
         let subjectResponse: Subject;
         if (targetSubjectCode) {
             subjectResponse = await apiClient.getSubjectByCode(targetSubjectCode, {
@@ -132,10 +148,13 @@ export default function SubjectDetailScreen() {
         setResolvedSubjectId(canonicalSubjectId);
         setSubject(subjectResponse);
 
+        setCache(cacheKey, subjectResponse, SUBJECT_CACHE_TTL).catch(() => {});
+
         const embeddedChapters = toSubjectChapterArray(subjectResponse.chapters);
         if (embeddedChapters.length > 0) {
             const sorted = [...embeddedChapters].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
             setChapters(sorted);
+            setCache(chaptersCacheKey, sorted, CHAPTERS_CACHE_TTL).catch(() => {});
             return;
         }
 
@@ -144,12 +163,27 @@ export default function SubjectDetailScreen() {
             ? [...chaptersResponse].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
             : [];
         setChapters(sorted);
+        setCache(chaptersCacheKey, sorted, CHAPTERS_CACHE_TTL).catch(() => {});
     }, []);
 
     const initialize = useCallback(async () => {
         if (!subjectKey) return;
         setLoading(true);
         setRefreshing(false);
+
+        const cacheKey = `cache:subject:${subjectKey}`;
+        const chaptersCacheKey = `cache:subject-chapters:${subjectKey}`;
+        const cachedSubject = getCacheSync<Subject>(cacheKey);
+        const cachedChapters = getCacheSync<SubjectChapter[]>(chaptersCacheKey);
+
+        // Show cache immediately if available
+        if (cachedSubject && cachedChapters) {
+            setResolvedSubjectId(cachedSubject.id || subjectKey);
+            setSubject(cachedSubject);
+            setChapters(cachedChapters);
+            setLoading(false);
+        }
+
         try {
             try {
                 await loadSubjectAndChapters(subjectKey, subjectCodeKey);
@@ -162,8 +196,11 @@ export default function SubjectDetailScreen() {
                 subjectCodeKey,
                 errorMessage: error?.message,
             });
-            Alert.alert("Error", error?.message || "Subject not found.");
-            router.back();
+            // If we have cached data, don't show error
+            if (!cachedSubject) {
+                Alert.alert("Error", error?.message || "Subject not found.");
+                router.back();
+            }
         } finally {
             setLoading(false);
         }

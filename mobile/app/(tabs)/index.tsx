@@ -168,15 +168,21 @@ export default function HomeTab() {
                                 <TouchableOpacity
                                     key={subject.subjectId}
                                     style={styles.pathCard}
-                                    onPress={() =>
-                                        router.push({
-                                            pathname: "/(tabs)/learn/[id]",
-                                            params: {
-                                                id: next.id,
-                                                subjectId: subject.subjectId,
-                                            },
-                                        } as any)
-                                    }
+                                    onPress={() => {
+                                        // First switch to the learn tab (resets to its index)
+                                        router.navigate("/(tabs)/learn");
+                                        // Then push the chapter onto the learn tab's stack
+                                        // Use a small delay to ensure the tab switch completes
+                                        requestAnimationFrame(() => {
+                                            router.push({
+                                                pathname: "/(tabs)/learn/[id]",
+                                                params: {
+                                                    id: next.id,
+                                                    subjectId: subject.subjectId,
+                                                },
+                                            } as any);
+                                        });
+                                    }}
                                     activeOpacity={0.7}
                                 >
                                     <View style={styles.pathLeft}>
