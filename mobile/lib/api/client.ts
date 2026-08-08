@@ -1374,6 +1374,32 @@ class APIClient {
         const response = await this.request<{ success: boolean; data: any }>(`/quiz-attempts/${attemptId}/corrections`);
         return response?.data;
     }
+
+    // Exams
+    async getExams(params?: { subjectId?: string }): Promise<any[]> {
+        const res = await this.axiosInstance.get("/exams", { params });
+        return res.data?.data || [];
+    }
+
+    async getExam(examId: string): Promise<any> {
+        const res = await this.axiosInstance.get(`/exams/${examId}`);
+        return res.data?.data;
+    }
+
+    async submitExam(examId: string, data: { answers: number[]; timeSpent?: number }): Promise<any> {
+        const res = await this.axiosInstance.post(`/exams/${examId}/submit`, data);
+        return res.data?.data;
+    }
+
+    async getExamResult(examId: string): Promise<any> {
+        const res = await this.axiosInstance.get(`/exams/${examId}/result`);
+        return res.data?.data;
+    }
+
+    async getExamSubjects(): Promise<any[]> {
+        const res = await this.axiosInstance.get("/exams/subjects");
+        return res.data?.data || [];
+    }
 }
 
 function mapStatusFromProgress(overallProgress: number): StudentStatus {

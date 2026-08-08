@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { AppState, AppStateStatus } from "react-native";
-import { processQuizQueue } from "@/lib/utils/syncQueue";
+import { processQuizQueue, processLessonQueue } from "@/lib/utils/syncQueue";
 
 export default function useBackgroundSync() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -10,7 +10,7 @@ export default function useBackgroundSync() {
 
     const runOnce = async () => {
       try {
-        await processQuizQueue();
+        await Promise.all([processQuizQueue(), processLessonQueue()]);
       } catch {
         // ignore
       }
@@ -20,7 +20,7 @@ export default function useBackgroundSync() {
       if (intervalRef.current) return;
       intervalRef.current = setInterval(() => {
         if (!active) return;
-        processQuizQueue();
+        Promise.all([processQuizQueue(), processLessonQueue()]);
       }, 30000);
     };
 

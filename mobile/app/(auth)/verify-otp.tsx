@@ -111,8 +111,18 @@ export default function VerifyOTPScreen() {
                 const assessmentComplete = await getItem("assessmentComplete");
                 if (assessmentComplete === "true") {
                     router.replace("/(tabs)");
-                } else {
+                } else if (assessmentComplete === "false") {
                     router.replace("/(onboarding)");
+                } else {
+                    // Flag missing (new device / cleared storage) — check server
+                    try {
+                        const status = await apiClient.getAssessmentStatus();
+                        await setItem("assessmentComplete", status.completed ? "true" : "false");
+                        router.replace(status.completed ? "/(tabs)" : "/(onboarding)");
+                    } catch {
+                        // Server unreachable — default to main app
+                        router.replace("/(tabs)");
+                    }
                 }
             }
         } catch (error: any) {

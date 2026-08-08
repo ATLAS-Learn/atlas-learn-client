@@ -211,6 +211,13 @@ export default function HomeTab() {
                                 <Text style={styles.actionTitle}>Learn</Text>
                                 <Text style={styles.actionDesc}>Continue lessons</Text>
                             </TouchableOpacity>
+                            {/* Exams - commented out for now
+                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/learn/exam")} activeOpacity={0.7}>
+                                <Ionicons name="school-outline" size={20} color="#1F2524" />
+                                <Text style={styles.actionTitle}>Exams</Text>
+                                <Text style={styles.actionDesc}>Take exams</Text>
+                            </TouchableOpacity>
+                            */}
                             <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.7}>
                                 <Ionicons name="person-outline" size={20} color="#1F2524" />
                                 <Text style={styles.actionTitle}>Profile</Text>

@@ -17,6 +17,9 @@ import { Chapter, Lesson, LessonWithProgress } from "@/lib/types";
 import ChapterHeader from "@/components/lessons/chapter-header";
 import ContentSection from "@/components/lessons/content-section";
 import ScreenHeader from "@/components/ui/screen-header";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+
+const CHAPTER_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export default function ChapterScreen() {
     const router = useRouter();
@@ -47,11 +50,22 @@ export default function ChapterScreen() {
             if (!chapterId) {
                 throw new Error("Missing chapter ID");
             }
+            // Try cache first for instant display
+            const cached = getCacheSync<Chapter>(`cache:chapter:${chapterId}`);
+            if (cached) {
+                setChapter(cached);
+                setLoading(false);
+            }
+            // Fetch fresh data
             const data = await apiClient.getChapter(chapterId);
             setChapter(data);
+            setCache(`cache:chapter:${chapterId}`, data, CHAPTER_CACHE_TTL).catch(() => {});
         } catch {
-            Alert.alert("Error", "Failed to load chapter. Please try again.");
-            router.back();
+            const cached = getCacheSync<Chapter>(`cache:chapter:${chapterId}`);
+            if (!cached) {
+                Alert.alert("Error", "Failed to load chapter. Please try again.");
+                router.back();
+            }
         } finally {
             setLoading(false);
         }
@@ -119,7 +133,14 @@ export default function ChapterScreen() {
     const loadLessons = useCallback(async () => {
         if (!chapterId) return;
         setLessonsLoading(true);
+        const cacheKey = `cache:lessons:${chapterId}`;
         try {
+            // Try cache first
+            const cached = getCacheSync<LessonWithProgress[]>(cacheKey);
+            if (cached) {
+                setLessons(cached);
+            }
+
             let subjectIdForRequest =
                 resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
             if (!subjectIdForRequest) {
@@ -137,9 +158,14 @@ export default function ChapterScreen() {
             const data = subjectIdForRequest
                 ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, true)
                 : await apiClient.getChapterLessons(chapterId, true);
-            setLessons(Array.isArray(data) ? (data as LessonWithProgress[]) : []);
+            const lessonsList = Array.isArray(data) ? (data as LessonWithProgress[]) : [];
+            setLessons(lessonsList);
+            setCache(cacheKey, lessonsList, CHAPTER_CACHE_TTL).catch(() => {});
         } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to fetch chapter lessons.");
+            const cached = getCacheSync<LessonWithProgress[]>(cacheKey);
+            if (!cached) {
+                Alert.alert("Error", error.message || "Failed to fetch chapter lessons.");
+            }
         } finally {
             setLessonsLoading(false);
         }

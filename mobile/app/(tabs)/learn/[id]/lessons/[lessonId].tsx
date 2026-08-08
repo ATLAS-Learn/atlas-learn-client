@@ -186,10 +186,19 @@ export default function LessonDetailScreen() {
                     // Progress save is best-effort; continue with completion
                 }
             }
-            const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey);
-            setStatusMessage(response.message || "Lesson marked as completed.");
+            try {
+                const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey);
+                setStatusMessage(response.message || "Lesson marked as completed.");
+            } catch {
+                // Offline fallback — queue for background sync
+                const { enqueueLessonCompletion } = await import("@/lib/utils/syncQueue");
+                await enqueueLessonCompletion(subjectKey, chapterId, lessonKey);
+                setStatusMessage("Lesson marked as completed (will sync when online).");
+            }
+            // Update local progress store
+            const { useProgressStore } = await import("@/lib/store/progress");
+            useProgressStore.getState().completeLesson(lessonKey);
             await queryClient.invalidateQueries({ queryKey: ["progress"] });
-            // Use dismiss to pop back to the lessons list without stacking entries
             router.dismiss();
             Alert.alert(
                 "Lesson Complete",

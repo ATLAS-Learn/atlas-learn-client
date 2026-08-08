@@ -15,6 +15,12 @@ import ScreenHeader from "@/components/ui/screen-header";
 import { apiClient } from "@/lib/api";
 import { Chapter } from "@/lib/types";
 import { useUserStore } from "@/lib/store/user";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+
+const CHAPTERS_CACHE_KEY = "cache:chapters:list";
+const CHAPTERS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+const LESSON_COUNTS_CACHE_KEY = "cache:chapters:lessonCounts";
+const LESSON_COUNTS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export default function ChaptersListScreen() {
     const router = useRouter();
@@ -31,6 +37,16 @@ export default function ChaptersListScreen() {
 
     const loadChapters = async () => {
         try {
+            // Try loading from cache first for instant display
+            const cachedChapters = getCacheSync<Chapter[]>(CHAPTERS_CACHE_KEY);
+            const cachedCounts = getCacheSync<Record<string, number>>(LESSON_COUNTS_CACHE_KEY);
+            if (cachedChapters) {
+                setChapters(cachedChapters);
+                setLessonCounts(cachedCounts || {});
+                setLoading(false);
+            }
+
+            // Fetch fresh data from server
             const [data, progressData] = await Promise.all([
                 apiClient.getChapters(),
                 apiClient.getOverallProgress(),
@@ -52,6 +68,9 @@ export default function ChaptersListScreen() {
             setChapters(filteredChapters);
             setCompletedChapters(completedChapterIds);
 
+            // Cache chapters
+            setCache(CHAPTERS_CACHE_KEY, filteredChapters, CHAPTERS_CACHE_TTL).catch(() => {});
+
             // Fetch lesson counts for each chapter in parallel
             const counts: Record<string, number> = {};
             await Promise.all(
@@ -65,8 +84,13 @@ export default function ChaptersListScreen() {
                 })
             );
             setLessonCounts(counts);
+            setCache(LESSON_COUNTS_CACHE_KEY, counts, LESSON_COUNTS_CACHE_TTL).catch(() => {});
         } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to load chapters. Please try again.");
+            // If we have cached data, don't show error
+            const cached = getCacheSync<Chapter[]>(CHAPTERS_CACHE_KEY);
+            if (!cached) {
+                Alert.alert("Error", error.message || "Failed to load chapters. Please try again.");
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);
