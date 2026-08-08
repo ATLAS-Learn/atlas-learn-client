@@ -153,46 +153,52 @@ export default function HomeTab() {
             )}
 
             {/* Continue Your Path */}
-            {isStudent && learningPath && learningPath.perSubject.length > 0 && (
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Continue Learning</Text>
-                    {learningPath.perSubject.map((subject) => {
-                        const next = subject.currentChapter || subject.nextRecommended || subject.startChapter;
-                        if (!next) return null;
-                        return (
-                            <TouchableOpacity
-                                key={subject.subjectId}
-                                style={styles.pathCard}
-                                onPress={() =>
-                                    router.push({
-                                        pathname: "/(tabs)/learn/[id]",
-                                        params: {
-                                            id: next.id,
-                                            subjectId: subject.subjectId,
-                                        },
-                                    } as any)
-                                }
-                                activeOpacity={0.7}
-                            >
-                                <View style={styles.pathLeft}>
-                                    <View style={styles.pathDot} />
-                                    <View>
-                                        <Text style={styles.pathSubject}>{subject.subjectName}</Text>
-                                        <Text style={styles.pathChapter}>{next.title}</Text>
+            {isStudent && learningPath && learningPath.perSubject.length > 0 && (() => {
+                const incompleteSubjects = learningPath.perSubject.filter(
+                    (s) => s.completionPercentage < 100
+                );
+                if (incompleteSubjects.length === 0) return null;
+                return (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Continue Learning</Text>
+                        {incompleteSubjects.map((subject) => {
+                            const next = subject.currentChapter || subject.nextRecommended || subject.startChapter;
+                            if (!next) return null;
+                            return (
+                                <TouchableOpacity
+                                    key={subject.subjectId}
+                                    style={styles.pathCard}
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: "/(tabs)/learn/[id]",
+                                            params: {
+                                                id: next.id,
+                                                subjectId: subject.subjectId,
+                                            },
+                                        } as any)
+                                    }
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={styles.pathLeft}>
+                                        <View style={styles.pathDot} />
+                                        <View>
+                                            <Text style={styles.pathSubject}>{subject.subjectName}</Text>
+                                            <Text style={styles.pathChapter}>{next.title}</Text>
+                                        </View>
                                     </View>
-                                </View>
-                                <View style={styles.pathRight}>
-                                    <Text style={styles.pathPercent}>{subject.completionPercentage}%</Text>
-                                    <Ionicons name="chevron-forward" size={14} color="#CCC" />
-                                </View>
-                            </TouchableOpacity>
-                        );
-                    })}
-                    {learningPath.studyPlan && (
-                        <Text style={styles.studyPlan}>{learningPath.studyPlan}</Text>
-                    )}
-                </View>
-            )}
+                                    <View style={styles.pathRight}>
+                                        <Text style={styles.pathPercent}>{subject.completionPercentage}%</Text>
+                                        <Ionicons name="chevron-forward" size={14} color="#CCC" />
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+                        {learningPath.studyPlan && (
+                            <Text style={styles.studyPlan}>{learningPath.studyPlan}</Text>
+                        )}
+                    </View>
+                );
+            })()}
 
             {/* Quick Actions */}
             <View style={styles.section}>
