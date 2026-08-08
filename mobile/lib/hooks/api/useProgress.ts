@@ -3,7 +3,8 @@ import { apiClient } from "@/lib/api";
 import { OverallProgressData, StreakData } from "@/lib/types";
 import { setCache, getCacheSync } from "@/lib/utils/cache";
 
-const PROGRESS_TTL = 1000 * 60 * 5; // 5 minutes
+const STALE_TIME = 1000 * 60 * 5; // 5 minutes - refetch when online
+const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours - persist for offline
 
 export function useOverallProgress() {
     const cacheKey = "cache:progress:overall";
@@ -13,7 +14,7 @@ export function useOverallProgress() {
         queryFn: async () => {
             try {
                 const data = await apiClient.getOverallProgress();
-                await setCache(cacheKey, data, PROGRESS_TTL);
+                await setCache(cacheKey, data, CACHE_TTL);
                 return data;
             } catch {
                 const cached = getCacheSync<OverallProgressData>(cacheKey);
@@ -21,7 +22,7 @@ export function useOverallProgress() {
                 throw new Error("Offline");
             }
         },
-        staleTime: PROGRESS_TTL,
+        staleTime: STALE_TIME,
         refetchOnMount: true,
         refetchOnWindowFocus: false,
         initialData: initial ?? undefined,
@@ -37,7 +38,7 @@ export function useStreak() {
         queryFn: async () => {
             try {
                 const data = await apiClient.getStreak();
-                await setCache(cacheKey, data, PROGRESS_TTL);
+                await setCache(cacheKey, data, CACHE_TTL);
                 return data;
             } catch {
                 const cached = getCacheSync<StreakData>(cacheKey);
@@ -45,7 +46,7 @@ export function useStreak() {
                 throw new Error("Offline");
             }
         },
-        staleTime: PROGRESS_TTL,
+        staleTime: STALE_TIME,
         refetchOnMount: true,
         initialData: initial ?? undefined,
         retry: false,
