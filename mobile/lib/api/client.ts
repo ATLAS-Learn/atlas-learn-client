@@ -1400,6 +1400,16 @@ class APIClient {
         const res = await this.axiosInstance.get("/exams/subjects");
         return res.data?.data || [];
     }
+
+    async getUserExamHistory(): Promise<any[]> {
+        const res = await this.axiosInstance.get("/exams/my-history");
+        return res.data?.data || [];
+    }
+
+    async getLeaderboard(): Promise<any[]> {
+        const res = await this.axiosInstance.get("/leaderboard");
+        return res.data?.data || [];
+    }
 }
 
 function mapStatusFromProgress(overallProgress: number): StudentStatus {

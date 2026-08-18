@@ -364,6 +364,14 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.menuItem}
+                    onPress={() => router.push("/(tabs)/profile/exam-history" as any)}
+                >
+                    <Ionicons name="school-outline" size={24} color="#666" />
+                    <Text style={styles.menuText}>Exam History</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuItem}
                     onPress={() => router.push("/(tabs)/profile/assessment-result" as any)}
                 >
                     <Ionicons name="trophy-outline" size={24} color="#666" />
