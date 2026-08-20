@@ -46,10 +46,12 @@ export const storage = {
     const mmkv = getMMKVStore();
     if (mmkv) {
       mmkv.set(key, value);
+      console.log(`[Storage] Set ${key}`);
       return;
     }
     if (isServer) return;
     await AsyncStorage.setItem(key, value);
+    console.log(`[Storage] Set ${key} (AsyncStorage)`);
   },
   async removeItem(key: string) {
     const mmkv = getMMKVStore();
