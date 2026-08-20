@@ -1,14 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import { Quiz, QuizSubmission, UserQuizAttempt, UserQuizAttemptsQueryParams } from "@/lib/types";
+import { Quiz, QuizSubmission, QuizResult, QuizAttempt } from "@/lib/types";
 import { setCache, getCacheSync } from "@/lib/utils/cache";
 
 const STATIC_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days
-
-function isBackendUserId(userId: string | undefined): userId is string {
-    if (!userId) return false;
-    return /^c[a-z0-9]{8,}$/i.test(userId);
-}
 
 export function useQuizzes(chapterId: string | undefined) {
     const initial = getCacheSync<Quiz[]>(`cache:quizzes:chapter:${chapterId}`);
@@ -51,32 +46,25 @@ export function useSubmitQuiz() {
     });
 }
 
-export function useUserQuizAttempts(
-    userId: string | undefined,
-    params: UserQuizAttemptsQueryParams = {}
-) {
-    const canFetchAttempts = isBackendUserId(userId) || Boolean(userId);
-
-    return useQuery<UserQuizAttempt[]>({
-        queryKey: ["users", userId, "quiz-attempts", params.quizId ?? "all", params.limit ?? 10, params.offset ?? 0],
-        queryFn: () => apiClient.getUserQuizAttempts(userId!, params),
+export function useUserQuizAttempts(userId: string | undefined) {
+    const cacheKey = `cache:quiz-attempts:${userId}`;
+    const initial = getCacheSync<QuizAttempt[]>(cacheKey);
+    return useQuery({
+        queryKey: ["users", userId, "quiz-attempts"],
+        queryFn: async () => {
+            try {
+                const data = await apiClient.getUserQuizAttempts(userId!);
+                await setCache(cacheKey, data, STATIC_TTL);
+                return data;
+            } catch {
+                const cached = getCacheSync<QuizAttempt[]>(cacheKey);
+                if (cached) return cached;
+                throw new Error("Offline");
+            }
+        },
         enabled: !!userId,
         staleTime: 1000 * 60,
-    });
-}
-
-export function useQuizAttempts(quizId: string | undefined) {
-    return useQuery({
-        queryKey: ["quizzes", quizId, "attempts"],
-        queryFn: () => apiClient.getQuizAttempts(quizId!),
-        enabled: !!quizId,
-    });
-}
-
-export function useQuizStats(quizId: string | undefined) {
-    return useQuery({
-        queryKey: ["quizzes", quizId, "stats"],
-        queryFn: () => apiClient.getQuizStats(quizId!),
-        enabled: !!quizId,
+        initialData: initial ?? undefined,
+        retry: false,
     });
 }

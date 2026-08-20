@@ -1,46 +1,54 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import { OverallProgressData, StreakData, UserRole } from "@/lib/types";
+import { OverallProgressData, StreakData } from "@/lib/types";
 import { setCache, getCacheSync } from "@/lib/utils/cache";
-import { useUserStore } from "@/lib/store/user";
 
-const PROGRESS_TTL = 1000 * 60 * 5; // 5 minutes
+const STALE_TIME = 1000 * 60 * 5; // 5 minutes - refetch when online
+const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours - persist for offline
 
 export function useOverallProgress() {
-    const { user } = useUserStore();
-    const isStudent = !user || user?.role === UserRole.STUDENT;
-    const initial = getCacheSync<OverallProgressData>("cache:progress:overall");
-
+    const cacheKey = "cache:progress:overall";
+    const initial = getCacheSync<OverallProgressData>(cacheKey);
     return useQuery({
-        queryKey: ["progress", "overall", user?.id || "anonymous"],
+        queryKey: ["progress", "overall"],
         queryFn: async () => {
-            const data = await apiClient.getOverallProgress();
             try {
-                await setCache("cache:progress:overall", data, PROGRESS_TTL);
-            } catch {}
-            return data;
+                const data = await apiClient.getOverallProgress();
+                await setCache(cacheKey, data, CACHE_TTL);
+                return data;
+            } catch {
+                const cached = getCacheSync<OverallProgressData>(cacheKey);
+                if (cached) return cached;
+                throw new Error("Offline");
+            }
         },
-        staleTime: PROGRESS_TTL,
+        staleTime: STALE_TIME,
         refetchOnMount: true,
         refetchOnWindowFocus: false,
-        enabled: isStudent,
         initialData: initial ?? undefined,
+        retry: false,
     });
 }
 
 export function useStreak() {
-    const initial = getCacheSync<StreakData>("cache:progress:streak");
+    const cacheKey = "cache:progress:streak";
+    const initial = getCacheSync<StreakData>(cacheKey);
     return useQuery({
         queryKey: ["progress", "streak"],
         queryFn: async () => {
-            const data = await apiClient.getStreak();
             try {
-                await setCache("cache:progress:streak", data, PROGRESS_TTL);
-            } catch {}
-            return data;
+                const data = await apiClient.getStreak();
+                await setCache(cacheKey, data, CACHE_TTL);
+                return data;
+            } catch {
+                const cached = getCacheSync<StreakData>(cacheKey);
+                if (cached) return cached;
+                throw new Error("Offline");
+            }
         },
-        staleTime: PROGRESS_TTL,
+        staleTime: STALE_TIME,
         refetchOnMount: true,
         initialData: initial ?? undefined,
+        retry: false,
     });
 }

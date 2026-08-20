@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -7,7 +7,7 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
-    Linking,
+    Modal,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -17,6 +17,9 @@ import { Chapter, Lesson, LessonWithProgress } from "@/lib/types";
 import ChapterHeader from "@/components/lessons/chapter-header";
 import ContentSection from "@/components/lessons/content-section";
 import ScreenHeader from "@/components/ui/screen-header";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+
+const CHAPTER_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export default function ChapterScreen() {
     const router = useRouter();
@@ -28,28 +31,41 @@ export default function ChapterScreen() {
     const [loading, setLoading] = useState(true);
     const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
     const [lessonsLoading, setLessonsLoading] = useState(false);
+    const [insightModalVisible, setInsightModalVisible] = useState(false);
+    const [insightTitle, setInsightTitle] = useState("");
+    const [insightBody, setInsightBody] = useState("");
     const [loadingInsight, setLoadingInsight] = useState(false);
-    const lastLessonsRequestKeyRef = useRef<string | null>(null);
 
-    const getPrimaryLessonProgress = (lesson: Lesson) =>
-        Array.isArray(lesson.LessonProgress) && lesson.LessonProgress.length > 0
-            ? lesson.LessonProgress[0]
-            : undefined;
+    useEffect(() => {
+        console.log("[ID_TRACE] ChapterScreen route params", {
+            rawId: id,
+            rawSubjectId: subjectId,
+            chapterId,
+            subjectKey,
+        });
+    }, [chapterId, id, subjectId, subjectKey]);
 
     const loadChapter = useCallback(async () => {
         try {
             if (!chapterId) {
                 throw new Error("Missing chapter ID");
             }
+            // Try cache first for instant display
+            const cached = getCacheSync<Chapter>(`cache:chapter:${chapterId}`);
+            if (cached) {
+                setChapter(cached);
+                setLoading(false);
+            }
+            // Fetch fresh data
             const data = await apiClient.getChapter(chapterId);
             setChapter(data);
-            const chapterSubjectId = getSubjectIdFromChapter(data);
-            if (chapterSubjectId) {
-                setResolvedSubjectId(chapterSubjectId);
-            }
+            setCache(`cache:chapter:${chapterId}`, data, CHAPTER_CACHE_TTL).catch(() => {});
         } catch {
-            Alert.alert("Error", "Failed to load chapter. Please try again.");
-            router.back();
+            const cached = getCacheSync<Chapter>(`cache:chapter:${chapterId}`);
+            if (!cached) {
+                Alert.alert("Error", "Failed to load chapter. Please try again.");
+                router.back();
+            }
         } finally {
             setLoading(false);
         }
@@ -65,52 +81,25 @@ export default function ChapterScreen() {
 
     const handleStartQuiz = () => {
         if (!chapterId) return;
-        const subjectIdForQuiz =
-            resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
-        const params: { id: string; subjectId?: string } = { id: chapterId };
-        if (subjectIdForQuiz) {
-            params.subjectId = subjectIdForQuiz;
-        }
+        const subjectIdForRoute = resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
         router.push({
-            pathname: "/(tabs)/learn/[id]/quiz",
-            params,
+            pathname: `/(tabs)/learn/${chapterId}/quiz`,
+            params: { subjectId: subjectIdForRoute || "" },
         } as any);
     };
 
-    const getChapterPdfUrl = (chapterValue: Chapter | null): string | undefined => {
-        if (!chapterValue) return undefined;
-        const withPdf = chapterValue as Chapter & { pdfUrl?: string };
-        return typeof withPdf.pdfUrl === "string" ? withPdf.pdfUrl : undefined;
+    const showInsight = (title: string, data: unknown) => {
+        setInsightTitle(title);
+        setInsightBody(JSON.stringify(data, null, 2));
+        setInsightModalVisible(true);
     };
 
     const handleViewPdf = async () => {
         if (!chapterId) return;
         setLoadingInsight(true);
         try {
-            let pdfUrl = getChapterPdfUrl(chapter) || "";
-            if (!pdfUrl && resolvedSubjectId) {
-                try {
-                    const subjectChapter = await apiClient.getSubjectChapter(resolvedSubjectId, chapterId);
-                    pdfUrl =
-                        (typeof subjectChapter?.pdfUrl === "string" && subjectChapter.pdfUrl) || "";
-                } catch {
-                    // Fallback to chapter endpoint below.
-                }
-            }
-            if (!pdfUrl) {
-                const pdf = await apiClient.getChapterPdf(chapterId);
-                pdfUrl = typeof pdf?.url === "string" ? pdf.url : "";
-            }
-            if (!pdfUrl) {
-                Alert.alert("No PDF", "This chapter does not have a PDF yet.");
-                return;
-            }
-            const canOpen = await Linking.canOpenURL(pdfUrl);
-            if (!canOpen) {
-                Alert.alert("Unavailable", "Could not open chapter PDF.");
-                return;
-            }
-            await Linking.openURL(pdfUrl);
+            const pdf = await apiClient.getChapterPdf(chapterId);
+            showInsight("Chapter PDF", pdf);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to fetch chapter PDF.");
         } finally {
@@ -144,7 +133,14 @@ export default function ChapterScreen() {
     const loadLessons = useCallback(async () => {
         if (!chapterId) return;
         setLessonsLoading(true);
+        const cacheKey = `cache:lessons:${chapterId}`;
         try {
+            // Try cache first
+            const cached = getCacheSync<LessonWithProgress[]>(cacheKey);
+            if (cached) {
+                setLessons(cached);
+            }
+
             let subjectIdForRequest =
                 resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
             if (!subjectIdForRequest) {
@@ -153,17 +149,23 @@ export default function ChapterScreen() {
                     setResolvedSubjectId(subjectIdForRequest);
                 }
             }
-            const requestKey = `${chapterId}:${subjectIdForRequest || "chapter-fallback"}`;
-            if (lastLessonsRequestKeyRef.current === requestKey) {
-                return;
-            }
-            lastLessonsRequestKeyRef.current = requestKey;
+            console.log("[ID_TRACE] ChapterScreen loadLessons resolved IDs", {
+                chapterId,
+                subjectKey,
+                chapterSubjectId: getSubjectIdFromChapter(chapter),
+                resolvedSubjectId: subjectIdForRequest,
+            });
             const data = subjectIdForRequest
-                ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, { includeProgress: true })
-                : await apiClient.getChapterLessons(chapterId);
-            setLessons(Array.isArray(data) ? data : []);
+                ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, true)
+                : await apiClient.getChapterLessons(chapterId, true);
+            const lessonsList = Array.isArray(data) ? (data as LessonWithProgress[]) : [];
+            setLessons(lessonsList);
+            setCache(cacheKey, lessonsList, CHAPTER_CACHE_TTL).catch(() => {});
         } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to fetch chapter lessons.");
+            const cached = getCacheSync<LessonWithProgress[]>(cacheKey);
+            if (!cached) {
+                Alert.alert("Error", error.message || "Failed to fetch chapter lessons.");
+            }
         } finally {
             setLessonsLoading(false);
         }
@@ -175,18 +177,20 @@ export default function ChapterScreen() {
         }
     }, [chapter, chapterId, loadLessons]);
 
+    useFocusEffect(
+        useCallback(() => {
+            if (chapter && !loading) {
+                loadLessons();
+            }
+        }, [chapter, loading, loadLessons])
+    );
+
     const handleViewProgress = async () => {
         if (!chapterId) return;
         setLoadingInsight(true);
         try {
             const progress = await apiClient.getChapterProgress(chapterId);
-            const completion = Number(progress?.completionPercentage ?? 0);
-            const completed = progress?.completed ? "Yes" : "No";
-            const unlocked = progress?.unlocked ? "Yes" : "No";
-            Alert.alert(
-                "Chapter Progress",
-                `Completion: ${Math.round(completion)}%\nCompleted: ${completed}\nUnlocked: ${unlocked}`
-            );
+            showInsight("Chapter Progress", progress);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to fetch chapter progress.");
         } finally {
@@ -199,25 +203,22 @@ export default function ChapterScreen() {
         setLoadingInsight(true);
         try {
             const hints = await apiClient.getChapterExamHints(chapterId);
-            if (!Array.isArray(hints) || hints.length === 0) {
-                Alert.alert("Exam Hints", "No hints available yet for this chapter.");
-                return;
-            }
-            const preview = hints
-                .slice(0, 3)
-                .map((hint, index) => {
-                    const title = typeof hint.title === "string" && hint.title.trim() ? hint.title.trim() : `Hint ${index + 1}`;
-                    const body =
-                        (typeof hint.hint === "string" && hint.hint.trim()) ||
-                        (typeof hint.description === "string" && hint.description.trim()) ||
-                        "No details";
-                    return `${index + 1}. ${title}\n${body}`;
-                })
-                .join("\n\n");
-            const suffix = hints.length > 3 ? "\n\nOpen chapter lessons for more context." : "";
-            Alert.alert("Exam Hints", `${preview}${suffix}`);
+            showInsight("Chapter Exam Hints", hints);
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to fetch chapter exam hints.");
+        } finally {
+            setLoadingInsight(false);
+        }
+    };
+
+    const handleUnlockChapter = async () => {
+        if (!chapterId) return;
+        setLoadingInsight(true);
+        try {
+            const result = await apiClient.unlockChapter(chapterId);
+            showInsight("Unlock Chapter", result);
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to unlock chapter.");
         } finally {
             setLoadingInsight(false);
         }
@@ -282,21 +283,7 @@ export default function ChapterScreen() {
             <ScreenHeader title="Chapter" />
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-                <ChapterHeader chapter={chapter} />
-                <View style={styles.actionRow}>
-                    <TouchableOpacity style={styles.actionButton} onPress={handleViewPdf} disabled={loadingInsight}>
-                        <Text style={styles.actionButtonText}>PDF</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton} onPress={handleOpenLessonsList}>
-                        <Text style={styles.actionButtonText}>All Lessons</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton} onPress={handleViewProgress} disabled={loadingInsight}>
-                        <Text style={styles.actionButtonText}>Progress</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton} onPress={handleViewExamHints} disabled={loadingInsight}>
-                        <Text style={styles.actionButtonText}>Exam Hints</Text>
-                    </TouchableOpacity>
-                </View>
+                <ChapterHeader chapter={chapter} lessons={lessons} />
 
                 <View style={styles.lessonsHeader}>
                     <View>
@@ -324,44 +311,45 @@ export default function ChapterScreen() {
                         <Text style={styles.emptyLessonsText}>No lessons yet.</Text>
                     </View>
                 ) : (
-                    lessons.map((lesson, index) => (
-                        <TouchableOpacity key={lesson.id} style={styles.lessonCard} onPress={() => handleOpenLesson(lesson.id)}>
-                            <View style={styles.lessonRow}>
-                                <Text style={styles.lessonIndex}>{lesson.orderIndex ?? index + 1}</Text>
-                                <View style={styles.lessonInfo}>
-                                    <View style={styles.lessonTitleRow}>
-                                        <Text style={styles.lessonTitle} numberOfLines={2}>
+                    lessons.map((lesson, index) => {
+                        const isCompleted = lesson.isCompleted || (lesson.LessonProgress && lesson.LessonProgress.length > 0 && lesson.LessonProgress[0]?.isCompleted);
+                        return (
+                            <TouchableOpacity
+                                key={lesson.id}
+                                style={[
+                                    styles.lessonCard,
+                                    isCompleted && styles.lessonCardCompleted,
+                                ]}
+                                onPress={() => handleOpenLesson(lesson.id)}
+                            >
+                                <View style={styles.lessonRow}>
+                                    {isCompleted ? (
+                                        <View style={styles.lessonIndexCompleted}>
+                                            <Ionicons name="checkmark" size={14} color="#fff" />
+                                        </View>
+                                    ) : (
+                                        <Text style={styles.lessonIndex}>{lesson.orderIndex ?? index + 1}</Text>
+                                    )}
+                                    <View style={styles.lessonInfo}>
+                                        <Text
+                                            style={[
+                                                styles.lessonTitle,
+                                                isCompleted && styles.lessonTitleCompleted,
+                                            ]}
+                                            numberOfLines={2}
+                                        >
                                             {lesson.title || "Untitled lesson"}
                                         </Text>
-                                        {lesson.isFree ? (
-                                            <View style={styles.freeBadge}>
-                                                <Text style={styles.freeBadgeText}>Free</Text>
-                                            </View>
-                                        ) : null}
+                                        <Text style={styles.lessonMeta}>
+                                            {lesson.durationMinutes
+                                                ? `${lesson.durationMinutes} min`
+                                                : "Time n/a"}
+                                            {isCompleted ? " \u2022 Completed" : ""}
+                                        </Text>
                                     </View>
-                                    <Text style={styles.lessonMeta}>
-                                        {lesson.estimatedMinutes
-                                            ? `${lesson.estimatedMinutes} min`
-                                            : lesson.durationSeconds
-                                              ? `${Math.ceil(lesson.durationSeconds / 60)} min`
-                                              : "Duration unavailable"}
-                                    </Text>
-                                    {getPrimaryLessonProgress(lesson)?.isCompleted ? (
-                                        <Text style={styles.lessonProgressText}>
-                                            Completed
-                                            {typeof getPrimaryLessonProgress(lesson)?.timeSpent === "number"
-                                                ? ` • ${Math.max(1, Math.ceil((getPrimaryLessonProgress(lesson)?.timeSpent || 0) / 60))} min spent`
-                                                : ""}
-                                        </Text>
-                                    ) : typeof getPrimaryLessonProgress(lesson)?.timeSpent === "number" ? (
-                                        <Text style={styles.lessonProgressText}>
-                                            In progress • {Math.max(1, Math.ceil((getPrimaryLessonProgress(lesson)?.timeSpent || 0) / 60))} min spent
-                                        </Text>
-                                    ) : null}
                                 </View>
-                                 <Ionicons name="chevron-forward" size={20} color={isCompleted ? "#4CAF50" : "#999"} />
-                             </View>
-                         </TouchableOpacity>
+                                <Ionicons name="chevron-forward" size={20} color={isCompleted ? "#4CAF50" : "#999"} />
+                            </TouchableOpacity>
                         );
                     })
                 )}
@@ -374,6 +362,24 @@ export default function ChapterScreen() {
                 </TouchableOpacity>
             </View>
 
+            <Modal
+                visible={insightModalVisible}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setInsightModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>{insightTitle}</Text>
+                        <ScrollView style={styles.modalScroll}>
+                            <Text style={styles.modalBody}>{insightBody || "No data."}</Text>
+                        </ScrollView>
+                        <TouchableOpacity style={styles.quizButton} onPress={() => setInsightModalVisible(false)}>
+                            <Text style={styles.quizButtonText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -525,16 +531,10 @@ const styles = StyleSheet.create({
     lessonInfo: {
         flex: 1,
     },
-    lessonTitleRow: {
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 8,
-    },
     lessonTitle: {
         fontSize: 15,
         fontWeight: "700",
         color: "#222",
-        flex: 1,
     },
     lessonTitleCompleted: {
         color: "#2E7D32",
@@ -544,23 +544,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: "#777",
         fontWeight: "600",
-    },
-    lessonProgressText: {
-        marginTop: 4,
-        fontSize: 12,
-        color: "#4F6B52",
-        fontWeight: "600",
-    },
-    freeBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 999,
-        backgroundColor: "#FFF3D6",
-    },
-    freeBadgeText: {
-        color: "#9A6500",
-        fontSize: 11,
-        fontWeight: "700",
     },
     footer: {
         padding: 16,
@@ -582,5 +565,32 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 18,
         fontWeight: "700",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.35)",
+        justifyContent: "center",
+        padding: 16,
+    },
+    modalCard: {
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 16,
+        maxHeight: "85%",
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#282F2E",
+        marginBottom: 10,
+    },
+    modalScroll: {
+        maxHeight: 320,
+        marginBottom: 12,
+    },
+    modalBody: {
+        fontSize: 12,
+        color: "#444",
+        lineHeight: 18,
     },
 });

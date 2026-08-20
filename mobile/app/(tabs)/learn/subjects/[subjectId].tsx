@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import {
     ActivityIndicator,
     Alert,
-    Animated,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -14,63 +13,88 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import ScreenHeader from "@/components/ui/screen-header";
 import { apiClient } from "@/lib/api";
-import { Subject, SubjectChapter } from "@/lib/types";
-import { useOverallProgress } from "@/lib/hooks/api/useProgress";
+import { Subject, SubjectChapter, SubjectProgress } from "@/lib/types";
+import { useOverallProgress } from "@/lib/hooks/api";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
 
-type UnknownRecord = Record<string, unknown>;
+const SUBJECT_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+const CHAPTERS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-const asRecord = (value: unknown): UnknownRecord | null =>
-    value && typeof value === "object" ? (value as UnknownRecord) : null;
+type ChapterStatus = "completed" | "current" | "locked";
 
-const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
-
-const getString = (record: UnknownRecord, keys: string[]): string | undefined => {
-    for (const key of keys) {
-        const value = record[key];
-        if (typeof value === "string" && value.trim()) {
-            return value.trim();
-        }
-    }
-    return undefined;
-};
-
-const getBoolean = (record: UnknownRecord, keys: string[]): boolean =>
-    keys.some((key) => record[key] === true);
+interface ChapterWithProgress extends SubjectChapter {
+    status: ChapterStatus;
+    lessonProgress?: { completed: number; total: number };
+    quizPassed?: boolean;
+}
 
 export default function SubjectDetailScreen() {
     const router = useRouter();
-    const { subjectId, subjectCode, highlightChapterId, fromChapterId, highlightUnlocked } = useLocalSearchParams<{
-        subjectId: string;
-        subjectCode?: string;
-        highlightChapterId?: string;
-        fromChapterId?: string;
-        highlightUnlocked?: string;
-    }>();
+    const { subjectId, subjectCode } = useLocalSearchParams<{ subjectId: string; subjectCode?: string }>();
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
     const subjectCodeKey = Array.isArray(subjectCode) ? subjectCode[0] : subjectCode;
-    const explicitHighlightedChapterId = Array.isArray(highlightChapterId) ? highlightChapterId[0] : highlightChapterId;
-    const fromChapterKey = Array.isArray(fromChapterId) ? fromChapterId[0] : fromChapterId;
-    const shouldHighlightUnlocked = (Array.isArray(highlightUnlocked) ? highlightUnlocked[0] : highlightUnlocked) === "true";
-    const { data: overallProgress } = useOverallProgress();
-    const scrollViewRef = useRef<ScrollView | null>(null);
-    const chapterOffsetsRef = useRef<Record<string, number>>({});
-    const highlightAnimation = useRef(new Animated.Value(0)).current;
 
     const [subject, setSubject] = useState<Subject | null>(null);
     const [chapters, setChapters] = useState<SubjectChapter[]>([]);
     const [resolvedSubjectId, setResolvedSubjectId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [activeHighlightChapterId, setActiveHighlightChapterId] = useState<string | null>(null);
+    const { data: progressData, refetch: refetchProgress } = useOverallProgress();
+
+    const chaptersWithStatus = useMemo<ChapterWithProgress[]>(() => {
+        if (!progressData || chapters.length === 0) return chapters as ChapterWithProgress[];
+
+        const subjectProgress = progressData.subjects?.find(
+            (s: SubjectProgress) => s.subjectId === resolvedSubjectId || s.subjectId === subjectKey
+        );
+        const chapterDetails = (subjectProgress?.chapterDetails || []) as {
+            chapterId: string;
+            isCompleted: boolean;
+            isUnlocked: boolean;
+            lessons?: { completed: number; total: number };
+            quizzes?: { passed: number; total: number };
+        }[];
+
+        return chapters.map((chapter) => {
+            const detail = chapterDetails.find((d) => d.chapterId === chapter.id);
+
+            let status: ChapterStatus = "locked";
+            if (detail?.isCompleted) {
+                status = "completed";
+            } else if (detail?.isUnlocked && detail?.lessons && detail.lessons.completed > 0) {
+                status = "current";
+            } else if (detail?.isUnlocked) {
+                status = "current";
+            }
+
+            return {
+                ...chapter,
+                status,
+                lessonProgress: detail?.lessons,
+                quizPassed: detail?.quizzes ? detail.quizzes.passed > 0 : undefined,
+            };
+        });
+    }, [chapters, progressData, resolvedSubjectId, subjectKey]);
+
+    useEffect(() => {
+        console.log("[ID_TRACE] SubjectDetail route params", {
+            rawSubjectId: subjectId,
+            rawSubjectCode: subjectCode,
+            subjectKey,
+            subjectCodeKey,
+            resolvedSubjectId,
+        });
+    }, [resolvedSubjectId, subjectId, subjectCode, subjectKey, subjectCodeKey]);
 
     const toSubjectChapterArray = (value: unknown): SubjectChapter[] => {
         if (!Array.isArray(value)) return [];
         return value.filter((item): item is SubjectChapter => Boolean(item && typeof item === "object"));
     };
 
-    const loadSubjectAndChapters = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
+    const loadFromSubjectsFallback = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
         const allSubjects = await apiClient.getSubjects({
             includeChapters: true,
+            includeChapterDetails: true,
         });
         const code = targetSubjectCode?.trim().toUpperCase();
         const matched = allSubjects.find((item) => {
@@ -84,14 +108,53 @@ export default function SubjectDetailScreen() {
             throw new Error("Subject not found");
         }
 
-        const canonicalSubjectId = matched.id || targetSubjectId;
-        setResolvedSubjectId(canonicalSubjectId);
+        setResolvedSubjectId(matched.id);
         setSubject(matched);
+        const sorted = [...toSubjectChapterArray(matched.chapters)].sort(
+            (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)
+        );
+        setChapters(sorted);
+    }, []);
 
-        const embeddedChapters = toSubjectChapterArray(matched.chapters);
+    const loadSubjectAndChapters = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
+        console.log("[ID_TRACE] loadSubjectAndChapters", { targetSubjectId, targetSubjectCode });
+
+        const cacheKey = `cache:subject:${targetSubjectId}`;
+        const chaptersCacheKey = `cache:subject-chapters:${targetSubjectId}`;
+
+        // Try cache first for instant display
+        const cachedSubject = getCacheSync<Subject>(cacheKey);
+        const cachedChapters = getCacheSync<SubjectChapter[]>(chaptersCacheKey);
+        if (cachedSubject && cachedChapters) {
+            setResolvedSubjectId(cachedSubject.id || targetSubjectId);
+            setSubject(cachedSubject);
+            setChapters(cachedChapters);
+        }
+
+        let subjectResponse: Subject;
+        if (targetSubjectCode) {
+            subjectResponse = await apiClient.getSubjectByCode(targetSubjectCode, {
+                includeChapters: true,
+                includeChapterDetails: true,
+            });
+        } else {
+            subjectResponse = await apiClient.getSubjectById(targetSubjectId, {
+                includeChapters: true,
+                includeChapterDetails: true,
+            });
+        }
+
+        const canonicalSubjectId = subjectResponse.id || targetSubjectId;
+        setResolvedSubjectId(canonicalSubjectId);
+        setSubject(subjectResponse);
+
+        setCache(cacheKey, subjectResponse, SUBJECT_CACHE_TTL).catch(() => {});
+
+        const embeddedChapters = toSubjectChapterArray(subjectResponse.chapters);
         if (embeddedChapters.length > 0) {
             const sorted = [...embeddedChapters].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
             setChapters(sorted);
+            setCache(chaptersCacheKey, sorted, CHAPTERS_CACHE_TTL).catch(() => {});
             return;
         }
 
@@ -100,21 +163,48 @@ export default function SubjectDetailScreen() {
             ? [...chaptersResponse].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
             : [];
         setChapters(sorted);
+        setCache(chaptersCacheKey, sorted, CHAPTERS_CACHE_TTL).catch(() => {});
     }, []);
 
     const initialize = useCallback(async () => {
         if (!subjectKey) return;
         setLoading(true);
         setRefreshing(false);
+
+        const cacheKey = `cache:subject:${subjectKey}`;
+        const chaptersCacheKey = `cache:subject-chapters:${subjectKey}`;
+        const cachedSubject = getCacheSync<Subject>(cacheKey);
+        const cachedChapters = getCacheSync<SubjectChapter[]>(chaptersCacheKey);
+
+        // Show cache immediately if available
+        if (cachedSubject && cachedChapters) {
+            setResolvedSubjectId(cachedSubject.id || subjectKey);
+            setSubject(cachedSubject);
+            setChapters(cachedChapters);
+            setLoading(false);
+        }
+
         try {
-            await loadSubjectAndChapters(subjectKey, subjectCodeKey);
+            try {
+                await loadSubjectAndChapters(subjectKey, subjectCodeKey);
+            } catch {
+                await loadFromSubjectsFallback(subjectKey, subjectCodeKey);
+            }
         } catch (error: any) {
-            Alert.alert("Error", error?.message || "Subject not found.");
-            router.back();
+            console.log("[ID_TRACE] SubjectDetail invalid subjectId", {
+                subjectKey,
+                subjectCodeKey,
+                errorMessage: error?.message,
+            });
+            // If we have cached data, don't show error
+            if (!cachedSubject) {
+                Alert.alert("Error", error?.message || "Subject not found.");
+                router.back();
+            }
         } finally {
             setLoading(false);
         }
-    }, [loadSubjectAndChapters, router, subjectCodeKey, subjectKey]);
+    }, [loadFromSubjectsFallback, loadSubjectAndChapters, router, subjectCodeKey, subjectKey]);
 
     useEffect(() => {
         initialize();
@@ -137,119 +227,49 @@ export default function SubjectDetailScreen() {
         } as any);
     };
 
-    const completedChapterIds = useMemo((): Set<string> => {
-        const activeSubjectId = resolvedSubjectId || subjectKey;
-        if (!activeSubjectId || !Array.isArray(overallProgress?.subjects)) {
-            return new Set();
+    const getStatusIcon = (status: ChapterStatus) => {
+        switch (status) {
+            case "completed":
+                return <Ionicons name="checkmark-circle" size={22} color="#4CAF50" />;
+            case "current":
+                return <Ionicons name="play-circle" size={22} color="#F2B138" />;
+            case "locked":
+                return <Ionicons name="lock-closed" size={20} color="#CCC" />;
         }
+    };
 
-        const subjectProgress = overallProgress.subjects.find((entry) => entry.subjectId === activeSubjectId);
-        if (!subjectProgress) {
-            return new Set();
+    const getStatusLabel = (status: ChapterStatus) => {
+        switch (status) {
+            case "completed":
+                return "Completed";
+            case "current":
+                return "In Progress";
+            case "locked":
+                return "Not Started";
         }
+    };
 
-        const completedIds = new Set<string>();
-
-        asArray(subjectProgress.chapterDetails).forEach((entry) => {
-            const record = asRecord(entry);
-            if (!record || !getBoolean(record, ["completed", "isCompleted"])) {
-                return;
-            }
-
-            const chapterIdValue = getString(record, ["chapterId", "id"]);
-            if (chapterIdValue) {
-                completedIds.add(chapterIdValue);
-            }
-        });
-
-        const chaptersRecord = asRecord(subjectProgress.chapters);
-        if (chaptersRecord) {
-            Object.entries(chaptersRecord).forEach(([chapterIdValue, value]) => {
-                const record = asRecord(value);
-                if (record && getBoolean(record, ["completed", "isCompleted"])) {
-                    completedIds.add(chapterIdValue);
-                }
-            });
+    const getStatusColor = (status: ChapterStatus) => {
+        switch (status) {
+            case "completed":
+                return "#E8F5E9";
+            case "current":
+                return "#FFF8E1";
+            case "locked":
+                return "#F5F5F5";
         }
+    };
 
-        return completedIds;
-    }, [overallProgress?.subjects, resolvedSubjectId, subjectKey]);
-
-    const isChapterLocked = useCallback(
-        (chapter: SubjectChapter, index: number): boolean => {
-            if (index === 0) return false;
-
-            const chapterRecord = chapter as UnknownRecord;
-            if (getBoolean(chapterRecord, ["unlocked", "isUnlocked"])) {
-                return false;
-            }
-
-            const previousChapter = chapters[index - 1];
-            return previousChapter ? !completedChapterIds.has(previousChapter.id) : false;
-        },
-        [chapters, completedChapterIds]
-    );
-
-    const derivedHighlightedChapterId = useMemo(() => {
-        if (explicitHighlightedChapterId && chapters.some((chapter) => chapter.id === explicitHighlightedChapterId)) {
-            return explicitHighlightedChapterId;
+    const getBorderColor = (status: ChapterStatus) => {
+        switch (status) {
+            case "completed":
+                return "#4CAF50";
+            case "current":
+                return "#F2B138";
+            case "locked":
+                return "#EAEAEA";
         }
-        if (!shouldHighlightUnlocked || !fromChapterKey) {
-            return undefined;
-        }
-        const currentIndex = chapters.findIndex((chapter) => chapter.id === fromChapterKey);
-        if (currentIndex < 0 || currentIndex >= chapters.length - 1) {
-            return undefined;
-        }
-        return chapters[currentIndex + 1]?.id;
-    }, [chapters, explicitHighlightedChapterId, fromChapterKey, shouldHighlightUnlocked]);
-
-    useEffect(() => {
-        if (!derivedHighlightedChapterId || !chapters.some((chapter) => chapter.id === derivedHighlightedChapterId)) {
-            return;
-        }
-
-        setActiveHighlightChapterId(derivedHighlightedChapterId);
-        highlightAnimation.setValue(1);
-
-        const scrollTimeout = setTimeout(() => {
-            const offsetY = chapterOffsetsRef.current[derivedHighlightedChapterId];
-            if (typeof offsetY === "number") {
-                scrollViewRef.current?.scrollTo({
-                    y: Math.max(0, offsetY - 24),
-                    animated: true,
-                });
-            }
-        }, 150);
-
-        const pulseAnimation = Animated.sequence([
-            Animated.timing(highlightAnimation, {
-                toValue: 0.25,
-                duration: 700,
-                useNativeDriver: false,
-            }),
-            Animated.timing(highlightAnimation, {
-                toValue: 1,
-                duration: 700,
-                useNativeDriver: false,
-            }),
-        ]);
-
-        const loop = Animated.loop(pulseAnimation);
-        loop.start();
-
-        const clearTimeoutId = setTimeout(() => {
-            loop.stop();
-            setActiveHighlightChapterId(null);
-            highlightAnimation.setValue(0);
-        }, 4200);
-
-        return () => {
-            clearTimeout(scrollTimeout);
-            clearTimeout(clearTimeoutId);
-            loop.stop();
-        };
-    }, [chapters, derivedHighlightedChapterId, highlightAnimation]);
+    };
 
     if (loading) {
         return (
@@ -265,7 +285,6 @@ export default function SubjectDetailScreen() {
             <ScreenHeader title="Subject" />
 
             <ScrollView
-                ref={scrollViewRef}
                 style={styles.scrollView}
                 contentContainerStyle={styles.content}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
@@ -291,91 +310,54 @@ export default function SubjectDetailScreen() {
                         <Text style={styles.emptyText}>No chapters yet.</Text>
                     </View>
                 ) : (
-                    chapters.map((chapter, index) => {
-                        const locked = isChapterLocked(chapter, index);
-                        const completed = completedChapterIds.has(chapter.id);
-                        const isHighlighted = activeHighlightChapterId === chapter.id;
-                        const highlightedBackground = highlightAnimation.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ["#FFFFFF", "#FDE7A8"],
-                        });
-                        const highlightedBorder = highlightAnimation.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ["#EAEAEA", "#BF522A"],
-                        });
-                        const highlightedScale = highlightAnimation.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [1, 1.015],
-                        });
-
-                        return (
-                            <Animated.View
-                                key={chapter.id}
-                                style={[
-                                    styles.chapterCard,
-                                    locked && styles.chapterCardLocked,
-                                    completed && styles.chapterCardCompleted,
-                                    isHighlighted && {
-                                        transform: [{ scale: highlightedScale }],
-                                        shadowColor: "#BF522A",
-                                        shadowOffset: { width: 0, height: 8 },
-                                        shadowOpacity: 0.18,
-                                        shadowRadius: 18,
-                                        elevation: 6,
-                                    },
-                                    isHighlighted && {
-                                        backgroundColor: highlightedBackground,
-                                        borderColor: highlightedBorder,
-                                    },
-                                ]}
-                                onLayout={(event) => {
-                                    chapterOffsetsRef.current[chapter.id] = event.nativeEvent.layout.y;
-                                }}
-                            >
-                                <TouchableOpacity
-                                    style={styles.chapterTapArea}
-                                    onPress={() => !locked && handleOpenChapter(chapter.id)}
-                                    disabled={locked}
-                                >
-                                    <View style={styles.chapterInfo}>
-                                        <View style={styles.chapterTitleRow}>
-                                            <Text style={styles.chapterTitle}>{chapter.title}</Text>
-                                            {completed ? (
-                                                <View style={styles.completedBadge}>
-                                                    <Ionicons name="checkmark-circle" size={16} color="#2E7D32" />
-                                                    <Text style={styles.completedText}>Completed</Text>
-                                                </View>
-                                            ) : null}
-                                            {locked ? (
-                                                <View style={styles.lockedBadge}>
-                                                    <Ionicons name="lock-closed" size={14} color="#999" />
-                                                    <Text style={styles.lockedText}>Locked</Text>
-                                                </View>
-                                            ) : null}
-                                            {isHighlighted ? (
-                                                <View style={styles.unlockedBadge}>
-                                                    <Ionicons name="sparkles" size={14} color="#8A5D00" />
-                                                    <Text style={styles.unlockedText}>Just unlocked</Text>
-                                                </View>
-                                            ) : null}
-                                        </View>
-                                        {!!chapter.description && (
-                                            <Text style={styles.chapterDescription} numberOfLines={2}>
-                                                {chapter.description}
-                                            </Text>
-                                        )}
-                                        <Text style={styles.chapterMeta}>
-                                            {chapter.orderIndex ? `Chapter ${chapter.orderIndex}` : "Chapter"}
-                                            {chapter.estimatedMinutes
-                                                ? ` • ${chapter.estimatedMinutes} min`
-                                                : ""}
-                                        </Text>
-                                    </View>
-                                    {!locked ? <Ionicons name="chevron-forward" size={22} color="#999" /> : null}
-                                </TouchableOpacity>
-                            </Animated.View>
-                        );
-                    })
+                    chaptersWithStatus.map((chapter) => (
+                        <TouchableOpacity
+                            key={chapter.id}
+                            style={[
+                                styles.chapterCard,
+                                {
+                                    backgroundColor: getStatusColor(chapter.status),
+                                    borderColor: getBorderColor(chapter.status),
+                                },
+                            ]}
+                            onPress={() => handleOpenChapter(chapter.id, chapter.status)}
+                            disabled={chapter.status === "locked"}
+                        >
+                            <View style={styles.chapterIconContainer}>
+                                {getStatusIcon(chapter.status)}
+                            </View>
+                            <View style={styles.chapterInfo}>
+                                <View style={styles.chapterTitleRow}>
+                                    <Text
+                                        style={[
+                                            styles.chapterTitle,
+                                            chapter.status === "locked" && styles.chapterTitleLocked,
+                                        ]}
+                                    >
+                                        {chapter.title}
+                                    </Text>
+                                    <Text style={[styles.statusLabel, { color: getBorderColor(chapter.status) }]}>
+                                        {getStatusLabel(chapter.status)}
+                                    </Text>
+                                </View>
+                                {!!chapter.description && (
+                                    <Text style={styles.chapterDescription} numberOfLines={2}>
+                                        {chapter.description}
+                                    </Text>
+                                )}
+                                <Text style={styles.chapterMeta}>
+                                    {chapter.orderIndex ? `Chapter ${chapter.orderIndex}` : "Chapter"}
+                                    {chapter.estimatedMinutes
+                                        ? ` \u2022 ${chapter.estimatedMinutes} min`
+                                        : ""}
+                                    {chapter.lessonProgress
+                                        ? ` \u2022 ${chapter.lessonProgress.completed}/${chapter.lessonProgress.total} lessons`
+                                        : ""}
+                                </Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color={chapter.status === "locked" ? "#CCC" : "#999"} />
+                        </TouchableOpacity>
+                    ))
                 )}
             </ScrollView>
         </View>
@@ -424,64 +406,27 @@ const styles = StyleSheet.create({
     },
     emptyText: { marginTop: 8, fontSize: 13, color: "#999", fontWeight: "600" },
     chapterCard: {
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        borderWidth: 1,
-        marginBottom: 10,
-    },
-    chapterTapArea: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         padding: 14,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginBottom: 10,
     },
-    chapterCardLocked: {
-        opacity: 0.72,
-        backgroundColor: "#F5F5F5",
-        borderColor: "#E2E2E2",
+    chapterIconContainer: {
+        width: 32,
+        alignItems: "center",
     },
-    chapterCardCompleted: {
-        backgroundColor: "#F8FFF6",
-        borderColor: "#DCEFD8",
-    },
-    chapterInfo: { flex: 1, marginRight: 12 },
+    chapterInfo: { flex: 1, marginRight: 8 },
     chapterTitleRow: {
         flexDirection: "row",
         alignItems: "center",
-        flexWrap: "wrap",
-        gap: 8,
+        justifyContent: "space-between",
     },
-    chapterTitle: { flexShrink: 1, fontSize: 15, fontWeight: "700", color: "#222" },
+    chapterTitle: { fontSize: 15, fontWeight: "700", color: "#222", flex: 1 },
+    chapterTitleLocked: { color: "#999" },
+    statusLabel: { fontSize: 11, fontWeight: "700", marginLeft: 8 },
     chapterDescription: { marginTop: 4, fontSize: 13, color: "#666" },
     chapterMeta: { marginTop: 6, fontSize: 12, color: "#777", fontWeight: "600" },
-    completedBadge: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 999,
-        backgroundColor: "#E9F7E6",
-    },
-    completedText: { fontSize: 11, fontWeight: "700", color: "#2E7D32" },
-    lockedBadge: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 999,
-        backgroundColor: "#ECECEC",
-    },
-    lockedText: { fontSize: 11, fontWeight: "700", color: "#777" },
-    unlockedBadge: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 999,
-        backgroundColor: "#FDE7A8",
-    },
-    unlockedText: { fontSize: 11, fontWeight: "700", color: "#8A5D00" },
 });

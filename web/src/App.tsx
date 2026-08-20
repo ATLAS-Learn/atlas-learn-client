@@ -23,6 +23,8 @@ import TeacherSubjectDetail from './pages/teacher/SubjectDetail'
 import TeacherChapterDetail from './pages/teacher/ChapterDetail'
 import TeacherQuizList from './pages/teacher/QuizList'
 import TeacherQuizDetail from './pages/teacher/QuizDetail'
+import TeacherExamList from './pages/teacher/ExamList'
+import TeacherExamDetail from './pages/teacher/ExamDetail'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true)
@@ -94,6 +96,8 @@ export default function App() {
         <Route path="content/:subjectId/chapters/:chapterId" element={<TeacherChapterDetail />} />
         <Route path="quizzes" element={<TeacherQuizList />} />
         <Route path="quizzes/:quizId" element={<TeacherQuizDetail />} />
+        <Route path="exams" element={<TeacherExamList />} />
+        <Route path="exams/:examId" element={<TeacherExamDetail />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

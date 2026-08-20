@@ -426,6 +426,43 @@ class WebAPIClient {
       data: { token, password },
     });
   }
+
+  // Exams
+  async getExams(params?: { subjectId?: string; limit?: number; offset?: number }) {
+    const res = await this.request<any>('/exams', { params });
+    return res;
+  }
+
+  async getExam(examId: string) {
+    const res = await this.request<any>(`/exams/${examId}`);
+    return this.unwrap(res);
+  }
+
+  async createExam(data: any) {
+    return this.request<any>('/exams', { method: 'POST', data });
+  }
+
+  async updateExam(examId: string, data: any) {
+    return this.request<any>(`/exams/${examId}`, { method: 'PUT', data });
+  }
+
+  async togglePublishExam(examId: string) {
+    return this.request<any>(`/exams/${examId}/publish`, { method: 'PATCH' });
+  }
+
+  async deleteExam(examId: string) {
+    return this.request<any>(`/exams/${examId}`, { method: 'DELETE' });
+  }
+
+  async getExamAttempts(examId: string, params?: { limit?: number; offset?: number }) {
+    const res = await this.request<any>(`/exams/${examId}/attempts`, { params });
+    return res;
+  }
+
+  async getExamSubjects() {
+    const res = await this.request<any>('/exams/subjects');
+    return this.unwrap(res);
+  }
 }
 
 export const api = new WebAPIClient();

@@ -62,16 +62,22 @@ export default function LessonDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [updatingProgress, setUpdatingProgress] = useState(false);
     const [completingLesson, setCompletingLesson] = useState(false);
-    const [watchTime, setWatchTime] = useState("300");
+    const [watchTime, setWatchTime] = useState("");
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const watchTimePresets = [300, 600, 1200, 1800];
 
+    // Set default watch time from lesson's estimated duration
+    useEffect(() => {
+        if (lesson?.durationMinutes && !watchTime) {
+            setWatchTime(String(lesson.durationMinutes * 60));
+        }
+    }, [lesson?.durationMinutes]);
+
+    const isLessonCompleted = lesson?.isCompleted ||
+        (lesson?.LessonProgress && lesson.LessonProgress.length > 0 && lesson.LessonProgress[0]?.isCompleted) || false;
+
     const examples = useMemo(() => normalizeStringArray(lesson?.examples), [lesson]);
     const keyPoints = useMemo(() => normalizeStringArray(lesson?.keyPoints), [lesson]);
-    const primaryProgress = useMemo(
-        () => (Array.isArray(lesson?.LessonProgress) && lesson.LessonProgress.length > 0 ? lesson.LessonProgress[0] : undefined),
-        [lesson]
-    );
 
     const loadLesson = useCallback(async () => {
         if (!chapterId || !lessonKey || !subjectKey) {
@@ -143,7 +149,7 @@ export default function LessonDetailScreen() {
         setUpdatingProgress(true);
         setStatusMessage(null);
         try {
-            const timeSpent = safeNumber(watchTime) ?? 0;
+            const timeSpent = safeNumber(watchTime) || 0;
             const response = await apiClient.updateSubjectChapterLessonProgress(
                 subjectKey,
                 chapterId,
@@ -166,13 +172,33 @@ export default function LessonDetailScreen() {
         setCompletingLesson(true);
         setStatusMessage(null);
         try {
-            const timeSpent = safeNumber(watchTime) ?? 0;
-            const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey, {
-                timeSpent,
-            });
-            setStatusMessage(response.message || "Lesson marked as completed.");
+            // Auto-save progress with estimated time before completing
+            const timeSpent = safeNumber(watchTime) || (lesson?.durationMinutes ? lesson.durationMinutes * 60 : 0);
+            if (timeSpent > 0) {
+                try {
+                    await apiClient.updateSubjectChapterLessonProgress(
+                        subjectKey,
+                        chapterId,
+                        lessonKey,
+                        { timeSpent }
+                    );
+                } catch {
+                    // Progress save is best-effort; continue with completion
+                }
+            }
+            try {
+                const response = await apiClient.completeSubjectChapterLesson(subjectKey, chapterId, lessonKey);
+                setStatusMessage(response.message || "Lesson marked as completed.");
+            } catch {
+                // Offline fallback — queue for background sync
+                const { enqueueLessonCompletion } = await import("@/lib/utils/syncQueue");
+                await enqueueLessonCompletion(subjectKey, chapterId, lessonKey);
+                setStatusMessage("Lesson marked as completed (will sync when online).");
+            }
+            // Update local progress store
+            const { useProgressStore } = await import("@/lib/store/progress");
+            useProgressStore.getState().completeLesson(lessonKey);
             await queryClient.invalidateQueries({ queryKey: ["progress"] });
-            // Use dismiss to pop back to the lessons list without stacking entries
             router.dismiss();
             Alert.alert(
                 "Lesson Complete",
@@ -210,33 +236,14 @@ export default function LessonDetailScreen() {
             >
                 <ScreenHeader title="Lesson" />
 
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-                <View style={styles.lessonHeaderRow}>
-                    <Text style={styles.lessonTitle}>{lesson.title || "Untitled lesson"}</Text>
-                    {lesson.isFree ? (
-                        <View style={styles.freeBadge}>
-                            <Text style={styles.freeBadgeText}>Free</Text>
-                        </View>
-                    ) : null}
-                </View>
-                {lesson.estimatedMinutes ? (
-                    <Text style={styles.lessonMeta}>Estimated {lesson.estimatedMinutes} min</Text>
-                ) : lesson.durationSeconds ? (
-                    <Text style={styles.lessonMeta}>
-                        Estimated {Math.ceil(lesson.durationSeconds / 60)} min
-                    </Text>
-                ) : null}
-                {primaryProgress?.isCompleted ? (
-                    <Text style={styles.progressSummaryText}>
-                        Completed
-                        {typeof primaryProgress.timeSpent === "number"
-                            ? ` • ${Math.max(1, Math.ceil(primaryProgress.timeSpent / 60))} min spent`
-                            : ""}
-                    </Text>
-                ) : typeof primaryProgress?.timeSpent === "number" ? (
-                    <Text style={styles.progressSummaryText}>
-                        In progress • {Math.max(1, Math.ceil(primaryProgress.timeSpent / 60))} min spent
-                    </Text>
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.content}
+                    keyboardShouldPersistTaps="handled"
+                >
+                <Text style={styles.lessonTitle}>{lesson.title || "Untitled lesson"}</Text>
+                {lesson.durationMinutes ? (
+                    <Text style={styles.lessonMeta}>Estimated {lesson.durationMinutes} min</Text>
                 ) : null}
 
                 {lesson.content ? (
@@ -287,15 +294,48 @@ export default function LessonDetailScreen() {
 
                 <View style={styles.sectionCard}>
                     <Text style={styles.sectionTitle}>Track Your Progress</Text>
-                    <Text style={styles.sectionHelper}>
-                        1) Add study time, then tap Save Progress.
-                    </Text>
-                    <Text style={styles.sectionHelper}>
-                        2) When you finish this lesson, tap Mark Lesson Complete.
-                    </Text>
-                    <Text style={styles.fieldLabel}>Quick Study Time</Text>
-                    <View style={styles.quickRow}>
-                        {watchTimePresets.map((value) => (
+                    {isLessonCompleted ? (
+                        <View style={styles.completedBadge}>
+                            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                            <Text style={styles.completedBadgeText}>Lesson Completed</Text>
+                        </View>
+                    ) : (
+                        <>
+                            <Text style={styles.sectionHelper}>
+                                Add study time and tap Save Progress. When you finish, tap Mark Lesson Complete.
+                            </Text>
+                            <Text style={styles.fieldLabel}>Quick Study Time</Text>
+                            <View style={styles.quickRow}>
+                                {watchTimePresets.map((value) => (
+                                    <TouchableOpacity
+                                        key={value}
+                                        style={[
+                                            styles.quickButton,
+                                            watchTime === String(value) && styles.quickButtonActive,
+                                        ]}
+                                        onPress={() => setWatchTime(String(value))}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.quickButtonText,
+                                                watchTime === String(value) && styles.quickButtonTextActive,
+                                            ]}
+                                        >
+                                            {Math.round(value / 60)}m
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                            <View style={styles.inputWrap}>
+                                <Text style={styles.fieldLabel}>Study Time (seconds)</Text>
+                                <TextInput
+                                    style={styles.progressInput}
+                                    value={watchTime}
+                                    onChangeText={setWatchTime}
+                                    keyboardType="number-pad"
+                                    placeholder="e.g. 300"
+                                />
+                            </View>
                             <TouchableOpacity
                                 style={styles.progressButton}
                                 onPress={handleUpdateProgress}
@@ -307,45 +347,22 @@ export default function LessonDetailScreen() {
                                     <Text style={styles.progressButtonText}>Save Progress</Text>
                                 )}
                             </TouchableOpacity>
-                        ))}
-                    </View>
-                    <View style={styles.progressRow}>
-                        <View style={styles.inputWrap}>
-                            <Text style={styles.fieldLabel}>Study Time (seconds)</Text>
-                            <TextInput
-                                style={styles.progressInput}
-                                value={watchTime}
-                                onChangeText={setWatchTime}
-                                keyboardType="number-pad"
-                                placeholder="e.g. 300"
-                            />
-                        </View>
-                    </View>
-                    <TouchableOpacity
-                        style={styles.progressButton}
-                        onPress={handleUpdateProgress}
-                        disabled={updatingProgress}
-                    >
-                        {updatingProgress ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                            <Text style={styles.progressButtonText}>Save Progress</Text>
-                        )}
-                    </TouchableOpacity>
-                    <Text style={styles.sectionHelper}>
-                        Your dashboard progress updates after this is saved by the server.
-                    </Text>
-                    <TouchableOpacity
-                        style={styles.completeButton}
-                        onPress={handleCompleteLesson}
-                        disabled={completingLesson}
-                    >
-                        {completingLesson ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                            <Text style={styles.completeButtonText}>Mark Lesson Complete</Text>
-                        )}
-                    </TouchableOpacity>
+                            <Text style={styles.sectionHelper}>
+                                Your dashboard progress updates after this is saved by the server.
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.completeButton}
+                                onPress={handleCompleteLesson}
+                                disabled={completingLesson}
+                            >
+                                {completingLesson ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.completeButtonText}>Mark Lesson Complete</Text>
+                                )}
+                            </TouchableOpacity>
+                        </>
+                    )}
                     {statusMessage ? <Text style={styles.statusMessage}>{statusMessage}</Text> : null}
                 </View>
             </ScrollView>
@@ -364,40 +381,17 @@ const styles = StyleSheet.create({
     content: {
         padding: 24,
     },
-    lessonHeaderRow: {
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 10,
-    },
     lessonTitle: {
         fontSize: 24,
         fontWeight: "700",
         color: "#1F2524",
         marginBottom: 6,
-        flex: 1,
     },
     lessonMeta: {
         fontSize: 13,
         color: "#666",
         marginBottom: 16,
         fontWeight: "600",
-    },
-    progressSummaryText: {
-        fontSize: 13,
-        color: "#4F6B52",
-        marginBottom: 16,
-        fontWeight: "600",
-    },
-    freeBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 999,
-        backgroundColor: "#FFF3D6",
-    },
-    freeBadgeText: {
-        color: "#9A6500",
-        fontSize: 11,
-        fontWeight: "700",
     },
     lessonContent: {
         fontSize: 16,
