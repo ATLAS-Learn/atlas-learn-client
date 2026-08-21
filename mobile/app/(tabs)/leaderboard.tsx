@@ -13,10 +13,12 @@ import { apiClient } from "@/lib/api";
 import { useFocusEffect } from "@react-navigation/native";
 import { useUserStore } from "@/lib/store/user";
 import { API_BASE_URL } from "@/lib/constants/api";
+import ScreenHeader from "@/components/ui/screen-header";
 
 interface LeaderboardEntry {
     userId: string;
     name: string;
+    username?: string;
     image?: string;
     school?: string;
     avgScore: number;
@@ -82,7 +84,7 @@ export default function LeaderboardScreen() {
             </View>
             <View style={styles.info}>
                 <Text style={[styles.name, item.isCurrentUser && styles.nameCurrentUser]} numberOfLines={1}>
-                    {item.name}
+                    {item.username ? `@${item.username}` : item.name}
                     {item.isCurrentUser ? " (You)" : ""}
                 </Text>
                 <Text style={styles.meta}>
@@ -95,6 +97,7 @@ export default function LeaderboardScreen() {
 
     return (
         <View style={styles.container}>
+            <ScreenHeader title="Leaderboard" showBack={false} />
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#F2B138" />
