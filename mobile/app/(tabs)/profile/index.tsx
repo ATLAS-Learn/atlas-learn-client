@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions, Image, Linking } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions, Image, Linking, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -495,9 +495,19 @@ export default function ProfileScreen() {
             <Modal
                 visible={editProfileModalVisible}
                 animationType="slide"
+                presentationStyle="pageSheet"
                 onRequestClose={() => setEditProfileModalVisible(false)}
             >
-                <View style={styles.feedbackModalOverlay}>
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                >
+                    <ScrollView
+                        style={{ flex: 1 }}
+                        contentContainerStyle={styles.feedbackModalOverlay}
+                        keyboardShouldPersistTaps="handled"
+                        bounces={false}
+                    >
                     <View style={styles.requestModalCard}>
                         <Text style={styles.requestModalTitle}>Edit Profile</Text>
                         <Text style={styles.requestModalSubtitle}>Update the fields you want to change.</Text>
@@ -597,7 +607,8 @@ export default function ProfileScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
             </Modal>
 
             <Modal
@@ -605,7 +616,16 @@ export default function ProfileScreen() {
                 animationType="slide"
                 onRequestClose={closeRoleRequestModal}
             >
-                <View style={styles.feedbackModalOverlay}>
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                >
+                    <ScrollView
+                        style={{ flex: 1 }}
+                        contentContainerStyle={styles.feedbackModalOverlay}
+                        keyboardShouldPersistTaps="handled"
+                        bounces={false}
+                    >
                     <View style={styles.requestModalCard}>
                         <Text style={styles.requestModalTitle}>Request Teacher Role</Text>
                         <Text style={styles.requestModalSubtitle}>
@@ -653,7 +673,8 @@ export default function ProfileScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
             </Modal>
 
             {/* Sessions Modal */}
@@ -731,7 +752,16 @@ export default function ProfileScreen() {
                 animationType="slide"
                 onRequestClose={() => setFeedbackModalVisible(false)}
             >
-                <View style={styles.feedbackModalOverlay}>
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                >
+                    <ScrollView
+                        style={{ flex: 1 }}
+                        contentContainerStyle={styles.feedbackModalOverlay}
+                        keyboardShouldPersistTaps="handled"
+                        bounces={false}
+                    >
                     <View style={styles.requestModalCard}>
                         <Text style={styles.requestModalTitle}>Send Feedback</Text>
                         <Text style={styles.requestModalSubtitle}>
@@ -812,7 +842,8 @@ export default function ProfileScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     );
@@ -949,7 +980,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     feedbackModalOverlay: {
-        flex: 1,
+        flexGrow: 1,
         backgroundColor: "#FAFAFA",
         padding: 20,
         paddingTop: 60,
