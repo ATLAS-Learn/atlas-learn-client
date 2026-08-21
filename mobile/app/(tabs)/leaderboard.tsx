@@ -14,6 +14,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useUserStore } from "@/lib/store/user";
 import { API_BASE_URL } from "@/lib/constants/api";
 import ScreenHeader from "@/components/ui/screen-header";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+
+const LEADERBOARD_CACHE_KEY = "cache:leaderboard";
+const LEADERBOARD_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface LeaderboardEntry {
     userId: string;
@@ -37,9 +41,22 @@ export default function LeaderboardScreen() {
 
     const loadLeaderboard = useCallback(async () => {
         try {
+            // Show cache immediately
+            const cached = getCacheSync<LeaderboardEntry[]>(LEADERBOARD_CACHE_KEY);
+            if (cached) {
+                setLeaderboard(cached);
+                setLoading(false);
+            }
+
+            // Fetch fresh data
             const data = await apiClient.getLeaderboard();
             setLeaderboard(data);
-        } catch {} finally {
+            setCache(LEADERBOARD_CACHE_KEY, data, LEADERBOARD_CACHE_TTL).catch(() => {});
+        } catch {
+            // If fetch fails, keep showing cached data
+            const cached = getCacheSync<LeaderboardEntry[]>(LEADERBOARD_CACHE_KEY);
+            if (!cached) setLeaderboard([]);
+        } finally {
             setLoading(false);
         }
     }, []);
