@@ -17,6 +17,7 @@ export function useChapters() {
             return data;
         },
         staleTime: STALE_TIME.STATIC,
+        refetchOnMount: false,
         initialData: initial ?? undefined,
     });
 }

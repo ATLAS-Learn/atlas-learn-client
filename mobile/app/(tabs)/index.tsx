@@ -73,7 +73,7 @@ export default function HomeTab() {
                         </View>
                     )}
                     <View>
-                        <Text style={styles.greeting}>Hello,</Text>
+                        <Text style={styles.greeting}>Welcome 👋</Text>
                         <Text style={styles.name}>{displayName}</Text>
                     </View>
                 </View>

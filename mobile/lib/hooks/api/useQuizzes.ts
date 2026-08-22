@@ -17,6 +17,7 @@ export function useQuizzes(chapterId: string | undefined) {
         },
         enabled: !!chapterId,
         staleTime: STALE_TIME.STATIC,
+        refetchOnMount: false,
         initialData: initial ?? undefined,
     });
 }
@@ -34,6 +35,7 @@ export function useQuiz(quizId: string | undefined) {
         },
         enabled: !!quizId,
         staleTime: STALE_TIME.STATIC,
+        refetchOnMount: false,
         initialData: initial ?? undefined,
     });
 }
