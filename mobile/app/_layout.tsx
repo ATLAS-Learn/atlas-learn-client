@@ -13,10 +13,12 @@ import { QueryProvider } from "@/providers/QueryProvider";
 import { preloadCache } from "@/lib/utils/cache";
 import useBackgroundSync from "@/hooks/useBackgroundSync";
 import useChapterPrefetch from "@/hooks/useChapterPrefetch";
+import useOfflinePreload from "@/hooks/useOfflinePreload";
 
 function SyncProvider({ children }: { children: React.ReactNode }) {
   useBackgroundSync();
   useChapterPrefetch();
+  useOfflinePreload();
   return <>{children}</>;
 }
 
@@ -33,6 +35,8 @@ export default function RootLayout() {
       "cache:learning-path",
       "cache:leaderboard",
       "cache:assessment-result",
+      "cache:preferred-subjects-ids",
+      "cache:recent-subjects",
     ]).catch(() => {});
   }, []);
 
