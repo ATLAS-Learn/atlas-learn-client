@@ -11,10 +11,12 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
 import { apiClient } from "@/lib/api";
 import { Chapter, LessonWithProgress } from "@/lib/types";
 import ScreenHeader from "@/components/ui/screen-header";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+
+const LESSONS_CACHE_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
 
 export default function LessonsListScreen() {
     const router = useRouter();
@@ -46,15 +48,23 @@ export default function LessonsListScreen() {
         }
     }, [chapterId]);
 
-    const loadLessons = useCallback(async () => {
+    const loadLessons = useCallback(async (force = false) => {
         if (!chapterId) return;
         try {
+            // Fetch-once: skip network when valid cache exists
+            const cached = getCacheSync<LessonWithProgress[]>(`cache:lessons:${chapterId}`);
+            if (cached && !force) {
+                setLessons(cached);
+                return;
+            }
             const data = resolvedSubjectId
                 ? await apiClient.getSubjectChapterLessons(resolvedSubjectId, chapterId, true)
                 : await apiClient.getChapterLessons(chapterId, true);
             setLessons(Array.isArray(data) ? (data as LessonWithProgress[]) : []);
+            setCache(`cache:lessons:${chapterId}`, Array.isArray(data) ? data : [], LESSONS_CACHE_TTL).catch(() => {});
         } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to load lessons.");
+            const cached = getCacheSync<LessonWithProgress[]>(`cache:lessons:${chapterId}`);
+            if (!cached) Alert.alert("Error", error.message || "Failed to load lessons.");
         }
     }, [chapterId, resolvedSubjectId]);
 
@@ -69,17 +79,9 @@ export default function LessonsListScreen() {
         initialize();
     }, [initialize]);
 
-    useFocusEffect(
-        useCallback(() => {
-            if (!loading) {
-                loadLessons();
-            }
-        }, [loading, loadLessons])
-    );
-
     const handleRefresh = async () => {
         setRefreshing(true);
-        await loadLessons();
+        await loadLessons(true);
         setRefreshing(false);
     };
 

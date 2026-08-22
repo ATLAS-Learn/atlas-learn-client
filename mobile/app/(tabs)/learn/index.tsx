@@ -71,9 +71,11 @@ export default function LearnScreen() {
     const [preferredIds, setPreferredIds] = useState<string[] | null>(null);
 
     useEffect(() => {
+        // Fetch-once: skip network when valid cache exists
         const cached = getCacheSync<string[]>(PREFERRED_SUBJECTS_CACHE_KEY);
         if (cached) {
             setPreferredIds(cached);
+            return;
         }
         apiClient.getPreferredSubjects()
             .then((ids) => {
@@ -81,7 +83,7 @@ export default function LearnScreen() {
                 setCache(PREFERRED_SUBJECTS_CACHE_KEY, ids, PREFERRED_SUBJECTS_TTL).catch(() => {});
             })
             .catch(() => {
-                if (!cached) setPreferredIds([]);
+                setPreferredIds([]);
             });
     }, []);
 

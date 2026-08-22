@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import { Svg, Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -9,10 +9,22 @@ import { useOverallProgress, useStreak, useUserQuizAttempts, useLearningPath } f
 export default function HomeTab() {
     const router = useRouter();
     const { user } = useUserStore();
-    const { data: overallProgress } = useOverallProgress();
-    const { data: streakData } = useStreak();
-    const { data: quizAttempts = [] } = useUserQuizAttempts(user?.id);
-    const { data: learningPath } = useLearningPath();
+    const [refreshing, setRefreshing] = useState(false);
+    const { data: overallProgress, refetch: refetchProgress } = useOverallProgress();
+    const { data: streakData, refetch: refetchStreak } = useStreak();
+    const { data: quizAttempts = [], refetch: refetchAttempts } = useUserQuizAttempts(user?.id);
+    const { data: learningPath, refetch: refetchLearningPath } = useLearningPath();
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await Promise.allSettled([
+            refetchProgress(),
+            refetchStreak(),
+            refetchAttempts(),
+            refetchLearningPath(),
+        ]);
+        setRefreshing(false);
+    };
 
     const displayName = user?.name || user?.email?.split("@")[0] || "Student";
 
@@ -39,7 +51,13 @@ export default function HomeTab() {
     };
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.content}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B138" />
+            }
+        >
             {/* Header */}
             <View style={styles.header}>
                 <View>

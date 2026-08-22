@@ -7,12 +7,19 @@ import {
     ScrollView,
     ActivityIndicator,
     Alert,
+    RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "@/components/ui/screen-header";
 import { apiClient } from "@/lib/api";
 import { Subject } from "@/lib/types";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+
+const SUBJECTS_CACHE_KEY = "cache:subjects:list";
+const PREFERRED_CACHE_KEY = "cache:preferred-subjects-ids";
+const SUBJECTS_CACHE_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
+const PREFERRED_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
 
 export default function BrowseSubjectsScreen() {
     const router = useRouter();
@@ -21,14 +28,25 @@ export default function BrowseSubjectsScreen() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    const loadSubjects = useCallback(async () => {
+    const loadSubjects = useCallback(async (force = false) => {
         try {
+            // Fetch-once: skip network when valid cache exists
+            const cachedSubjects = getCacheSync<Subject[]>(SUBJECTS_CACHE_KEY);
+            const cachedPreferred = getCacheSync<string[]>(PREFERRED_CACHE_KEY);
+            if (cachedSubjects && cachedPreferred && !force) {
+                setSubjects(cachedSubjects);
+                setPreferredIds(new Set(cachedPreferred));
+                setLoading(false);
+                return;
+            }
             const [allSubjects, preferred] = await Promise.all([
                 apiClient.getSubjects(),
                 apiClient.getPreferredSubjects(),
             ]);
             setSubjects(allSubjects);
             setPreferredIds(new Set(preferred));
+            setCache(SUBJECTS_CACHE_KEY, allSubjects, SUBJECTS_CACHE_TTL).catch(() => {});
+            setCache(PREFERRED_CACHE_KEY, Array.from(new Set(preferred)), PREFERRED_CACHE_TTL).catch(() => {});
         } catch {
             Alert.alert("Error", "Failed to load subjects. Please try again.");
         } finally {
@@ -72,6 +90,13 @@ export default function BrowseSubjectsScreen() {
     };
 
     const addedCount = preferredIds.size;
+    const [refreshing, setRefreshing] = useState(false);
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await loadSubjects(true);
+        setRefreshing(false);
+    };
 
     return (
         <View style={styles.container}>
@@ -86,6 +111,9 @@ export default function BrowseSubjectsScreen() {
                 <ScrollView
                     style={styles.scrollView}
                     contentContainerStyle={styles.content}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#F2B138" />
+                    }
                 >
                     <Text style={styles.subtitle}>
                         Tap a subject to add or remove it from your learning path.

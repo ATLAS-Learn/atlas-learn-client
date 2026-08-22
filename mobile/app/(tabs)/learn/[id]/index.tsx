@@ -8,9 +8,9 @@ import {
     ActivityIndicator,
     Alert,
     Modal,
+    RefreshControl,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { Chapter, Lesson, LessonWithProgress } from "@/lib/types";
@@ -36,6 +36,7 @@ export default function ChapterScreen() {
     const [insightTitle, setInsightTitle] = useState("");
     const [insightBody, setInsightBody] = useState("");
     const [loadingInsight, setLoadingInsight] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const { prefetchUpcomingLessons } = useProgressionPrefetch();
 
     useEffect(() => {
@@ -132,15 +133,16 @@ export default function ChapterScreen() {
         return undefined;
     }, []);
 
-    const loadLessons = useCallback(async () => {
+    const loadLessons = useCallback(async (force = false) => {
         if (!chapterId) return;
         setLessonsLoading(true);
         const cacheKey = `cache:lessons:${chapterId}`;
         try {
-            // Try cache first
+            // Fetch-once: use cache and skip network when valid cache exists
             const cached = getCacheSync<LessonWithProgress[]>(cacheKey);
-            if (cached) {
+            if (cached && !force) {
                 setLessons(cached);
+                return;
             }
 
             let subjectIdForRequest =
@@ -151,12 +153,6 @@ export default function ChapterScreen() {
                     setResolvedSubjectId(subjectIdForRequest);
                 }
             }
-            console.log("[ID_TRACE] ChapterScreen loadLessons resolved IDs", {
-                chapterId,
-                subjectKey,
-                chapterSubjectId: getSubjectIdFromChapter(chapter),
-                resolvedSubjectId: subjectIdForRequest,
-            });
             const data = subjectIdForRequest
                 ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, true)
                 : await apiClient.getChapterLessons(chapterId, true);
@@ -184,14 +180,6 @@ export default function ChapterScreen() {
             loadLessons();
         }
     }, [chapter, chapterId, loadLessons]);
-
-    useFocusEffect(
-        useCallback(() => {
-            if (chapter && !loading) {
-                loadLessons();
-            }
-        }, [chapter, loading, loadLessons])
-    );
 
     const handleViewProgress = async () => {
         if (!chapterId) return;
@@ -286,11 +274,23 @@ export default function ChapterScreen() {
         );
     }
 
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await loadLessons(true);
+        setRefreshing(false);
+    };
+
     return (
         <View style={styles.container}>
             <ScreenHeader title="Chapter" />
 
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.content}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#F2B138" />
+                }
+            >
                 <ChapterHeader chapter={chapter} lessons={lessons} />
 
                 <View style={styles.lessonsHeader}>
@@ -300,7 +300,7 @@ export default function ChapterScreen() {
                     </View>
                     <TouchableOpacity
                         style={styles.refreshButton}
-                        onPress={loadLessons}
+                        onPress={() => loadLessons(true)}
                         disabled={lessonsLoading}
                     >
                         <Ionicons name="refresh" size={16} color="#8A5D00" />

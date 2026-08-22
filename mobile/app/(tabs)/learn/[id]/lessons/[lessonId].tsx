@@ -21,6 +21,7 @@ import { apiClient } from "@/lib/api";
 import { Lesson, LessonWithProgress } from "@/lib/types";
 import ScreenHeader from "@/components/ui/screen-header";
 import { getCacheSync, setCache } from "@/lib/utils/cache";
+import { DISK_TTL } from "@/lib/config/cachePolicy";
 import { useProgressionPrefetch } from "@/hooks/useProgressionPrefetch";
 
 const LESSON_CACHE_PREFIX = "cache:lesson:";
@@ -201,6 +202,48 @@ export default function LessonDetailScreen() {
             const { useProgressStore } = await import("@/lib/store/progress");
             useProgressStore.getState().completeLesson(lessonKey);
             await queryClient.invalidateQueries({ queryKey: ["progress"] });
+
+            // Optimistic UI: flip the lesson green in cached lists immediately.
+            // Server sync already succeeded above, or is queued for background sync.
+            try {
+                const listKey = `cache:lessons:${chapterId}`;
+                const list = getCacheSync<LessonWithProgress[]>(listKey);
+                if (Array.isArray(list)) {
+                    const updated = list.map((l) =>
+                        l?.id === lessonKey
+                            ? {
+                                  ...l,
+                                  isCompleted: true,
+                                  LessonProgress: [
+                                      ...(Array.isArray(l.LessonProgress) ? l.LessonProgress : []),
+                                      { isCompleted: true, completedAt: new Date().toISOString() },
+                                  ],
+                              }
+                            : l
+                    );
+                    setCache(listKey, updated, DISK_TTL.STATIC).catch(() => {});
+                }
+                const single = getCacheSync<LessonWithProgress>(
+                    `${LESSON_CACHE_PREFIX}${subjectKey}:${chapterId}:${lessonKey}`
+                );
+                if (single) {
+                    setCache(
+                        `${LESSON_CACHE_PREFIX}${subjectKey}:${chapterId}:${lessonKey}`,
+                        {
+                            ...single,
+                            isCompleted: true,
+                            LessonProgress: [
+                                ...(Array.isArray(single.LessonProgress) ? single.LessonProgress : []),
+                                { isCompleted: true, completedAt: new Date().toISOString() },
+                            ],
+                        },
+                        DISK_TTL.STATIC
+                    ).catch(() => {});
+                }
+            } catch {
+                // cache update is best-effort
+            }
+
             // Prefetch next lesson for offline access
             if (subjectKey && chapterId) {
                 prefetchNextLesson(subjectKey, chapterId, lessonKey).catch(() => {});

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions, Image, Linking, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -62,18 +62,8 @@ export default function ProfileScreen() {
     const [feedbackMessage, setFeedbackMessage] = useState("");
     const [feedbackRating, setFeedbackRating] = useState<number>(0);
 
-    const refreshUser = useCallback(async () => {
-        try {
-            const freshUser = await apiClient.getCurrentUser();
-            setUser(freshUser);
-        } catch {
-            // Keep local user data if refresh fails.
-        }
-    }, [setUser]);
-
-    useEffect(() => {
-        refreshUser();
-    }, [refreshUser]);
+    // User data comes from the persisted store (single /auth/me fetch at startup).
+    // Profile edits below update the store directly after saving.
 
     const handleLogout = async () => {
         await logout();

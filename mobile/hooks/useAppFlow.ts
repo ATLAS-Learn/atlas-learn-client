@@ -11,6 +11,15 @@ import { User } from "@/lib/types";
 let restoreCache: { token: string | null; valid: boolean } | null = null;
 let inFlight: { token: string | null; promise: Promise<boolean> } | null = null;
 
+// Minimum splash display time so the logo has a moment to show.
+const appStartTime = Date.now();
+const MIN_SPLASH_MS = 1200;
+
+function waitForMinSplash(): Promise<void> {
+  const remaining = MIN_SPLASH_MS - (Date.now() - appStartTime);
+  return remaining > 0 ? new Promise((resolve) => setTimeout(resolve, remaining)) : Promise.resolve();
+}
+
 function ensureSessionRestored(token: string | null): Promise<boolean> {
   if (restoreCache && restoreCache.token === token) {
     return Promise.resolve(restoreCache.valid);
@@ -79,15 +88,18 @@ export function useAppFlow() {
   useEffect(() => {
     if (!hasHydrated) return;
 
-    if (!isAuthenticated) {
-      setIsLoading(false);
-      return;
-    }
-
     let cancelled = false;
+
+    if (!isAuthenticated) {
+      waitForMinSplash().then(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+      return () => { cancelled = true; };
+    }
 
     ensureSessionRestored(token)
       .then(async (valid) => {
+        await waitForMinSplash();
         if (cancelled) return;
         if (!valid) {
           await useAuthStore.getState().logout();
@@ -99,7 +111,8 @@ export function useAppFlow() {
         setAssessmentComplete(assessment === "true");
         setIsLoading(false);
       })
-      .catch(() => {
+      .catch(async () => {
+        await waitForMinSplash();
         if (!cancelled) setIsLoading(false);
       });
 
