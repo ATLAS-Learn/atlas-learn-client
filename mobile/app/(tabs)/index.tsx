@@ -6,7 +6,6 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserStore } from "@/lib/store/user";
-import { UserRole } from "@/lib/types";
 import { useOverallProgress, useStreak, useUserQuizAttempts, useLearningPath } from "@/lib/hooks/api";
 import { apiClient } from "@/lib/api";
 
@@ -19,9 +18,7 @@ export default function HomeTab() {
     const { data: quizAttempts = [] } = useUserQuizAttempts(user?.id);
     const { data: learningPath } = useLearningPath();
 
-    const isStudent = user?.role === UserRole.STUDENT;
-    const displayName =
-        user?.name || user?.email?.split("@")[0] || (user?.role === UserRole.TEACHER ? "Teacher" : "Student");
+    const displayName = user?.name || user?.email?.split("@")[0] || "Student";
 
     const completion = Math.round(overallProgress?.overall?.completionPercentage ?? 0);
     const lessonsDone = overallProgress?.overall?.lessons?.completed ?? 0;
@@ -63,7 +60,7 @@ export default function HomeTab() {
                     <Text style={styles.greeting}>Hello,</Text>
                     <Text style={styles.name}>{displayName}</Text>
                 </View>
-                {isStudent && streak > 0 && (
+                {streak > 0 && (
                     <View style={styles.streakBadge}>
                         <Text style={styles.streakIcon}>{"\uD83D\uDD25"}</Text>
                         <Text style={styles.streakText}>{streak}</Text>
@@ -72,7 +69,7 @@ export default function HomeTab() {
             </View>
 
             {/* Streak Banner (only when streak is 0) */}
-            {isStudent && streak === 0 && (
+            {streak === 0 && (
                 <View style={styles.streakBanner}>
                     <Text style={styles.streakBannerEmoji}>{"\uD83D\uDD25"}</Text>
                     <View style={styles.streakBannerInfo}>
@@ -83,8 +80,7 @@ export default function HomeTab() {
             )}
 
             {/* Progress Ring + Stats */}
-            {isStudent && (
-                <View style={styles.progressCard}>
+            <View style={styles.progressCard}>
                     <View style={styles.progressRing}>
                         <Svg width={80} height={80} viewBox="0 0 80 80">
                             {/* Background circle */}
@@ -126,14 +122,12 @@ export default function HomeTab() {
                             <Ionicons name="checkmark-circle-outline" size={16} color="#999" />
                             <Text style={styles.progressStatValue}>{quizzesPassed}/{quizzesTotal}</Text>
                             <Text style={styles.progressStatLabel}>Quizzes</Text>
-                        </View>
                     </View>
                 </View>
-            )}
+            </View>
 
             {/* Quick Stats */}
-            {isStudent && (
-                <View style={styles.statsRow}>
+            <View style={styles.statsRow}>
                     <View style={styles.statCard}>
                         <Ionicons name="time-outline" size={18} color="#999" />
                         <Text style={styles.statValue}>{formatTimeSpent(totalTimeSpent)}</Text>
@@ -149,11 +143,10 @@ export default function HomeTab() {
                         <Text style={styles.statValue}>{quizzesPassed}</Text>
                         <Text style={styles.statLabel}>Passed</Text>
                     </View>
-                </View>
-            )}
+            </View>
 
             {/* Continue Your Path */}
-            {isStudent && learningPath && learningPath.perSubject.length > 0 && (() => {
+            {learningPath && learningPath.perSubject.length > 0 && (() => {
                 const incompleteSubjects = learningPath.perSubject.filter(
                     (s) => s.completionPercentage < 100
                 );
@@ -210,43 +203,26 @@ export default function HomeTab() {
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Quick Actions</Text>
                 <View style={styles.actionsRow}>
-                    {isStudent ? (
-                        <>
-                            <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/learn")} activeOpacity={0.7}>
-                                <Ionicons name="book-outline" size={20} color="#1F2524" />
-                                <Text style={styles.actionTitle}>Learn</Text>
-                                <Text style={styles.actionDesc}>Continue lessons</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/exams" as any)} activeOpacity={0.7}>
-                                <Ionicons name="school-outline" size={20} color="#1F2524" />
-                                <Text style={styles.actionTitle}>Exams</Text>
-                                <Text style={styles.actionDesc}>Take exams</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.7}>
-                                <Ionicons name="person-outline" size={20} color="#1F2524" />
-                                <Text style={styles.actionTitle}>Profile</Text>
-                                <Text style={styles.actionDesc}>View progress</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push({ pathname: "/(tabs)/profile", params: { openFeedback: "true" } } as any)} activeOpacity={0.7}>
-                                <Ionicons name="chatbubble-outline" size={20} color="#1F2524" />
-                                <Text style={styles.actionTitle}>Feedback</Text>
-                                <Text style={styles.actionDesc}>Send feedback</Text>
-                            </TouchableOpacity>
-                        </>
-                    ) : (
-                        <>
-                            <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/classes")} activeOpacity={0.7}>
-                                <Ionicons name="people-outline" size={20} color="#1F2524" />
-                                <Text style={styles.actionTitle}>Classes</Text>
-                                <Text style={styles.actionDesc}>View students</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.7}>
-                                <Ionicons name="settings-outline" size={20} color="#1F2524" />
-                                <Text style={styles.actionTitle}>Settings</Text>
-                                <Text style={styles.actionDesc}>Manage account</Text>
-                            </TouchableOpacity>
-                        </>
-                    )}
+                    <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/learn")} activeOpacity={0.7}>
+                        <Ionicons name="book-outline" size={20} color="#1F2524" />
+                        <Text style={styles.actionTitle}>Learn</Text>
+                        <Text style={styles.actionDesc}>Continue lessons</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/exams" as any)} activeOpacity={0.7}>
+                        <Ionicons name="school-outline" size={20} color="#1F2524" />
+                        <Text style={styles.actionTitle}>Exams</Text>
+                        <Text style={styles.actionDesc}>Take exams</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.7}>
+                        <Ionicons name="person-outline" size={20} color="#1F2524" />
+                        <Text style={styles.actionTitle}>Profile</Text>
+                        <Text style={styles.actionDesc}>View progress</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionCard} onPress={() => router.push({ pathname: "/(tabs)/profile", params: { openFeedback: "true" } } as any)} activeOpacity={0.7}>
+                        <Ionicons name="chatbubble-outline" size={20} color="#1F2524" />
+                        <Text style={styles.actionTitle}>Feedback</Text>
+                        <Text style={styles.actionDesc}>Send feedback</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
         </ScrollView>
