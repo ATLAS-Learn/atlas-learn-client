@@ -1,27 +1,20 @@
 import * as Font from "expo-font";
 import React, { useEffect, useState } from "react";
-import { View } from "react-native";
 import { fonts } from "@/lib/constants/fonts";
 
 export function FontLoader({ children }: { children: React.ReactNode }) {
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
   useEffect(() => {
-    async function loadFonts() {
-      try {
-        await Font.loadAsync(fonts);
+    Font.loadAsync(fonts)
+      .then(() => setFontsLoaded(true))
+      .catch(() => {
+        // Fonts failed — app works fine with system fonts
         setFontsLoaded(true);
-      } catch (error) {
-        console.error("Error loading fonts:", error);
-      }
-    }
-
-    loadFonts();
+      });
   }, []);
 
-  if (!fontsLoaded) {
-    return <View className="flex-1 bg-background" />;
-  }
-
+  // Render children immediately — custom fonts apply once loaded via expo-font
+  // state, causing a subtle text re-render. No gate, no white screen.
   return <>{children}</>;
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "@/lib/constants/api";
 
 interface NetworkState {
   isConnected: boolean;
@@ -17,30 +18,36 @@ export function useNetworkState(): NetworkState {
 
   useEffect(() => {
     let active = true;
-    let cleanup: (() => void) | null = null;
+    let timer: ReturnType<typeof setInterval> | null = null;
 
-    // Fully dynamic import — no reference to @react-native-community/netinfo
-    // at module scope. This avoids the native bridge crash when the native
-    // module isn't linked into the current dev client / release build.
-    import("@react-native-community/netinfo").then((mod) => {
-      if (!active) return;
-      const NetInfo = mod.default ?? mod;
-      const sub = NetInfo.addEventListener((info) => {
-        if (!active) return;
-        setState({
-          isConnected: info.isConnected ?? false,
-          isInternetReachable: info.isInternetReachable ?? null,
-          connectionType: info.type,
+    const check = async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        await fetch(`${API_BASE_URL}/health`, {
+          method: "HEAD",
+          cache: "no-store",
+          signal: controller.signal,
         });
-      });
-      cleanup = () => sub();
-    }).catch(() => {
-      // Native module unavailable — stay in default "online" state
-    });
+        clearTimeout(timeout);
+        if (active) {
+          setState((prev) =>
+            prev.isConnected ? prev : { ...DEFAULT_STATE }
+          );
+        }
+      } catch {
+        if (active) {
+          setState({ isConnected: false, isInternetReachable: false, connectionType: "unknown" });
+        }
+      }
+    };
+
+    check();
+    timer = setInterval(check, 15000);
 
     return () => {
       active = false;
-      cleanup?.();
+      if (timer) clearInterval(timer);
     };
   }, []);
 
