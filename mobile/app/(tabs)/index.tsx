@@ -3,15 +3,11 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-nati
 import { Svg, Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
-import { useQueryClient } from "@tanstack/react-query";
 import { useUserStore } from "@/lib/store/user";
 import { useOverallProgress, useStreak, useUserQuizAttempts, useLearningPath } from "@/lib/hooks/api";
-import { apiClient } from "@/lib/api";
 
 export default function HomeTab() {
     const router = useRouter();
-    const queryClient = useQueryClient();
     const { user } = useUserStore();
     const { data: overallProgress } = useOverallProgress();
     const { data: streakData } = useStreak();
@@ -33,16 +29,6 @@ export default function HomeTab() {
         const total = quizAttempts.reduce((sum, a) => sum + (a.score ?? 0), 0);
         return Math.round(total / quizAttempts.length);
     }, [quizAttempts]);
-
-    useFocusEffect(
-        React.useCallback(() => {
-            // Refetch progress data when tab is focused
-            queryClient.invalidateQueries({ queryKey: ["progress"] });
-            apiClient.getCurrentUser().then((freshUser) => {
-                useUserStore.getState().setUser(freshUser);
-            }).catch(() => {});
-        }, [queryClient])
-    );
 
     const formatTimeSpent = (seconds: number): string => {
         if (seconds < 60) return `${seconds}s`;

@@ -3,8 +3,8 @@ import { apiClient } from "@/lib/api";
 import { setCache, getCacheSync } from "@/lib/utils/cache";
 import { LearningPath } from "@/lib/types";
 
-const LEARNING_PATH_STALE = 1000 * 60 * 5; // 5 minutes - refetch when online
-const LEARNING_PATH_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours - persist for offline
+const LEARNING_PATH_STALE = 1000 * 60 * 15; // 15 minutes
+const LEARNING_PATH_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
 
 export function useLearningPath() {
     const cacheKey = "cache:learning-path";
@@ -23,7 +23,7 @@ export function useLearningPath() {
             }
         },
         staleTime: LEARNING_PATH_STALE,
-        refetchOnMount: true,
+        refetchOnMount: false,
         initialData: initial ?? undefined,
         retry: false,
     });

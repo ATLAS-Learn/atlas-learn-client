@@ -5,27 +5,13 @@ import { useUserStore } from "@/lib/store/user";
 import { getItem, setItem } from "@/lib/utils/storage";
 import { apiClient } from "@/lib/api";
 
-const USER_CACHE_MAX_AGE_MS = 1000 * 60 * 30;
-
 export function useAppFlow() {
   const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, token, logout, hasHydrated } = useAuthStore();
-  const { user, lastSyncedAt, setUser } = useUserStore();
+  const { user, setUser } = useUserStore();
   const appState = useRef(AppState.currentState);
   const sessionChecked = useRef(false);
-
-  const validateSession = useCallback(async (): Promise<boolean> => {
-    try {
-      await apiClient.getCurrentUser();
-      return true;
-    } catch (error: any) {
-      if (error?.message?.includes("401") || error?.message?.includes("Unauthorized") || error?.message?.includes("session")) {
-        return false;
-      }
-      return true;
-    }
-  }, []);
 
   // Session restore - runs once when hydration completes
   useEffect(() => {
@@ -48,25 +34,31 @@ export function useAppFlow() {
       try {
         apiClient.setToken(token || null);
 
-        const isValid = await validateSession();
-        if (cancelled) return;
-
-        if (!isValid) {
-          await logout();
-          setIsLoading(false);
-          return;
+        // Check if session is still valid (401 = logged out)
+        try {
+          await apiClient.getCurrentUser();
+        } catch (error: any) {
+          if (error?.message?.includes("401") || error?.message?.includes("Unauthorized") || error?.message?.includes("session")) {
+            if (!cancelled) {
+              await logout();
+              setIsLoading(false);
+            }
+            return;
+          }
+          // Network error — treat as valid, user data is in MMKV
         }
 
-        const hasUserIdentity = Boolean(user?.id && user?.email && user?.name?.trim());
-        const isFreshCache = typeof lastSyncedAt === "number" && Date.now() - lastSyncedAt < USER_CACHE_MAX_AGE_MS;
-        const shouldRefreshUser = !hasUserIdentity || !isFreshCache;
+        if (cancelled) return;
 
-        if (shouldRefreshUser) {
+        // User data is already in MMKV from Zustand persist. Only refresh if
+        // we have no identity at all (first install / cleared storage).
+        const hasUserIdentity = Boolean(user?.id && user?.email && user?.name?.trim());
+        if (!hasUserIdentity) {
           try {
             const freshUser = await apiClient.getCurrentUser();
             if (!cancelled) setUser(freshUser, { markSynced: true });
-          } catch (error) {
-            if (!hasUserIdentity && !cancelled) throw error;
+          } catch {
+            // Network unavailable — rely on persisted data
           }
         }
 
@@ -106,16 +98,20 @@ export function useAppFlow() {
     return () => { cancelled = true; };
   }, [hasHydrated, isAuthenticated]);
 
-  // Re-validate when app comes to foreground
+  // Re-validate session when app comes to foreground (only checks auth, no user refetch)
   useEffect(() => {
     if (!isAuthenticated) return;
 
     const handleAppStateChange = async (nextState: AppStateStatus) => {
       if (appState.current.match(/inactive|background/) && nextState === "active") {
         apiClient.setToken(token || null);
-        const isValid = await validateSession();
-        if (!isValid) {
-          await logout();
+        try {
+          await apiClient.getCurrentUser();
+        } catch (error: any) {
+          if (error?.message?.includes("401") || error?.message?.includes("Unauthorized") || error?.message?.includes("session")) {
+            await logout();
+          }
+          // Network errors are fine — session is still valid locally
         }
       }
       appState.current = nextState;
@@ -123,7 +119,7 @@ export function useAppFlow() {
 
     const subscription = AppState.addEventListener("change", handleAppStateChange);
     return () => subscription?.remove();
-  }, [isAuthenticated, token, logout, validateSession]);
+  }, [isAuthenticated, token, logout]);
 
   return { assessmentComplete, isAuthenticated, user, isLoading };
 }
