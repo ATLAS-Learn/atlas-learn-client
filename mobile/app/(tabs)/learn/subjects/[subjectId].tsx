@@ -16,6 +16,7 @@ import { apiClient } from "@/lib/api";
 import { Subject, SubjectChapter, SubjectProgress } from "@/lib/types";
 import { useOverallProgress } from "@/lib/hooks/api";
 import { getCacheSync, setCache } from "@/lib/utils/cache";
+import { trackSubjectVisit } from "@/lib/utils/recentSubjects";
 
 const SUBJECT_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 const CHAPTERS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -84,6 +85,9 @@ export default function SubjectDetailScreen() {
             subjectCodeKey,
             resolvedSubjectId,
         });
+        if (subjectKey) {
+            trackSubjectVisit(subjectKey);
+        }
     }, [resolvedSubjectId, subjectId, subjectCode, subjectKey, subjectCodeKey]);
 
     const toSubjectChapterArray = (value: unknown): SubjectChapter[] => {

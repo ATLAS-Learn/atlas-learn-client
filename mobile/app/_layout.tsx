@@ -12,9 +12,11 @@ import { AuthProvider } from "@/providers/AuthProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { preloadCache } from "@/lib/utils/cache";
 import useBackgroundSync from "@/hooks/useBackgroundSync";
+import useChapterPrefetch from "@/hooks/useChapterPrefetch";
 
 function SyncProvider({ children }: { children: React.ReactNode }) {
   useBackgroundSync();
+  useChapterPrefetch();
   return <>{children}</>;
 }
 
