@@ -29,6 +29,7 @@ interface LeaderboardEntry {
     totalQuizzes: number;
     totalExams: number;
     lessonsCompleted: number;
+    longestStreak?: number;
     isCurrentUser: boolean;
 }
 
@@ -117,6 +118,7 @@ export default function LeaderboardScreen() {
                 </Text>
                 <Text style={styles.meta}>
                     {item.totalQuizzes} quizzes · {item.totalExams} exams · {item.lessonsCompleted} lessons
+                    {item.longestStreak ? ` · ${item.longestStreak}d streak` : ""}
                 </Text>
             </View>
             <Text style={styles.score}>{item.avgScore}%</Text>

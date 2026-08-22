@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image } from "react-native";
 import { Svg, Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useUserStore } from "@/lib/store/user";
 import { useOverallProgress, useStreak, useUserQuizAttempts, useLearningPath } from "@/lib/hooks/api";
+import { API_BASE_URL } from "@/lib/constants/api";
 
 export default function HomeTab() {
     const router = useRouter();
@@ -60,9 +61,21 @@ export default function HomeTab() {
         >
             {/* Header */}
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.greeting}>Hello,</Text>
-                    <Text style={styles.name}>{displayName}</Text>
+                <View style={styles.headerLeft}>
+                    {user?.image ? (
+                        <Image
+                            source={{ uri: user.image.startsWith("http") ? user.image : `${API_BASE_URL}${user.image}` }}
+                            style={styles.avatar}
+                        />
+                    ) : (
+                        <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                            <Ionicons name="person" size={22} color="#999" />
+                        </View>
+                    )}
+                    <View>
+                        <Text style={styles.greeting}>Hello,</Text>
+                        <Text style={styles.name}>{displayName}</Text>
+                    </View>
                 </View>
                 {streak > 0 && (
                     <View style={styles.streakBadge}>
@@ -244,6 +257,21 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 24,
         marginTop: 8,
+    },
+    headerLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    avatar: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+    },
+    avatarPlaceholder: {
+        backgroundColor: "#F5F5F5",
+        justifyContent: "center",
+        alignItems: "center",
     },
     greeting: { fontSize: 15, color: "#999", fontWeight: "500" },
     name: { fontSize: 26, fontWeight: "800", color: "#1F2524", marginTop: 2 },

@@ -147,7 +147,9 @@ export default function ProfileScreen() {
                 school: editSchool.trim() || undefined,
                 examYear: parsedExamYear,
             });
-            setUser(updatedUser);
+            // Cache-bust the image URL so React Native Image reloads immediately
+            const displayImage = imageUrl ? `${imageUrl}?t=${Date.now()}` : updatedUser.image;
+            setUser({ ...updatedUser, image: displayImage });
             setEditProfileModalVisible(false);
             Alert.alert("Success", "Profile updated successfully.");
         } catch (error: any) {
