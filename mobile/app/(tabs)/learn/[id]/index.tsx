@@ -48,13 +48,18 @@ export default function ChapterScreen() {
         });
     }, [chapterId, id, subjectId, subjectKey]);
 
-    const loadChapter = useCallback(async () => {
+    const loadChapter = useCallback(async (force = false) => {
         try {
             if (!chapterId) {
                 throw new Error("Missing chapter ID");
             }
-            // Try cache first for instant display
+            // Fetch-once: skip network when valid cache exists
             const cached = getCacheSync<Chapter>(`cache:chapter:${chapterId}`);
+            if (cached && !force) {
+                setChapter(cached);
+                setLoading(false);
+                return;
+            }
             if (cached) {
                 setChapter(cached);
                 setLoading(false);
@@ -276,7 +281,7 @@ export default function ChapterScreen() {
 
     const handleRefresh = async () => {
         setRefreshing(true);
-        await loadLessons(true);
+        await Promise.all([loadChapter(true), loadLessons(true)]);
         setRefreshing(false);
     };
 

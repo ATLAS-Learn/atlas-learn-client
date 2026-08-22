@@ -116,7 +116,7 @@ export default function SubjectDetailScreen() {
         setChapters(sorted);
     }, []);
 
-    const loadSubjectAndChapters = useCallback(async (targetSubjectId: string, targetSubjectCode?: string) => {
+    const loadSubjectAndChapters = useCallback(async (targetSubjectId: string, targetSubjectCode?: string, force = false) => {
         console.log("[ID_TRACE] loadSubjectAndChapters", { targetSubjectId, targetSubjectCode });
 
         const cacheKey = `cache:subject:${targetSubjectId}`;
@@ -125,6 +125,12 @@ export default function SubjectDetailScreen() {
         // Try cache first for instant display
         const cachedSubject = getCacheSync<Subject>(cacheKey);
         const cachedChapters = getCacheSync<SubjectChapter[]>(chaptersCacheKey);
+        if (cachedSubject && cachedChapters && !force) {
+            setResolvedSubjectId(cachedSubject.id || targetSubjectId);
+            setSubject(cachedSubject);
+            setChapters(cachedChapters);
+            return;
+        }
         if (cachedSubject && cachedChapters) {
             setResolvedSubjectId(cachedSubject.id || targetSubjectId);
             setSubject(cachedSubject);
@@ -166,7 +172,7 @@ export default function SubjectDetailScreen() {
         setCache(chaptersCacheKey, sorted, CHAPTERS_CACHE_TTL).catch(() => {});
     }, []);
 
-    const initialize = useCallback(async () => {
+    const initialize = useCallback(async (force = false) => {
         if (!subjectKey) return;
         setLoading(true);
         setRefreshing(false);
@@ -184,9 +190,14 @@ export default function SubjectDetailScreen() {
             setLoading(false);
         }
 
+        // Skip network when valid cache exists and not forced
+        if (cachedSubject && cachedChapters && !force) {
+            return;
+        }
+
         try {
             try {
-                await loadSubjectAndChapters(subjectKey, subjectCodeKey);
+                await loadSubjectAndChapters(subjectKey, subjectCodeKey, force);
             } catch {
                 await loadFromSubjectsFallback(subjectKey, subjectCodeKey);
             }
@@ -213,7 +224,7 @@ export default function SubjectDetailScreen() {
     const handleRefresh = () => {
         setRefreshing(true);
         refetchProgress();
-        initialize();
+        initialize(true);
     };
 
     const handleOpenChapter = (chapterId: string, status: ChapterStatus) => {

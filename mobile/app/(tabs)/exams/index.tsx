@@ -59,9 +59,14 @@ export default function ExamListScreen() {
         return result;
     };
 
-    const loadExams = useCallback(async () => {
+    const loadExams = useCallback(async (force = false) => {
         try {
             const cached = getCacheSync<ExamItem[]>(EXAM_LIST_CACHE_KEY);
+            if (cached && !force) {
+                setSections(buildSections(cached));
+                setLoading(false);
+                return;
+            }
             if (cached) {
                 setSections(buildSections(cached));
                 setLoading(false);
@@ -85,7 +90,7 @@ export default function ExamListScreen() {
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        loadExams();
+        loadExams(true);
     }, [loadExams]);
 
     const handleStartExam = (exam: ExamItem) => {

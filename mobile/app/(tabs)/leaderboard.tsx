@@ -40,10 +40,15 @@ export default function LeaderboardScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    const loadLeaderboard = useCallback(async () => {
+    const loadLeaderboard = useCallback(async (force = false) => {
         try {
-            // Show cache immediately
+            // Fetch-once: skip network when valid cache exists
             const cached = getCacheSync<LeaderboardEntry[]>(LEADERBOARD_CACHE_KEY);
+            if (cached && !force) {
+                setLeaderboard(cached);
+                setLoading(false);
+                return;
+            }
             if (cached) {
                 setLeaderboard(cached);
                 setLoading(false);
@@ -70,7 +75,7 @@ export default function LeaderboardScreen() {
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        loadLeaderboard();
+        loadLeaderboard(true);
     }, [loadLeaderboard]);
 
     const getRankBadge = (index: number) => {

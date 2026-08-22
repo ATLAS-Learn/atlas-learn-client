@@ -23,9 +23,14 @@ export default function ExamHistoryScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    const loadHistory = useCallback(async () => {
+    const loadHistory = useCallback(async (force = false) => {
         try {
             const cached = getCacheSync<any[]>(EXAM_HISTORY_CACHE_KEY);
+            if (cached && !force) {
+                setHistory(cached);
+                setLoading(false);
+                return;
+            }
             if (cached) {
                 setHistory(cached);
                 setLoading(false);
@@ -49,7 +54,7 @@ export default function ExamHistoryScreen() {
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        loadHistory();
+        loadHistory(true);
     }, [loadHistory]);
 
     const renderItem = ({ item }: { item: any }) => {

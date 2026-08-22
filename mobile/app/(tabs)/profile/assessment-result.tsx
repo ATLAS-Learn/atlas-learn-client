@@ -25,10 +25,15 @@ export default function ProfileAssessmentResultScreen() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const loadResult = async () => {
+        const loadResult = async (force = false) => {
             try {
-                // Show cache immediately
+                // Fetch-once: skip network when valid cache exists
                 const cached = getCacheSync<AssessmentResult>(ASSESSMENT_RESULT_CACHE_KEY);
+                if (cached && !force) {
+                    setResult(cached);
+                    setLoading(false);
+                    return;
+                }
                 if (cached) {
                     setResult(cached);
                     setLoading(false);
