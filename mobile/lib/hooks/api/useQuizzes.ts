@@ -63,7 +63,7 @@ export function useUserQuizAttempts(userId: string | undefined) {
             }
         },
         enabled: !!userId,
-        staleTime: 1000 * 60,
+        staleTime: 1000 * 60 * 5, // 5 minutes
         initialData: initial ?? undefined,
         retry: false,
     });

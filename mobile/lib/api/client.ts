@@ -4,13 +4,7 @@ import {
     User,
     AuthResponse,
     AssessmentQuestion,
-    AssessmentAdminItem,
-    AssessmentAdminQuestion,
     AssessmentResult,
-    CreateAssessmentPayload,
-    UpdateAssessmentPayload,
-    CreateAssessmentQuestionPayload,
-    UpdateAssessmentQuestionPayload,
     Chapter,
     Quiz,
     QuizSubmission,
@@ -19,19 +13,6 @@ import {
     QuizStats,
     Level,
     OverallProgressData,
-    RoleUpgradeRequestPayload,
-    RoleUpgradeRequestResponse,
-    RoleUpgradeDecisionResponse,
-    PendingRoleUpgradeRequest,
-    TeacherStudentsQueryParams,
-    TeacherStudentsListResponse,
-    TeacherStudentProgressResponse,
-    TeacherStudentProgressData,
-    TeacherStudentQuizAttemptsResponse,
-    TeacherStudentQuizAttemptApiItem,
-    TeacherDashboardData,
-    StudentDetail,
-    StudentStatus,
     Subject,
     CreateSubjectPayload,
     UpdateSubjectPayload,
@@ -314,7 +295,6 @@ class APIClient {
         name: string;
         email: string;
         username?: string;
-        role?: "student" | "teacher" | "admin";
         image?: string;
         bio?: string;
         school?: string;
@@ -424,35 +404,6 @@ class APIClient {
             method: "POST",
             data: { sessionId },
         });
-    }
-
-    // Role upgrade endpoints
-    async requestRoleUpgrade(data: RoleUpgradeRequestPayload): Promise<RoleUpgradeRequestResponse> {
-        return this.request<RoleUpgradeRequestResponse>("/auth/request-role-upgrade", {
-            method: "POST",
-            data,
-        });
-    }
-
-    async approveRoleUpgrade(userId: string): Promise<RoleUpgradeDecisionResponse> {
-        return this.request<RoleUpgradeDecisionResponse>(`/auth/approve-role-upgrade/${userId}`, {
-            method: "POST",
-        });
-    }
-
-    async rejectRoleUpgrade(userId: string): Promise<RoleUpgradeDecisionResponse> {
-        return this.request<RoleUpgradeDecisionResponse>(`/auth/reject-role-upgrade/${userId}`, {
-            method: "POST",
-        });
-    }
-
-    async getPendingRoleUpgrades(): Promise<PendingRoleUpgradeRequest[]> {
-        const response = await this.request<{
-            success: boolean;
-            count: number;
-            data: PendingRoleUpgradeRequest[];
-        }>("/auth/pending-role-upgrades");
-        return response?.data ?? [];
     }
 
     // Assessment endpoints
@@ -616,82 +567,6 @@ class APIClient {
             data: { subjectId, beforeChapterId },
         });
         return this.unwrapData<{ completed: number; message: string }>(response);
-    }
-
-    // Assessment management endpoints (Admin/Teacher)
-    async getAssessments(): Promise<AssessmentAdminItem[]> {
-        const response = await this.request<AssessmentAdminItem[] | { data?: AssessmentAdminItem[] }>("/assessments");
-        return this.unwrapData<AssessmentAdminItem[]>(response) || [];
-    }
-
-    async createAssessment(data: CreateAssessmentPayload): Promise<AssessmentAdminItem> {
-        const response = await this.request<AssessmentAdminItem | { data?: AssessmentAdminItem }>("/assessments", {
-            method: "POST",
-            data,
-        });
-        return this.unwrapData<AssessmentAdminItem>(response);
-    }
-
-    async getAssessmentById(assessmentId: string): Promise<AssessmentAdminItem> {
-        const response = await this.request<AssessmentAdminItem | { data?: AssessmentAdminItem }>(`/assessments/${assessmentId}`);
-        return this.unwrapData<AssessmentAdminItem>(response);
-    }
-
-    async updateAssessment(
-        assessmentId: string,
-        data: UpdateAssessmentPayload
-    ): Promise<AssessmentAdminItem> {
-        const response = await this.request<AssessmentAdminItem | { data?: AssessmentAdminItem }>(`/assessments/${assessmentId}`, {
-            method: "PUT",
-            data,
-        });
-        return this.unwrapData<AssessmentAdminItem>(response);
-    }
-
-    async deleteAssessment(assessmentId: string): Promise<void> {
-        await this.request<void>(`/assessments/${assessmentId}`, {
-            method: "DELETE",
-        });
-    }
-
-    async createAssessmentQuestion(
-        assessmentId: string,
-        data: CreateAssessmentQuestionPayload
-    ): Promise<AssessmentAdminQuestion> {
-        const response = await this.request<AssessmentAdminQuestion | { data?: AssessmentAdminQuestion }>(
-            `/assessments/${assessmentId}/questions`,
-            {
-                method: "POST",
-                data,
-            }
-        );
-        return this.unwrapData<AssessmentAdminQuestion>(response);
-    }
-
-    async updateAssessmentQuestion(
-        assessmentId: string,
-        questionId: string,
-        data: UpdateAssessmentQuestionPayload
-    ): Promise<AssessmentAdminQuestion> {
-        const response = await this.request<AssessmentAdminQuestion | { data?: AssessmentAdminQuestion }>(
-            `/assessments/${assessmentId}/questions/${questionId}`,
-            {
-                method: "PUT",
-                data,
-            }
-        );
-        return this.unwrapData<AssessmentAdminQuestion>(response);
-    }
-
-    async deleteAssessmentQuestion(assessmentId: string, questionId: string): Promise<void> {
-        await this.request<void>(`/assessments/${assessmentId}/questions/${questionId}`, {
-            method: "DELETE",
-        });
-    }
-
-    // Legacy method for backward compatibility (if needed)
-    async getAssessmentQuestions(): Promise<AssessmentQuestion[]> {
-        return this.startAssessment();
     }
 
     // Subject endpoints
@@ -1143,190 +1018,6 @@ class APIClient {
         return this.request<QuizStats>(`/quizzes/${quizId}/stats`);
     }
 
-    // Teacher endpoints
-    async getTeacherStudents(
-        params: TeacherStudentsQueryParams = {}
-    ): Promise<TeacherStudentsListResponse> {
-        return this.request<TeacherStudentsListResponse>("/teacher/students", { params });
-    }
-
-    async getStudentProgress(studentId: string): Promise<TeacherStudentProgressData> {
-        const response = await this.request<TeacherStudentProgressResponse>(
-            `/teacher/students/${studentId}/progress`
-        );
-        return response.data;
-    }
-
-    async getStudentQuizAttemptsForTeacher(
-        studentId: string,
-        params: { subjectId?: string; chapterId?: string; limit?: number; offset?: number } = {}
-    ): Promise<TeacherStudentQuizAttemptsResponse> {
-        return this.request<TeacherStudentQuizAttemptsResponse>(`/teacher/students/${studentId}/quiz-attempts`, {
-            params,
-        });
-    }
-
-    async getTeacherDashboard(): Promise<TeacherDashboardData> {
-        const studentsResponse = await this.getTeacherStudents({ limit: 50, offset: 0 });
-        const students = studentsResponse.data || [];
-
-        const progressPairs = await Promise.all(
-            students.map(async (student) => {
-                try {
-                    const progress = await this.getStudentProgress(student.id);
-                    return [student.id, progress] as const;
-                } catch {
-                    return [student.id, null] as const;
-                }
-            })
-        );
-
-        const progressMap = new Map<string, TeacherStudentProgressData | null>(progressPairs);
-
-        const mappedStudents = students.map((student) => {
-            const progress = progressMap.get(student.id);
-            const overallProgress = progress?.overall?.completionPercentage ?? 0;
-            const status = mapStatusFromProgress(overallProgress);
-
-            return {
-                id: student.id,
-                name: student.name,
-                email: student.email,
-                status,
-                currentChapterId: undefined,
-                currentChapterTitle: undefined,
-                overallProgress,
-                lastActiveDate: student.lastLoginAt || student.createdAt,
-            };
-        });
-
-        const lessonTotals = Array.from(progressMap.values()).reduce(
-            (acc, progress) => {
-                if (!progress?.overall?.lessons) return acc;
-                acc.totalLessons += progress.overall.lessons.total || 0;
-                acc.totalCompleted += progress.overall.lessons.completed || 0;
-                acc.totalTimeSpent += progress.overall.totalTimeSpent || 0;
-                return acc;
-            },
-            { totalLessons: 0, totalCompleted: 0, totalTimeSpent: 0 }
-        );
-
-        const lessonCountStudents = Array.from(progressMap.values()).filter(
-            (progress) => progress?.overall?.lessons
-        ).length;
-
-        const averageCompletionPercent =
-            lessonTotals.totalLessons > 0
-                ? Math.round((lessonTotals.totalCompleted / lessonTotals.totalLessons) * 100)
-                : 0;
-        const averageTimeSpent =
-            lessonCountStudents > 0 ? Math.round(lessonTotals.totalTimeSpent / lessonCountStudents) : 0;
-
-        const onTrackCount = mappedStudents.filter(
-            (student) => student.status === StudentStatus.ON_TRACK
-        ).length;
-        const behindCount = mappedStudents.filter(
-            (student) => student.status === StudentStatus.BEHIND
-        ).length;
-        const atRiskCount = mappedStudents.filter(
-            (student) => student.status === StudentStatus.AT_RISK
-        ).length;
-
-        return {
-            students: mappedStudents,
-            totalStudents: studentsResponse.total ?? mappedStudents.length,
-            onTrackCount,
-            behindCount,
-            atRiskCount,
-            lessonSummary: {
-                totalLessons: lessonTotals.totalLessons,
-                totalCompleted: lessonTotals.totalCompleted,
-                averageCompletionPercent,
-                averageTimeSpent,
-            },
-        };
-    }
-
-    async getStudentDetail(studentId: string): Promise<StudentDetail> {
-        const [progress, attemptsResponse] = await Promise.all([
-            this.getStudentProgress(studentId),
-            this.getStudentQuizAttemptsForTeacher(studentId, { limit: 50, offset: 0 }),
-        ]);
-
-        const overallProgress = progress.overall?.completionPercentage ?? 0;
-        const status = mapStatusFromProgress(overallProgress);
-        const quizAttempts = (attemptsResponse.data || []).map((attempt) =>
-            mapTeacherAttemptToQuizAttempt(attempt, studentId)
-        );
-
-        const completedChapterCount = progress.overall?.chapters?.completed ?? 0;
-        const completedChapters = Array.from(
-            { length: completedChapterCount },
-            (_, index) => `completed-chapter-${index + 1}`
-        );
-
-        return {
-            id: progress.student.id,
-            name: progress.student.name,
-            email: progress.student.email,
-            status,
-            level: normalizeLevel(progress.level),
-            currentChapterId: undefined,
-            currentChapterTitle: undefined,
-            overallProgress,
-            lastActiveDate: progress.assessmentCompletedAt || new Date().toISOString(),
-            streak: 0,
-            completedChapters,
-            chapterProgress: [],
-            quizAttempts,
-        };
-    }
-
-    // Admin endpoints
-    async getAdminUsers(params: { search?: string; role?: string; isActive?: boolean; limit?: number; offset?: number } = {}): Promise<any> {
-        return this.request<any>("/admin/users", { params });
-    }
-
-    async getAdminUser(userId: string): Promise<any> {
-        return this.request<any>(`/admin/users/${userId}`);
-    }
-
-    async deactivateUser(userId: string): Promise<any> {
-        return this.request<any>(`/admin/users/${userId}/deactivate`, {
-            method: "PATCH",
-        });
-    }
-
-    async reactivateUser(userId: string): Promise<any> {
-        return this.request<any>(`/admin/users/${userId}/reactivate`, {
-            method: "PATCH",
-        });
-    }
-
-    async getAdminAnalyticsOverview(): Promise<any> {
-        return this.request<any>("/admin/analytics/overview");
-    }
-
-    async getAdminAnalyticsChapterCompletion(): Promise<any> {
-        return this.request<any>("/admin/analytics/chapter-completion");
-    }
-
-    async getAdminAnalyticsQuizStats(): Promise<any> {
-        return this.request<any>("/admin/analytics/quiz-stats");
-    }
-
-    async getAdminAnalyticsWAU(): Promise<any> {
-        return this.request<any>("/admin/analytics/wau");
-    }
-
-    async getAdminAnalyticsTeacherActivity(): Promise<any> {
-        return this.request<any>("/admin/analytics/teacher-activity");
-    }
-
-    async getAdminAnalyticsSignups(): Promise<any> {
-        return this.request<any>("/admin/analytics/signups");
-    }
-
     // Feedback
     async submitFeedback(data: { category: string; subject: string; message: string; rating?: number }): Promise<{ id: string }> {
         const response = await this.request<{ success: boolean; data: { id: string } }>("/feedback", {
@@ -1339,19 +1030,6 @@ class APIClient {
     async getMyFeedback(): Promise<any[]> {
         const response = await this.request<{ success: boolean; data: any[] }>("/feedback");
         return response?.data || [];
-    }
-
-    async getAllFeedback(params: { status?: string; category?: string; page?: number; limit?: number } = {}): Promise<{ data: any[]; pagination: { total: number; page: number; limit: number; totalPages: number } }> {
-        const response = await this.request<{ success: boolean; data: any[]; pagination: any }>("/admin/feedback", { params });
-        return { data: response?.data || [], pagination: response?.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 } };
-    }
-
-    async updateFeedback(id: string, data: { status?: string; adminReply?: string }): Promise<any> {
-        const response = await this.request<{ success: boolean; data: any }>(`/admin/feedback/${id}`, {
-            method: "PATCH",
-            data,
-        });
-        return response?.data;
     }
 
     async getQuizAttemptCorrections(attemptId: string): Promise<{
@@ -1410,38 +1088,6 @@ class APIClient {
         const res = await this.axiosInstance.get("/leaderboard");
         return res.data?.data || [];
     }
-}
-
-function mapStatusFromProgress(overallProgress: number): StudentStatus {
-    if (overallProgress >= 75) return StudentStatus.ON_TRACK;
-    if (overallProgress >= 40) return StudentStatus.BEHIND;
-    return StudentStatus.AT_RISK;
-}
-
-function normalizeLevel(level: string): Level {
-    if (level === Level.FOUNDATIONAL || level === Level.CORE || level === Level.ADVANCED) {
-        return level;
-    }
-    return Level.FOUNDATIONAL;
-}
-
-function mapTeacherAttemptToQuizAttempt(
-    attempt: TeacherStudentQuizAttemptApiItem,
-    studentId: string
-): QuizAttempt {
-    const totalQuestions = attempt.quiz?.totalQuestions || 0;
-    const percentage = totalQuestions > 0 ? Math.round((attempt.score / totalQuestions) * 100) : 0;
-
-    return {
-        id: attempt.attemptId,
-        quizId: attempt.quiz?.id || "",
-        userId: studentId,
-        score: attempt.score,
-        answers: [],
-        percentage,
-        passed: attempt.passed,
-        completedAt: attempt.completedAt,
-    };
 }
 
 // Export singleton instance

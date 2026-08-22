@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions, Image, Linking, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,7 +7,6 @@ import { useUserStore } from "@/lib/store/user";
 import { useAuthStore } from "@/lib/store/auth";
 import { apiClient } from "@/lib/api";
 import { API_BASE_URL } from "@/lib/constants/api";
-import { UserRole } from "@/lib/types";
 import { useOverallProgress } from "@/lib/hooks/api";
 import ProgressBar from "@/components/progress/progress-bar";
 
@@ -41,15 +40,11 @@ export default function ProfileScreen() {
     const { width } = useWindowDimensions();
     const { user, setUser } = useUserStore();
     const { logout } = useAuthStore();
-    const [requestingUpgrade, setRequestingUpgrade] = useState(false);
     const { data: overallProgressData, isLoading: loadingProgress } = useOverallProgress();
     const [sessionsModalVisible, setSessionsModalVisible] = useState(false);
     const [sessions, setSessions] = useState<{ id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[]>([]);
     const [loadingSessions, setLoadingSessions] = useState(false);
     const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
-    const [roleRequestModalVisible, setRoleRequestModalVisible] = useState(false);
-    const [roleRequestReason, setRoleRequestReason] = useState("");
-    const [roleRequestSchool, setRoleRequestSchool] = useState("");
     const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
     const [savingProfile, setSavingProfile] = useState(false);
     const [editName, setEditName] = useState("");
@@ -83,54 +78,6 @@ export default function ProfileScreen() {
     const handleLogout = async () => {
         await logout();
         router.replace("/(auth)");
-    };
-
-    const handleRequestRoleUpgrade = async () => {
-        if (user?.role !== UserRole.STUDENT) {
-            return;
-        }
-        setRoleRequestModalVisible(true);
-    };
-
-    const closeRoleRequestModal = () => {
-        if (requestingUpgrade) return;
-        setRoleRequestModalVisible(false);
-    };
-
-    const submitRoleUpgradeRequest = async () => {
-        if (!roleRequestReason.trim()) {
-            Alert.alert("Missing Reason", "Please provide a reason for requesting teacher role.");
-            return;
-        }
-        if (!roleRequestSchool.trim()) {
-            Alert.alert("Missing School", "Please provide your school name.");
-            return;
-        }
-
-        setRequestingUpgrade(true);
-        try {
-            const response = await apiClient.requestRoleUpgrade({
-                reason: roleRequestReason.trim(),
-                school: roleRequestSchool.trim(),
-            });
-
-            try {
-                const updatedUser = await apiClient.getCurrentUser();
-                setUser(updatedUser);
-            } catch {
-                // Role request succeeded; user refresh can fail independently.
-            }
-
-            setRoleRequestModalVisible(false);
-            setRoleRequestReason("");
-            setRoleRequestSchool("");
-            Alert.alert("Request Submitted", response.message);
-            router.push("/(tabs)/profile/pending-approval");
-        } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to submit role upgrade request. Please try again.");
-        } finally {
-            setRequestingUpgrade(false);
-        }
     };
 
     const handleOpenSessions = async () => {
@@ -326,13 +273,6 @@ export default function ProfileScreen() {
                 </View>
                 <Text style={styles.name}>{user?.name || "User"}</Text>
                 <Text style={styles.email}>{user?.email || ""}</Text>
-                {user?.role && (
-                    <View style={styles.roleBadge}>
-                        <Text style={styles.roleText}>
-                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                        </Text>
-                    </View>
-                )}
                 {!!user?.school && <Text style={styles.metaText}>School: {user.school}</Text>}
                 {!!user?.examYear && <Text style={styles.metaText}>Exam Year: {user.examYear}</Text>}
                 {!!user?.username && <Text style={styles.metaText}>Username: @{user.username}</Text>}
@@ -340,17 +280,15 @@ export default function ProfileScreen() {
                 {!!user?.bio && <Text style={styles.metaText} numberOfLines={2}>{user.bio}</Text>}
             </View>
 
-            {user?.role === UserRole.STUDENT && (
-                <View style={styles.progressSection}>
-                    {loadingProgress ? (
-                        <View style={styles.progressLoadingContainer}>
-                            <ActivityIndicator size="small" color="#F2B138" />
-                        </View>
-                    ) : (
-                        <ProgressBar progress={Number(overallProgressData?.overall?.completionPercentage || 0)} />
-                    )}
-                </View>
-            )}
+            <View style={styles.progressSection}>
+                {loadingProgress ? (
+                    <View style={styles.progressLoadingContainer}>
+                        <ActivityIndicator size="small" color="#F2B138" />
+                    </View>
+                ) : (
+                    <ProgressBar progress={Number(overallProgressData?.overall?.completionPercentage || 0)} />
+                )}
+            </View>
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Learning</Text>
@@ -417,74 +355,6 @@ export default function ProfileScreen() {
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
             </View>
-
-            {user?.role === UserRole.ADMIN && (
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Admin</Text>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => router.push("/(tabs)/profile/admin-assessments")}
-                    >
-                        <Ionicons name="clipboard-outline" size={24} color="#666" />
-                        <Text style={styles.menuText}>Assessments</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#999" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => router.push("/(tabs)/profile/admin-subjects")}
-                    >
-                        <Ionicons name="library-outline" size={24} color="#666" />
-                        <Text style={styles.menuText}>Subjects</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#999" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => router.push("/(tabs)/profile/admin-role-upgrades")}
-                    >
-                        <Ionicons name="shield-checkmark-outline" size={24} color="#666" />
-                        <Text style={styles.menuText}>Role Upgrade Requests</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#999" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => router.push("/(tabs)/profile/admin-feedback")}
-                    >
-                        <Ionicons name="chatbubbles-outline" size={24} color="#666" />
-                        <Text style={styles.menuText}>User Feedback</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#999" />
-                    </TouchableOpacity>
-                </View>
-            )}
-
-            {user?.role === UserRole.STUDENT && (
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Account</Text>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={handleRequestRoleUpgrade}
-                        disabled={requestingUpgrade || user?.roleUpgradeStatus === "pending"}
-                    >
-                        <Ionicons name="school-outline" size={24} color="#666" />
-                        <View style={styles.menuTextContainer}>
-                            <Text style={styles.menuText}>Request Teacher Role</Text>
-                            {user?.roleUpgradeStatus === "pending" && (
-                                <Text style={styles.statusText}>Pending approval</Text>
-                            )}
-                            {user?.roleUpgradeStatus === "approved" && (
-                                <Text style={[styles.statusText, styles.statusApproved]}>Approved</Text>
-                            )}
-                            {user?.roleUpgradeStatus === "rejected" && (
-                                <Text style={[styles.statusText, styles.statusRejected]}>Rejected</Text>
-                            )}
-                        </View>
-                        {requestingUpgrade ? (
-                            <ActivityIndicator size="small" color="#F2B138" />
-                        ) : (
-                            <Ionicons name="chevron-forward" size={20} color="#999" />
-                        )}
-                    </TouchableOpacity>
-                </View>
-            )}
 
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                 <Ionicons name="log-out-outline" size={24} color="#E57373" />
@@ -603,72 +473,6 @@ export default function ProfileScreen() {
                                     <ActivityIndicator size="small" color="#fff" />
                                 ) : (
                                     <Text style={styles.requestSubmitText}>Save</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                    </ScrollView>
-                </KeyboardAvoidingView>
-            </Modal>
-
-            <Modal
-                visible={roleRequestModalVisible}
-                animationType="slide"
-                onRequestClose={closeRoleRequestModal}
-            >
-                <KeyboardAvoidingView
-                    style={{ flex: 1 }}
-                    behavior={Platform.OS === "ios" ? "padding" : "height"}
-                >
-                    <ScrollView
-                        style={{ flex: 1 }}
-                        contentContainerStyle={styles.feedbackModalOverlay}
-                        keyboardShouldPersistTaps="handled"
-                        bounces={false}
-                    >
-                    <View style={styles.requestModalCard}>
-                        <Text style={styles.requestModalTitle}>Request Teacher Role</Text>
-                        <Text style={styles.requestModalSubtitle}>
-                            Provide details for admin review.
-                        </Text>
-
-                        <Text style={styles.requestFieldLabel}>Reason</Text>
-                        <TextInput
-                            style={[styles.requestInput, styles.requestInputMultiline]}
-                            placeholder="I teach mathematics and need access to class analytics."
-                            value={roleRequestReason}
-                            onChangeText={setRoleRequestReason}
-                            multiline
-                            numberOfLines={4}
-                            editable={!requestingUpgrade}
-                        />
-
-                        <Text style={styles.requestFieldLabel}>School</Text>
-                        <TextInput
-                            style={styles.requestInput}
-                            placeholder="XYZ Secondary School"
-                            value={roleRequestSchool}
-                            onChangeText={setRoleRequestSchool}
-                            editable={!requestingUpgrade}
-                        />
-
-                        <View style={styles.requestActions}>
-                            <TouchableOpacity
-                                style={styles.requestCancelButton}
-                                onPress={closeRoleRequestModal}
-                                disabled={requestingUpgrade}
-                            >
-                                <Text style={styles.requestCancelText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.requestSubmitButton}
-                                onPress={submitRoleUpgradeRequest}
-                                disabled={requestingUpgrade}
-                            >
-                                {requestingUpgrade ? (
-                                    <ActivityIndicator size="small" color="#fff" />
-                                ) : (
-                                    <Text style={styles.requestSubmitText}>Submit</Text>
                                 )}
                             </TouchableOpacity>
                         </View>
@@ -895,17 +699,6 @@ const styles = StyleSheet.create({
         color: "#777",
         marginTop: 3,
     },
-    roleBadge: {
-        backgroundColor: "#FFF9E6",
-        paddingVertical: 4,
-        paddingHorizontal: 12,
-        borderRadius: 16,
-    },
-    roleText: {
-        fontSize: 12,
-        fontWeight: "600",
-        color: "#F2B138",
-    },
     progressSection: {
         marginTop: 24,
         paddingHorizontal: 16,
@@ -940,21 +733,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: "#282F2E",
         fontWeight: "500",
-    },
-    menuTextContainer: {
-        flex: 1,
-    },
-    statusText: {
-        fontSize: 12,
-        color: "#F2B138",
-        fontWeight: "600",
-        marginTop: 4,
-    },
-    statusApproved: {
-        color: "#4CAF50",
-    },
-    statusRejected: {
-        color: "#E57373",
     },
     logoutButton: {
         flexDirection: "row",

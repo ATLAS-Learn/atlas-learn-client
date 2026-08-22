@@ -3,8 +3,8 @@ import { apiClient } from "@/lib/api";
 import { OverallProgressData, StreakData } from "@/lib/types";
 import { setCache, getCacheSync } from "@/lib/utils/cache";
 
-const STALE_TIME = 1000 * 60 * 5; // 5 minutes - refetch when online
-const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours - persist for offline
+const STALE_TIME = 1000 * 60 * 15; // 15 minutes
+const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
 
 export function useOverallProgress() {
     const cacheKey = "cache:progress:overall";
@@ -23,7 +23,7 @@ export function useOverallProgress() {
             }
         },
         staleTime: STALE_TIME,
-        refetchOnMount: true,
+        refetchOnMount: false,
         refetchOnWindowFocus: false,
         initialData: initial ?? undefined,
         retry: false,
@@ -47,7 +47,7 @@ export function useStreak() {
             }
         },
         staleTime: STALE_TIME,
-        refetchOnMount: true,
+        refetchOnMount: false,
         initialData: initial ?? undefined,
         retry: false,
     });

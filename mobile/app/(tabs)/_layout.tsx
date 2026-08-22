@@ -1,12 +1,7 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useUserStore } from "@/lib/store/user";
-import { UserRole } from "@/lib/types";
 
 export default function TabsLayout() {
-    const { user } = useUserStore();
-    const isTeacher = user?.role === UserRole.TEACHER;
-
     return (
         <Tabs
             screenOptions={{
@@ -26,7 +21,6 @@ export default function TabsLayout() {
             />
             <Tabs.Screen
                 name="learn"
-                redirect={isTeacher}
                 options={{
                     title: "Learn",
                     tabBarIcon: ({ color, size }) => (
@@ -35,18 +29,7 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
-                name="classes"
-                redirect={!isTeacher}
-                options={{
-                    title: "Classes",
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="people" size={size} color={color} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
                 name="exams"
-                redirect={isTeacher}
                 options={{
                     title: "Exams",
                     tabBarIcon: ({ color, size }) => (
@@ -56,7 +39,6 @@ export default function TabsLayout() {
             />
             <Tabs.Screen
                 name="leaderboard"
-                redirect={isTeacher}
                 options={{
                     title: "Leaderboard",
                     tabBarIcon: ({ color, size }) => (
