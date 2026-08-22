@@ -14,6 +14,10 @@ import { useRouter } from "expo-router";
 import ScreenHeader from "@/components/ui/screen-header";
 import { apiClient } from "@/lib/api";
 import { Subject } from "@/lib/types";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+
+const SUBJECTS_CACHE_KEY = "cache:subjects:list";
+const SUBJECTS_CACHE_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
 
 export default function SubjectsScreen() {
     const router = useRouter();
@@ -21,18 +25,22 @@ export default function SubjectsScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    const loadSubjects = useCallback(async () => {
+    const loadSubjects = useCallback(async (force = false) => {
         try {
+            // Fetch-once: skip network when valid cache exists
+            const cached = getCacheSync<Subject[]>(SUBJECTS_CACHE_KEY);
+            if (cached && !force) {
+                setSubjects(cached);
+                setLoading(false);
+                return;
+            }
             const data = await apiClient.getSubjects({ includeChapters: false });
-            console.log("[ID_TRACE] SubjectsScreen loaded subjects", {
-                count: Array.isArray(data) ? data.length : 0,
-                sample: Array.isArray(data)
-                    ? data.slice(0, 3).map((item) => ({ id: item.id, code: item.code, name: item.name }))
-                    : [],
-            });
-            setSubjects(Array.isArray(data) ? data : []);
+            const list = Array.isArray(data) ? data : [];
+            setSubjects(list);
+            setCache(SUBJECTS_CACHE_KEY, list, SUBJECTS_CACHE_TTL).catch(() => {});
         } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to load subjects.");
+            const cached = getCacheSync<Subject[]>(SUBJECTS_CACHE_KEY);
+            if (!cached) Alert.alert("Error", error.message || "Failed to load subjects.");
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -45,7 +53,7 @@ export default function SubjectsScreen() {
 
     const handleRefresh = () => {
         setRefreshing(true);
-        loadSubjects();
+        loadSubjects(true);
     };
 
     const handleOpenSubject = (subject: Subject) => {

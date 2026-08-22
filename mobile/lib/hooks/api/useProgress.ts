@@ -2,9 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { OverallProgressData, StreakData } from "@/lib/types";
 import { setCache, getCacheSync } from "@/lib/utils/cache";
-
-const STALE_TIME = 1000 * 60 * 15; // 15 minutes
-const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
+import { DISK_TTL, STALE_TIME } from "@/lib/config/cachePolicy";
 
 export function useOverallProgress() {
     const cacheKey = "cache:progress:overall";
@@ -14,7 +12,7 @@ export function useOverallProgress() {
         queryFn: async () => {
             try {
                 const data = await apiClient.getOverallProgress();
-                await setCache(cacheKey, data, CACHE_TTL);
+                await setCache(cacheKey, data, DISK_TTL.DYNAMIC);
                 return data;
             } catch {
                 const cached = getCacheSync<OverallProgressData>(cacheKey);
@@ -22,7 +20,7 @@ export function useOverallProgress() {
                 throw new Error("Offline");
             }
         },
-        staleTime: STALE_TIME,
+        staleTime: STALE_TIME.DYNAMIC,
         refetchOnMount: false,
         refetchOnWindowFocus: false,
         initialData: initial ?? undefined,
@@ -38,7 +36,7 @@ export function useStreak() {
         queryFn: async () => {
             try {
                 const data = await apiClient.getStreak();
-                await setCache(cacheKey, data, CACHE_TTL);
+                await setCache(cacheKey, data, DISK_TTL.DYNAMIC);
                 return data;
             } catch {
                 const cached = getCacheSync<StreakData>(cacheKey);
@@ -46,7 +44,7 @@ export function useStreak() {
                 throw new Error("Offline");
             }
         },
-        staleTime: STALE_TIME,
+        staleTime: STALE_TIME.DYNAMIC,
         refetchOnMount: false,
         initialData: initial ?? undefined,
         retry: false,

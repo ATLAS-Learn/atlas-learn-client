@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions, Image, Linking, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -62,18 +62,8 @@ export default function ProfileScreen() {
     const [feedbackMessage, setFeedbackMessage] = useState("");
     const [feedbackRating, setFeedbackRating] = useState<number>(0);
 
-    const refreshUser = useCallback(async () => {
-        try {
-            const freshUser = await apiClient.getCurrentUser();
-            setUser(freshUser);
-        } catch {
-            // Keep local user data if refresh fails.
-        }
-    }, [setUser]);
-
-    useEffect(() => {
-        refreshUser();
-    }, [refreshUser]);
+    // User data comes from the persisted store (single /auth/me fetch at startup).
+    // Profile edits below update the store directly after saving.
 
     const handleLogout = async () => {
         await logout();
@@ -157,7 +147,9 @@ export default function ProfileScreen() {
                 school: editSchool.trim() || undefined,
                 examYear: parsedExamYear,
             });
-            setUser(updatedUser);
+            // Cache-bust the image URL so React Native Image reloads immediately
+            const displayImage = imageUrl ? `${imageUrl}?t=${Date.now()}` : updatedUser.image;
+            setUser({ ...updatedUser, image: displayImage });
             setEditProfileModalVisible(false);
             Alert.alert("Success", "Profile updated successfully.");
         } catch (error: any) {
@@ -237,8 +229,21 @@ export default function ProfileScreen() {
             setFeedbackRating(0);
             setFeedbackCategory("general");
             Alert.alert("Thank You!", "Your feedback has been submitted successfully.");
-        } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to submit feedback. Please try again.");
+        } catch {
+            // Offline fallback — queue for background sync
+            const { enqueueFeedback } = await import("@/lib/utils/syncQueue");
+            await enqueueFeedback({
+                category: feedbackCategory,
+                subject: feedbackSubject.trim(),
+                message: feedbackMessage.trim(),
+                rating: feedbackRating > 0 ? feedbackRating : undefined,
+            });
+            setFeedbackModalVisible(false);
+            setFeedbackSubject("");
+            setFeedbackMessage("");
+            setFeedbackRating(0);
+            setFeedbackCategory("general");
+            Alert.alert("Feedback Queued", "Your feedback will be submitted when you're back online.");
         } finally {
             setSubmittingFeedback(false);
         }

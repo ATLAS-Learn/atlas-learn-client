@@ -2,9 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { setCache, getCacheSync } from "@/lib/utils/cache";
 import { LearningPath } from "@/lib/types";
-
-const LEARNING_PATH_STALE = 1000 * 60 * 15; // 15 minutes
-const LEARNING_PATH_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
+import { DISK_TTL, STALE_TIME } from "@/lib/config/cachePolicy";
 
 export function useLearningPath() {
     const cacheKey = "cache:learning-path";
@@ -14,7 +12,7 @@ export function useLearningPath() {
         queryFn: async () => {
             try {
                 const data = await apiClient.getLearningPath();
-                await setCache(cacheKey, data, LEARNING_PATH_CACHE_TTL);
+                await setCache(cacheKey, data, DISK_TTL.DYNAMIC);
                 return data;
             } catch {
                 const cached = getCacheSync<LearningPath>(cacheKey);
@@ -22,7 +20,7 @@ export function useLearningPath() {
                 throw new Error("Offline");
             }
         },
-        staleTime: LEARNING_PATH_STALE,
+        staleTime: STALE_TIME.DYNAMIC,
         refetchOnMount: false,
         initialData: initial ?? undefined,
         retry: false,

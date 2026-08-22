@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { CreateSubjectPayload, UpdateSubjectPayload, SubjectQueryOptions } from "@/lib/types";
+import { STALE_TIME } from "@/lib/config/cachePolicy";
 
 function normalizeSubjectQueryOptions(options: SubjectQueryOptions): SubjectQueryOptions {
     const includeChapters = options.includeChapters ?? false;
@@ -20,7 +21,7 @@ export function useSubjects(options: SubjectQueryOptions = {}) {
             normalizedOptions.includeChapterDetails ?? false,
         ],
         queryFn: () => apiClient.getSubjects(normalizedOptions),
-        staleTime: 1000 * 60 * 10, // 10 minutes - subjects rarely change
+        staleTime: STALE_TIME.STATIC,
         refetchOnMount: false,
     });
 }
@@ -37,7 +38,7 @@ export function useSubject(subjectId: string | undefined, options: SubjectQueryO
         ],
         queryFn: () => apiClient.getSubjectById(subjectId!, normalizedOptions),
         enabled: !!subjectId,
-        staleTime: 1000 * 60 * 10, // 10 minutes
+        staleTime: STALE_TIME.STATIC,
         refetchOnMount: false,
     });
 }
@@ -55,7 +56,7 @@ export function useSubjectByCode(code: string | undefined, options: SubjectQuery
         ],
         queryFn: () => apiClient.getSubjectByCode(code!, normalizedOptions),
         enabled: !!code,
-        staleTime: 1000 * 60 * 10, // 10 minutes
+        staleTime: STALE_TIME.STATIC,
         refetchOnMount: false,
     });
 }

@@ -18,6 +18,7 @@
     },
     "android": {
       "package": "com.atlaslearn.app",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#1F2524",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

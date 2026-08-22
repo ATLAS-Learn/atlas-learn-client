@@ -46,7 +46,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             // dynamic import to avoid cycles
             const { clearCachePrefix, clearCaches } = await import("@/lib/utils/cache");
-            const { clearQuizQueue, clearLessonQueue } = await import("@/lib/utils/syncQueue");
+            const { clearQuizQueue, clearLessonQueue, clearFeedbackQueue, clearSubjectSelectionQueue } = await import("@/lib/utils/syncQueue");
             await Promise.all([
               clearCaches([
                 "cache:chapters",
@@ -56,6 +56,8 @@ export const useAuthStore = create<AuthState>()(
               clearCachePrefix("cache:quizzes:"),
               clearQuizQueue(),
               clearLessonQueue(),
+              clearFeedbackQueue(),
+              clearSubjectSelectionQueue(),
             ]);
           } catch (e) {
             // ignore

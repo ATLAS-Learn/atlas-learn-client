@@ -7,17 +7,17 @@ import {
     FlatList,
     ActivityIndicator,
     Image,
+    RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { useFocusEffect } from "@react-navigation/native";
 import { useUserStore } from "@/lib/store/user";
 import { API_BASE_URL } from "@/lib/constants/api";
 import ScreenHeader from "@/components/ui/screen-header";
 import { getCacheSync, setCache } from "@/lib/utils/cache";
+import { DISK_TTL } from "@/lib/config/cachePolicy";
 
 const LEADERBOARD_CACHE_KEY = "cache:leaderboard";
-const LEADERBOARD_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface LeaderboardEntry {
     userId: string;
@@ -29,6 +29,7 @@ interface LeaderboardEntry {
     totalQuizzes: number;
     totalExams: number;
     lessonsCompleted: number;
+    longestStreak?: number;
     isCurrentUser: boolean;
 }
 
@@ -38,11 +39,17 @@ export default function LeaderboardScreen() {
     const { user } = useUserStore();
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const loadLeaderboard = useCallback(async () => {
+    const loadLeaderboard = useCallback(async (force = false) => {
         try {
-            // Show cache immediately
+            // Fetch-once: skip network when valid cache exists
             const cached = getCacheSync<LeaderboardEntry[]>(LEADERBOARD_CACHE_KEY);
+            if (cached && !force) {
+                setLeaderboard(cached);
+                setLoading(false);
+                return;
+            }
             if (cached) {
                 setLeaderboard(cached);
                 setLoading(false);
@@ -51,21 +58,26 @@ export default function LeaderboardScreen() {
             // Fetch fresh data
             const data = await apiClient.getLeaderboard();
             setLeaderboard(data);
-            setCache(LEADERBOARD_CACHE_KEY, data, LEADERBOARD_CACHE_TTL).catch(() => {});
+            setCache(LEADERBOARD_CACHE_KEY, data, DISK_TTL.LEADERBOARD).catch(() => {});
         } catch {
             // If fetch fails, keep showing cached data
             const cached = getCacheSync<LeaderboardEntry[]>(LEADERBOARD_CACHE_KEY);
             if (!cached) setLeaderboard([]);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }, []);
 
-    useFocusEffect(
-        useCallback(() => {
-            loadLeaderboard();
-        }, [loadLeaderboard])
-    );
+    // Load on first mount only
+    React.useEffect(() => {
+        loadLeaderboard();
+    }, [loadLeaderboard]);
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        loadLeaderboard(true);
+    }, [loadLeaderboard]);
 
     const getRankBadge = (index: number) => {
         if (index < 3) {
@@ -106,6 +118,7 @@ export default function LeaderboardScreen() {
                 </Text>
                 <Text style={styles.meta}>
                     {item.totalQuizzes} quizzes · {item.totalExams} exams · {item.lessonsCompleted} lessons
+                    {item.longestStreak ? ` · ${item.longestStreak}d streak` : ""}
                 </Text>
             </View>
             <Text style={styles.score}>{item.avgScore}%</Text>
@@ -134,6 +147,9 @@ export default function LeaderboardScreen() {
                     keyExtractor={(item) => item.userId}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B138" />
+                    }
                 />
             )}
         </View>

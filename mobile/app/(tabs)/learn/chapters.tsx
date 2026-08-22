@@ -35,15 +35,16 @@ export default function ChaptersListScreen() {
         loadChapters();
     }, []);
 
-    const loadChapters = async () => {
+    const loadChapters = async (force = false) => {
         try {
-            // Try loading from cache first for instant display
+            // Fetch-once: skip ALL network calls when valid cache exists
             const cachedChapters = getCacheSync<Chapter[]>(CHAPTERS_CACHE_KEY);
             const cachedCounts = getCacheSync<Record<string, number>>(LESSON_COUNTS_CACHE_KEY);
-            if (cachedChapters) {
+            if (cachedChapters && !force) {
                 setChapters(cachedChapters);
                 setLessonCounts(cachedCounts || {});
                 setLoading(false);
+                return;
             }
 
             // Fetch fresh data from server
@@ -99,7 +100,7 @@ export default function ChaptersListScreen() {
 
     const handleRefresh = () => {
         setRefreshing(true);
-        loadChapters();
+        loadChapters(true);
     };
 
     const handleChapterPress = (chapterId: string) => {
