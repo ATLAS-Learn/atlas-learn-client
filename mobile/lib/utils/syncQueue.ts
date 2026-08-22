@@ -3,7 +3,7 @@ import { apiClient } from "@/lib/api";
 import { QuizSubmission } from "@/lib/types";
 
 export type PendingQuizSubmission = {
-  id: string; // local id
+  id: string;
   quizId: string;
   submission: QuizSubmission;
   attempts: number;
@@ -19,61 +19,74 @@ export type PendingLessonCompletion = {
   createdAt: number;
 };
 
+export type PendingFeedback = {
+  id: string;
+  data: { category: string; subject: string; message: string; rating?: number };
+  attempts: number;
+  createdAt: number;
+};
+
+export type PendingSubjectSelection = {
+  id: string;
+  subjectIds: string[];
+  attempts: number;
+  createdAt: number;
+};
+
 const QUEUE_KEY = "pending-quiz-syncs";
 const LESSON_QUEUE_KEY = "pending-lesson-syncs";
+const FEEDBACK_QUEUE_KEY = "pending-feedback-syncs";
+const SUBJECT_SELECTION_QUEUE_KEY = "pending-subject-selection-syncs";
 
-async function readQueue(): Promise<PendingQuizSubmission[]> {
-  const raw = await storage.getItem(QUEUE_KEY);
+const MAX_ATTEMPTS = 5;
+
+// ── Generic queue helpers ──
+
+async function readJsonQueue<T>(key: string): Promise<T[]> {
+  const raw = await storage.getItem(key);
   if (!raw) return [];
   try {
-    return JSON.parse(raw) as PendingQuizSubmission[];
+    return JSON.parse(raw) as T[];
   } catch {
-    await storage.removeItem(QUEUE_KEY);
+    await storage.removeItem(key);
     return [];
   }
 }
 
-async function writeQueue(queue: PendingQuizSubmission[]) {
-  await storage.setItem(QUEUE_KEY, JSON.stringify(queue));
+async function writeJsonQueue<T>(key: string, queue: T[]) {
+  await storage.setItem(key, JSON.stringify(queue));
 }
 
+// ── Quiz submission queue ──
+
 export async function enqueueQuizSubmission(quizId: string, submission: QuizSubmission) {
-  const queue = await readQueue();
-  const entry: PendingQuizSubmission = {
+  const queue = await readJsonQueue<PendingQuizSubmission>(QUEUE_KEY);
+  queue.push({
     id: `${quizId}:${Date.now()}`,
     quizId,
     submission,
     attempts: 0,
     createdAt: Date.now(),
-  };
-  queue.push(entry);
-  await writeQueue(queue);
+  });
+  await writeJsonQueue(QUEUE_KEY, queue);
 }
 
-// Process queue with up to 5 retries and exponential backoff
 export async function processQuizQueue() {
-  const queue = await readQueue();
+  const queue = await readJsonQueue<PendingQuizSubmission>(QUEUE_KEY);
   if (queue.length === 0) return;
 
   const remaining: PendingQuizSubmission[] = [];
-
   for (const item of queue) {
     try {
       await apiClient.submitQuiz(item.quizId, item.submission);
-      // success -> do nothing (item removed)
-    } catch (err) {
+    } catch {
       const attempts = item.attempts + 1;
-      if (attempts >= 5) {
-        console.warn(`Giving up on queued quiz submission ${item.id} after ${attempts} attempts`);
-        // drop it
-      } else {
-        remaining.push({ ...item, attempts });
-      }
+      if (attempts < MAX_ATTEMPTS) remaining.push({ ...item, attempts });
     }
   }
 
   if (remaining.length > 0) {
-    await writeQueue(remaining);
+    await writeJsonQueue(QUEUE_KEY, remaining);
   } else {
     await storage.removeItem(QUEUE_KEY);
   }
@@ -83,46 +96,30 @@ export async function clearQuizQueue() {
   await storage.removeItem(QUEUE_KEY);
 }
 
-// Lesson completion queue
-async function readLessonQueue(): Promise<PendingLessonCompletion[]> {
-  const raw = await storage.getItem(LESSON_QUEUE_KEY);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw) as PendingLessonCompletion[];
-  } catch {
-    await storage.removeItem(LESSON_QUEUE_KEY);
-    return [];
-  }
-}
-
-async function writeLessonQueue(queue: PendingLessonCompletion[]) {
-  await storage.setItem(LESSON_QUEUE_KEY, JSON.stringify(queue));
-}
+// ── Lesson completion queue ──
 
 export async function enqueueLessonCompletion(
   subjectId: string,
   chapterId: string,
   lessonId: string
 ) {
-  const queue = await readLessonQueue();
-  const entry: PendingLessonCompletion = {
+  const queue = await readJsonQueue<PendingLessonCompletion>(LESSON_QUEUE_KEY);
+  queue.push({
     id: `${lessonId}:${Date.now()}`,
     subjectId,
     chapterId,
     lessonId,
     attempts: 0,
     createdAt: Date.now(),
-  };
-  queue.push(entry);
-  await writeLessonQueue(queue);
+  });
+  await writeJsonQueue(LESSON_QUEUE_KEY, queue);
 }
 
 export async function processLessonQueue() {
-  const queue = await readLessonQueue();
+  const queue = await readJsonQueue<PendingLessonCompletion>(LESSON_QUEUE_KEY);
   if (queue.length === 0) return;
 
   const remaining: PendingLessonCompletion[] = [];
-
   for (const item of queue) {
     try {
       await apiClient.completeSubjectChapterLesson(
@@ -130,18 +127,14 @@ export async function processLessonQueue() {
         item.chapterId,
         item.lessonId
       );
-    } catch (err) {
+    } catch {
       const attempts = item.attempts + 1;
-      if (attempts >= 5) {
-        console.warn(`Giving up on queued lesson completion ${item.id} after ${attempts} attempts`);
-      } else {
-        remaining.push({ ...item, attempts });
-      }
+      if (attempts < MAX_ATTEMPTS) remaining.push({ ...item, attempts });
     }
   }
 
   if (remaining.length > 0) {
-    await writeLessonQueue(remaining);
+    await writeJsonQueue(LESSON_QUEUE_KEY, remaining);
   } else {
     await storage.removeItem(LESSON_QUEUE_KEY);
   }
@@ -149,4 +142,81 @@ export async function processLessonQueue() {
 
 export async function clearLessonQueue() {
   await storage.removeItem(LESSON_QUEUE_KEY);
+}
+
+// ── Feedback queue ──
+
+export async function enqueueFeedback(data: { category: string; subject: string; message: string; rating?: number }) {
+  const queue = await readJsonQueue<PendingFeedback>(FEEDBACK_QUEUE_KEY);
+  queue.push({
+    id: `feedback:${Date.now()}`,
+    data,
+    attempts: 0,
+    createdAt: Date.now(),
+  });
+  await writeJsonQueue(FEEDBACK_QUEUE_KEY, queue);
+}
+
+export async function processFeedbackQueue() {
+  const queue = await readJsonQueue<PendingFeedback>(FEEDBACK_QUEUE_KEY);
+  if (queue.length === 0) return;
+
+  const remaining: PendingFeedback[] = [];
+  for (const item of queue) {
+    try {
+      await apiClient.submitFeedback(item.data);
+    } catch {
+      const attempts = item.attempts + 1;
+      if (attempts < MAX_ATTEMPTS) remaining.push({ ...item, attempts });
+    }
+  }
+
+  if (remaining.length > 0) {
+    await writeJsonQueue(FEEDBACK_QUEUE_KEY, remaining);
+  } else {
+    await storage.removeItem(FEEDBACK_QUEUE_KEY);
+  }
+}
+
+export async function clearFeedbackQueue() {
+  await storage.removeItem(FEEDBACK_QUEUE_KEY);
+}
+
+// ── Preferred subjects queue ──
+
+export async function enqueueSubjectSelection(subjectIds: string[]) {
+  const queue = await readJsonQueue<PendingSubjectSelection>(SUBJECT_SELECTION_QUEUE_KEY);
+  queue.push({
+    id: `subjects:${Date.now()}`,
+    subjectIds,
+    attempts: 0,
+    createdAt: Date.now(),
+  });
+  await writeJsonQueue(SUBJECT_SELECTION_QUEUE_KEY, queue);
+}
+
+export async function processSubjectSelectionQueue() {
+  const queue = await readJsonQueue<PendingSubjectSelection>(SUBJECT_SELECTION_QUEUE_KEY);
+  if (queue.length === 0) return;
+
+  // Only keep the most recent selection (server wins, discard stale ones)
+  const latest = queue[queue.length - 1];
+  const remaining: PendingSubjectSelection[] = [];
+
+  try {
+    await apiClient.updatePreferredSubjects(latest.subjectIds);
+  } catch {
+    const attempts = latest.attempts + 1;
+    if (attempts < MAX_ATTEMPTS) remaining.push({ ...latest, attempts });
+  }
+
+  if (remaining.length > 0) {
+    await writeJsonQueue(SUBJECT_SELECTION_QUEUE_KEY, remaining);
+  } else {
+    await storage.removeItem(SUBJECT_SELECTION_QUEUE_KEY);
+  }
+}
+
+export async function clearSubjectSelectionQueue() {
+  await storage.removeItem(SUBJECT_SELECTION_QUEUE_KEY);
 }

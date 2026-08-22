@@ -237,8 +237,21 @@ export default function ProfileScreen() {
             setFeedbackRating(0);
             setFeedbackCategory("general");
             Alert.alert("Thank You!", "Your feedback has been submitted successfully.");
-        } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to submit feedback. Please try again.");
+        } catch {
+            // Offline fallback — queue for background sync
+            const { enqueueFeedback } = await import("@/lib/utils/syncQueue");
+            await enqueueFeedback({
+                category: feedbackCategory,
+                subject: feedbackSubject.trim(),
+                message: feedbackMessage.trim(),
+                rating: feedbackRating > 0 ? feedbackRating : undefined,
+            });
+            setFeedbackModalVisible(false);
+            setFeedbackSubject("");
+            setFeedbackMessage("");
+            setFeedbackRating(0);
+            setFeedbackCategory("general");
+            Alert.alert("Feedback Queued", "Your feedback will be submitted when you're back online.");
         } finally {
             setSubmittingFeedback(false);
         }

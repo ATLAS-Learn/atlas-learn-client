@@ -13,6 +13,10 @@ import { apiClient } from "@/lib/api";
 import { AssessmentResult, SubjectBreakdown, PerSubjectRecommendation } from "@/lib/types";
 import { LEVEL_INFO } from "@/lib/constants/levels";
 import ScreenHeader from "@/components/ui/screen-header";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+import { DISK_TTL } from "@/lib/config/cachePolicy";
+
+const ASSESSMENT_RESULT_CACHE_KEY = "cache:assessment-result";
 
 export default function ProfileAssessmentResultScreen() {
     const router = useRouter();
@@ -23,10 +27,19 @@ export default function ProfileAssessmentResultScreen() {
     useEffect(() => {
         const loadResult = async () => {
             try {
+                // Show cache immediately
+                const cached = getCacheSync<AssessmentResult>(ASSESSMENT_RESULT_CACHE_KEY);
+                if (cached) {
+                    setResult(cached);
+                    setLoading(false);
+                }
+
                 const data = await apiClient.getAssessmentResult();
                 setResult(data);
+                setCache(ASSESSMENT_RESULT_CACHE_KEY, data, DISK_TTL.STATIC).catch(() => {});
             } catch (err: any) {
-                setError(err.message || "Failed to load assessment result.");
+                const cached = getCacheSync<AssessmentResult>(ASSESSMENT_RESULT_CACHE_KEY);
+                if (!cached) setError(err.message || "Failed to load assessment result.");
             } finally {
                 setLoading(false);
             }

@@ -2,8 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { Chapter } from "@/lib/types";
 import { setCache, getCacheSync } from "@/lib/utils/cache";
-
-const STATIC_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days
+import { DISK_TTL, STALE_TIME } from "@/lib/config/cachePolicy";
 
 export function useChapters() {
     const initial = getCacheSync<Chapter[]>("cache:chapters");
@@ -12,13 +11,12 @@ export function useChapters() {
         queryKey: ["chapters"],
         queryFn: async () => {
             const data = await apiClient.getChapters();
-            // persist static cache
             try {
-                await setCache("cache:chapters", data, STATIC_TTL);
+                await setCache("cache:chapters", data, DISK_TTL.STATIC);
             } catch {}
             return data;
         },
-        staleTime: 1000 * 60 * 60 * 24, // 24 hours in memory
+        staleTime: STALE_TIME.STATIC,
         initialData: initial ?? undefined,
     });
 }

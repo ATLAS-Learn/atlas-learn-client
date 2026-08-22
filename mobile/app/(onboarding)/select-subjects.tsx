@@ -59,7 +59,10 @@ export default function SelectSubjectsScreen() {
             await apiClient.updatePreferredSubjects(Array.from(selectedIds));
             router.push("/(onboarding)/assessment");
         } catch {
-            Alert.alert("Error", "Failed to save your selections. Please try again.");
+            // Offline fallback — queue for background sync
+            const { enqueueSubjectSelection } = await import("@/lib/utils/syncQueue");
+            await enqueueSubjectSelection(Array.from(selectedIds));
+            router.push("/(onboarding)/assessment");
         } finally {
             setSaving(false);
         }

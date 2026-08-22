@@ -21,6 +21,7 @@ import { apiClient } from "@/lib/api";
 import { Lesson, LessonWithProgress } from "@/lib/types";
 import ScreenHeader from "@/components/ui/screen-header";
 import { getCacheSync, setCache } from "@/lib/utils/cache";
+import { useProgressionPrefetch } from "@/hooks/useProgressionPrefetch";
 
 const LESSON_CACHE_PREFIX = "cache:lesson:";
 const LESSON_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -65,6 +66,7 @@ export default function LessonDetailScreen() {
     const [watchTime, setWatchTime] = useState("");
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const watchTimePresets = [300, 600, 1200, 1800];
+    const { prefetchNextLesson } = useProgressionPrefetch();
 
     // Set default watch time from lesson's estimated duration
     useEffect(() => {
@@ -199,6 +201,10 @@ export default function LessonDetailScreen() {
             const { useProgressStore } = await import("@/lib/store/progress");
             useProgressStore.getState().completeLesson(lessonKey);
             await queryClient.invalidateQueries({ queryKey: ["progress"] });
+            // Prefetch next lesson for offline access
+            if (subjectKey && chapterId) {
+                prefetchNextLesson(subjectKey, chapterId, lessonKey).catch(() => {});
+            }
             router.dismiss();
             Alert.alert(
                 "Lesson Complete",

@@ -6,11 +6,15 @@ import {
     StyleSheet,
     SectionList,
     ActivityIndicator,
+    RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import { useFocusEffect } from "@react-navigation/native";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+import { DISK_TTL } from "@/lib/config/cachePolicy";
+
+const EXAM_LIST_CACHE_KEY = "cache:exam-list";
 
 interface ExamItem {
     id: string;
@@ -33,37 +37,56 @@ export default function ExamListScreen() {
     const router = useRouter();
     const [sections, setSections] = useState<SubjectSection[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const buildSections = (data: ExamItem[]): SubjectSection[] => {
+        const grouped: Record<string, ExamItem[]> = {};
+        for (const exam of data) {
+            const key = exam.subject?.id || "general";
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(exam);
+        }
+        const result: SubjectSection[] = Object.entries(grouped).map(([key, exams]) => ({
+            title: key === "general" ? "General" : (exams[0]?.subject?.name || "Unknown"),
+            subjectId: key,
+            data: exams,
+        }));
+        result.sort((a, b) => {
+            if (a.subjectId === "general") return 1;
+            if (b.subjectId === "general") return -1;
+            return a.title.localeCompare(b.title);
+        });
+        return result;
+    };
 
     const loadExams = useCallback(async () => {
         try {
-            const data: ExamItem[] = await apiClient.getExams();
-            const grouped: Record<string, ExamItem[]> = {};
-            for (const exam of data) {
-                const key = exam.subject?.id || "general";
-                if (!grouped[key]) grouped[key] = [];
-                grouped[key].push(exam);
+            const cached = getCacheSync<ExamItem[]>(EXAM_LIST_CACHE_KEY);
+            if (cached) {
+                setSections(buildSections(cached));
+                setLoading(false);
             }
-            const result: SubjectSection[] = Object.entries(grouped).map(([key, exams]) => ({
-                title: key === "general" ? "General" : (exams[0]?.subject?.name || "Unknown"),
-                subjectId: key,
-                data: exams,
-            }));
-            result.sort((a, b) => {
-                if (a.subjectId === "general") return 1;
-                if (b.subjectId === "general") return -1;
-                return a.title.localeCompare(b.title);
-            });
-            setSections(result);
-        } catch {} finally {
+
+            const data: ExamItem[] = await apiClient.getExams();
+            setSections(buildSections(data));
+            setCache(EXAM_LIST_CACHE_KEY, data, DISK_TTL.DYNAMIC).catch(() => {});
+        } catch {
+            const cached = getCacheSync<ExamItem[]>(EXAM_LIST_CACHE_KEY);
+            if (!cached) setSections([]);
+        } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }, []);
 
-    useFocusEffect(
-        useCallback(() => {
-            loadExams();
-        }, [loadExams])
-    );
+    React.useEffect(() => {
+        loadExams();
+    }, [loadExams]);
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        loadExams();
+    }, [loadExams]);
 
     const handleStartExam = (exam: ExamItem) => {
         if (!exam.isPublished) return;
@@ -159,6 +182,9 @@ export default function ExamListScreen() {
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B138" />
+                    }
                 />
             )}
         </View>

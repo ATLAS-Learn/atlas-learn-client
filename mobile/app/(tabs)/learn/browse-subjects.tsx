@@ -60,7 +60,12 @@ export default function BrowseSubjectsScreen() {
                 { text: "OK", onPress: () => router.back() },
             ]);
         } catch {
-            Alert.alert("Error", "Failed to save your selections. Please try again.");
+            // Offline fallback — queue for background sync
+            const { enqueueSubjectSelection } = await import("@/lib/utils/syncQueue");
+            await enqueueSubjectSelection(Array.from(preferredIds));
+            Alert.alert("Saved", "Your subjects will be updated when you're back online.", [
+                { text: "OK", onPress: () => router.back() },
+            ]);
         } finally {
             setSaving(false);
         }

@@ -18,6 +18,7 @@ import ChapterHeader from "@/components/lessons/chapter-header";
 import ContentSection from "@/components/lessons/content-section";
 import ScreenHeader from "@/components/ui/screen-header";
 import { getCacheSync, setCache } from "@/lib/utils/cache";
+import { useProgressionPrefetch } from "@/hooks/useProgressionPrefetch";
 
 const CHAPTER_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -35,6 +36,7 @@ export default function ChapterScreen() {
     const [insightTitle, setInsightTitle] = useState("");
     const [insightBody, setInsightBody] = useState("");
     const [loadingInsight, setLoadingInsight] = useState(false);
+    const { prefetchUpcomingLessons } = useProgressionPrefetch();
 
     useEffect(() => {
         console.log("[ID_TRACE] ChapterScreen route params", {
@@ -161,6 +163,12 @@ export default function ChapterScreen() {
             const lessonsList = Array.isArray(data) ? (data as LessonWithProgress[]) : [];
             setLessons(lessonsList);
             setCache(cacheKey, lessonsList, CHAPTER_CACHE_TTL).catch(() => {});
+            // Prefetch upcoming lessons for offline access
+            if (subjectIdForRequest && lessonsList.length > 0) {
+                const sorted = [...lessonsList].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+                const firstIncomplete = sorted.find((l) => !l.isCompleted);
+                prefetchUpcomingLessons(subjectIdForRequest, chapterId, firstIncomplete?.id).catch(() => {});
+            }
         } catch (error: any) {
             const cached = getCacheSync<LessonWithProgress[]>(cacheKey);
             if (!cached) {

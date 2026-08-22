@@ -6,32 +6,51 @@ import {
     StyleSheet,
     FlatList,
     ActivityIndicator,
+    RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import ScreenHeader from "@/components/ui/screen-header";
-import { useFocusEffect } from "@react-navigation/native";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+import { DISK_TTL } from "@/lib/config/cachePolicy";
+
+const EXAM_HISTORY_CACHE_KEY = "cache:exam-history";
 
 export default function ExamHistoryScreen() {
     const router = useRouter();
     const [history, setHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     const loadHistory = useCallback(async () => {
         try {
+            const cached = getCacheSync<any[]>(EXAM_HISTORY_CACHE_KEY);
+            if (cached) {
+                setHistory(cached);
+                setLoading(false);
+            }
+
             const data = await apiClient.getUserExamHistory();
             setHistory(data);
-        } catch {} finally {
+            setCache(EXAM_HISTORY_CACHE_KEY, data, DISK_TTL.DYNAMIC).catch(() => {});
+        } catch {
+            const cached = getCacheSync<any[]>(EXAM_HISTORY_CACHE_KEY);
+            if (!cached) setHistory([]);
+        } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }, []);
 
-    useFocusEffect(
-        useCallback(() => {
-            loadHistory();
-        }, [loadHistory])
-    );
+    React.useEffect(() => {
+        loadHistory();
+    }, [loadHistory]);
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        loadHistory();
+    }, [loadHistory]);
 
     const renderItem = ({ item }: { item: any }) => {
         const passed = item.score >= 70;
@@ -89,6 +108,9 @@ export default function ExamHistoryScreen() {
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B138" />
+                    }
                 />
             )}
         </View>
