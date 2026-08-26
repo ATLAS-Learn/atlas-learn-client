@@ -11,6 +11,7 @@ import { useAppFlow } from "../hooks/useAppFlow";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { preloadCache } from "@/lib/utils/cache";
+import { storage } from "@/lib/utils/storage";
 import useBackgroundSync from "@/hooks/useBackgroundSync";
 import useChapterPrefetch from "@/hooks/useChapterPrefetch";
 import useOfflinePreload from "@/hooks/useOfflinePreload";
@@ -28,16 +29,12 @@ export default function RootLayout() {
   const hasNavigated = useRef(false);
 
   useEffect(() => {
-    preloadCache([
-      "cache:chapters",
-      "cache:progress:overall",
-      "cache:progress:streak",
-      "cache:learning-path",
-      "cache:leaderboard",
-      "cache:assessment-result",
-      "cache:preferred-subjects-ids",
-      "cache:recent-subjects",
-    ]).catch(() => {});
+    // Load ALL cached keys from MMKV into memory — enables full offline access
+    storage.getAllKeys().then((keys) => {
+      if (keys.length > 0) {
+        preloadCache([...keys]).catch(() => {});
+      }
+    });
   }, []);
 
   useEffect(() => {
