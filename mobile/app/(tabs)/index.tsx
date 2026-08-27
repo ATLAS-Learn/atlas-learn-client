@@ -75,7 +75,7 @@ export default function HomeTab() {
             style={styles.container}
             contentContainerStyle={styles.content}
             refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B138" />
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={TEAL} />
             }
         >
             {/* Header */}
@@ -243,22 +243,22 @@ export default function HomeTab() {
                 <Text style={styles.sectionTitle}>Quick Actions</Text>
                 <View style={styles.actionsRow}>
                     <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/learn")} activeOpacity={0.7}>
-                        <Ionicons name="book-outline" size={20} color="#1F2524" />
+                        <Ionicons name="book-outline" size={20} color={TEAL} />
                         <Text style={styles.actionTitle}>Learn</Text>
                         <Text style={styles.actionDesc}>Continue lessons</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/exams" as any)} activeOpacity={0.7}>
-                        <Ionicons name="school-outline" size={20} color="#1F2524" />
+                        <Ionicons name="school-outline" size={20} color={TEAL} />
                         <Text style={styles.actionTitle}>Exams</Text>
                         <Text style={styles.actionDesc}>Take exams</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.7}>
-                        <Ionicons name="person-outline" size={20} color="#1F2524" />
+                        <Ionicons name="person-outline" size={20} color={TEAL} />
                         <Text style={styles.actionTitle}>Profile</Text>
                         <Text style={styles.actionDesc}>View progress</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionCard} onPress={() => router.push({ pathname: "/(tabs)/profile", params: { openFeedback: "true" } } as any)} activeOpacity={0.7}>
-                        <Ionicons name="chatbubble-outline" size={20} color="#1F2524" />
+                        <Ionicons name="chatbubble-outline" size={20} color={TEAL} />
                         <Text style={styles.actionTitle}>Feedback</Text>
                         <Text style={styles.actionDesc}>Send feedback</Text>
                     </TouchableOpacity>
@@ -384,11 +384,11 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     pathLeft: { flexDirection: "row", alignItems: "center", flex: 1, gap: 10 },
-    pathDot: { width: 4, height: 32, borderRadius: 2, backgroundColor: "#1F2524" },
+    pathDot: { width: 4, height: 32, borderRadius: 2, backgroundColor: TEAL },
     pathSubject: { fontSize: 11, color: "#999", fontWeight: "600" },
-    pathChapter: { fontSize: 14, fontWeight: "600", color: "#1F2524", marginTop: 2 },
+    pathChapter: { fontSize: 14, fontWeight: "600", color: "#000", marginTop: 2 },
     pathRight: { flexDirection: "row", alignItems: "center", gap: 4 },
-    pathPercent: { fontSize: 12, fontWeight: "700", color: "#999" },
+    pathPercent: { fontSize: 12, fontWeight: "700", color: TEAL },
     studyPlan: { fontSize: 12, color: "#999", fontStyle: "italic", marginTop: 4 },
 
     // Actions
@@ -400,6 +400,6 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 16,
     },
-    actionTitle: { marginTop: 10, fontSize: 14, fontWeight: "700", color: "#1F2524" },
+    actionTitle: { marginTop: 10, fontSize: 14, fontWeight: "700", color: "#000" },
     actionDesc: { marginTop: 4, fontSize: 11, color: "#999" },
 });
