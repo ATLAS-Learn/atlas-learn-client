@@ -54,7 +54,7 @@ export default function Dashboard() {
       <div className='w-full lg:w-1/2 flex flex-col justify-center px-10 md:px-16 bg-white'>
         <div className='w-full max-w-md mx-auto'>
           <div className='flex justify-center mb-10'>
-            <img src='/logo.png' alt='Apex' className='h-14' />
+            <img src='/logo-console.png' alt='Apex Learn' className='h-24' />
           </div>
 
           <h1 className='text-3xl font-bold text-[#084A59] mb-2'>

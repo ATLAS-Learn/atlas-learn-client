@@ -109,7 +109,19 @@ export default function ExamResultScreen() {
                             </View>
                         </View>
                         <Text style={styles.correctionQuestion}>{c.questionText}</Text>
-                        {c.options.map((opt: string, oi: number) => (
+                        {c.questionType === 'STRUCTURAL' ? (
+                            <View style={styles.structuralAnswer}>
+                                <Text style={styles.structuralLabel}>Your answer:</Text>
+                                <Text style={styles.structuralText}>{c.textAnswer || '(No answer provided)'}</Text>
+                                {c.isCorrect === null && (
+                                    <Text style={styles.pendingText}>Pending teacher review</Text>
+                                )}
+                                {c.teacherComment && (
+                                    <Text style={styles.teacherComment}>Teacher: {c.teacherComment}</Text>
+                                )}
+                            </View>
+                        ) : (
+                        (c.options || []).map((opt: string, oi: number) => (
                             <View
                                 key={oi}
                                 style={[
@@ -130,7 +142,8 @@ export default function ExamResultScreen() {
                                     {oi === c.studentAnswer && !c.isCorrect ? " ✗" : ""}
                                 </Text>
                             </View>
-                        ))}
+                        ))
+                        )}
                         {c.explanation && (
                             <Text style={styles.explanation}>{c.explanation}</Text>
                         )}
@@ -310,6 +323,35 @@ const styles = StyleSheet.create({
         paddingTop: 8,
         borderTopWidth: 1,
         borderTopColor: "#F5F5F5",
+    },
+    structuralAnswer: {
+        backgroundColor: "#F9FAFB",
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 4,
+    },
+    structuralLabel: {
+        fontSize: 11,
+        fontWeight: "700",
+        color: "#999",
+        marginBottom: 4,
+    },
+    structuralText: {
+        fontSize: 13,
+        color: "#333",
+        lineHeight: 18,
+    },
+    pendingText: {
+        fontSize: 12,
+        color: "#F2B138",
+        fontWeight: "600",
+        marginTop: 6,
+    },
+    teacherComment: {
+        fontSize: 12,
+        color: "#084A59",
+        fontStyle: "italic",
+        marginTop: 6,
     },
     bottomBar: {
         position: "absolute",

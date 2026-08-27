@@ -16,7 +16,7 @@ export default function AdminChapterDetail() {
   const [editingLesson, setEditingLesson] = useState<any>(null)
   const [lessonForm, setLessonForm] = useState({
     title: '', content: '', videoUrl: '', pdfUrl: '', durationMinutes: 15, orderIndex: 1,
-    isFree: false, requiredScoreToUnlock: 0, externalLinks: '', keyPoints: '',
+    isFree: false, requiredScoreToUnlock: 0, externalLinks: [] as { title: string; url: string; type: string }[], keyPoints: '',
   })
 
   const [showQuizForm, setShowQuizForm] = useState(false)
@@ -59,12 +59,19 @@ export default function AdminChapterDetail() {
   const openLessonForm = (lesson?: any) => {
     if (lesson) {
       setEditingLesson(lesson)
+      let links: { title: string; url: string; type: string }[] = []
+      if (lesson.externalLinks) {
+        try {
+          const parsed = typeof lesson.externalLinks === 'string' ? JSON.parse(lesson.externalLinks) : lesson.externalLinks
+          links = Array.isArray(parsed) ? parsed : []
+        } catch { links = [] }
+      }
       setLessonForm({
         title: lesson.title || '', content: lesson.content || '', videoUrl: lesson.videoUrl || '',
         pdfUrl: lesson.pdfUrl || '', durationMinutes: lesson.durationMinutes || 15,
         orderIndex: lesson.orderIndex || 1, isFree: lesson.isFree || false,
         requiredScoreToUnlock: lesson.requiredScoreToUnlock || 0,
-        externalLinks: lesson.externalLinks ? JSON.stringify(lesson.externalLinks, null, 2) : '',
+        externalLinks: links,
         keyPoints: lesson.keyPoints?.join('\n') || '',
       })
     } else {
@@ -72,7 +79,7 @@ export default function AdminChapterDetail() {
       setLessonForm({
         title: '', content: '', videoUrl: '', pdfUrl: '', durationMinutes: 15,
         orderIndex: (lessons.length || 0) + 1, isFree: false, requiredScoreToUnlock: 0,
-        externalLinks: '', keyPoints: '',
+        externalLinks: [], keyPoints: '',
       })
     }
     setShowLessonForm(true)
@@ -88,8 +95,8 @@ export default function AdminChapterDetail() {
       isFree: lessonForm.isFree, requiredScoreToUnlock: lessonForm.requiredScoreToUnlock,
       keyPoints: lessonForm.keyPoints ? lessonForm.keyPoints.split('\n').filter(Boolean) : [],
     }
-    if (lessonForm.externalLinks) {
-      try { payload.externalLinks = JSON.parse(lessonForm.externalLinks) } catch {}
+    if (lessonForm.externalLinks.length > 0) {
+      payload.externalLinks = lessonForm.externalLinks.filter(l => l.url.trim())
     }
     if (editingLesson) {
       await api.updateLesson(subjectId, chapterId, editingLesson.id, payload)
@@ -318,7 +325,24 @@ export default function AdminChapterDetail() {
                 <div><label className='block text-sm font-semibold text-gray-700 mb-1.5'>Duration (min)</label><input type='number' value={lessonForm.durationMinutes} onChange={e => setLessonForm({ ...lessonForm, durationMinutes: Number(e.target.value) })} min={1} className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all' /></div>
                 <div><label className='block text-sm font-semibold text-gray-700 mb-1.5'>Unlock Score %</label><input type='number' value={lessonForm.requiredScoreToUnlock} onChange={e => setLessonForm({ ...lessonForm, requiredScoreToUnlock: Number(e.target.value) })} min={0} max={100} className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all' /></div>
                 <div className='col-span-2'><label className='flex items-center gap-2 cursor-pointer'><input type='checkbox' checked={lessonForm.isFree} onChange={e => setLessonForm({ ...lessonForm, isFree: e.target.checked })} className='w-4 h-4 accent-[#084A59] rounded' /><span className='text-sm font-semibold text-gray-700'>Free lesson (no unlock required)</span></label></div>
-                <div className='col-span-2'><label className='block text-sm font-semibold text-gray-700 mb-1.5'>External Links (JSON)</label><textarea value={lessonForm.externalLinks} onChange={e => setLessonForm({ ...lessonForm, externalLinks: e.target.value })} rows={3} placeholder='[{"title":"Link","url":"https://...","type":"article"}]' className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all resize-none' /></div>
+                <div className='col-span-2'>
+                  <label className='block text-sm font-semibold text-gray-700 mb-1.5'>External Links</label>
+                  <div className='space-y-2'>
+                    {lessonForm.externalLinks.map((link, i) => (
+                      <div key={i} className='flex items-center gap-2'>
+                        <input value={link.title} onChange={e => { const newLinks = [...lessonForm.externalLinks]; newLinks[i] = { ...newLinks[i], title: e.target.value }; setLessonForm({ ...lessonForm, externalLinks: newLinks }) }} placeholder='Title' className='w-1/4 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59]' />
+                        <input value={link.url} onChange={e => { const newLinks = [...lessonForm.externalLinks]; newLinks[i] = { ...newLinks[i], url: e.target.value }; setLessonForm({ ...lessonForm, externalLinks: newLinks }) }} placeholder='https://...' className='flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59]' />
+                        <select value={link.type} onChange={e => { const newLinks = [...lessonForm.externalLinks]; newLinks[i] = { ...newLinks[i], type: e.target.value }; setLessonForm({ ...lessonForm, externalLinks: newLinks }) }} className='px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59]'>
+                          <option value='article'>Article</option>
+                          <option value='video'>Video</option>
+                          <option value='reference'>Reference</option>
+                        </select>
+                        <button type='button' onClick={() => setLessonForm({ ...lessonForm, externalLinks: lessonForm.externalLinks.filter((_, j) => j !== i) })} className='p-2 text-red-400 hover:text-red-600'><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg></button>
+                      </div>
+                    ))}
+                    <button type='button' onClick={() => setLessonForm({ ...lessonForm, externalLinks: [...lessonForm.externalLinks, { title: '', url: '', type: 'article' }] })} className='text-xs font-semibold text-[#084A59] hover:text-[#011C26]'>+ Add Link</button>
+                  </div>
+                </div>
                 <div className='col-span-2'><label className='block text-sm font-semibold text-gray-700 mb-1.5'>Key Points (one per line)</label><textarea value={lessonForm.keyPoints} onChange={e => setLessonForm({ ...lessonForm, keyPoints: e.target.value })} rows={3} placeholder='Key concept 1&#10;Key concept 2' className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all resize-none' /></div>
               </div>
               <div className='flex gap-3 pt-2'>

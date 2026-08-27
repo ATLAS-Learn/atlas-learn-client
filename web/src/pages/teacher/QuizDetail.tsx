@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { api } from '../../api/client'
+import AIQuestionGenerator from '../../components/AIQuestionGenerator'
 
 interface Quiz {
   id: string
@@ -27,6 +28,27 @@ interface QuestionForm {
   points: number
 }
 
+interface GeneratedQuestion {
+  questionText: string
+  options: string[]
+  correctAnswerIndex: number
+  explanation: string
+  points: number
+  questionType: 'MCQ' | 'STRUCTURAL'
+  sampleAnswer?: string
+}
+
+interface DraftQuestion {
+  questionText: string
+  options: string[]
+  correctAnswerIndex: number
+  explanation: string
+  points: number
+  questionType: 'MCQ' | 'STRUCTURAL'
+  sampleAnswer?: string
+  isDraft: true
+}
+
 const emptyQuestionForm: QuestionForm = {
   question: '',
   options: ['', '', '', ''],
@@ -51,9 +73,13 @@ export default function QuizDetail() {
   const [quizForm, setQuizForm] = useState({ title: '', description: '', timeLimit: 30 })
 
   const [showQuestionForm, setShowQuestionForm] = useState(false)
+  const [showAIGenerator, setShowAIGenerator] = useState(false)
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
   const [questionForm, setQuestionForm] = useState<QuestionForm>(emptyQuestionForm)
   const [submitting, setSubmitting] = useState(false)
+  const [draftQuestions, setDraftQuestions] = useState<DraftQuestion[]>([])
+  const [editingDraftIdx, setEditingDraftIdx] = useState<number | null>(null)
+  const [editDraftForm, setEditDraftForm] = useState<DraftQuestion | null>(null)
 
   useEffect(() => {
     if (!stateQuiz && quizId) {
@@ -142,21 +168,20 @@ export default function QuizDetail() {
     if (!quizId) return
     setSubmitting(true)
     try {
-      const payload = {
-        question: questionForm.question,
-        options: questionForm.options,
-        correctAnswer: questionForm.correctAnswer,
-        explanation: questionForm.explanation || undefined,
-        points: questionForm.points,
-      }
       if (editingQuestion) {
-        await api.updateQuestion(quizId, editingQuestion.id, payload)
+        await api.updateQuestion(quizId, editingQuestion.id, {
+          question: questionForm.question,
+          options: questionForm.options,
+          correctAnswer: questionForm.correctAnswer,
+          explanation: questionForm.explanation || undefined,
+          points: questionForm.points,
+        })
+        setShowQuestionForm(false)
+        setEditingQuestion(null)
+        reloadQuiz()
       } else {
-        await api.addQuestion(quizId, payload)
+        handleAddManualQuestion(e)
       }
-      setShowQuestionForm(false)
-      setEditingQuestion(null)
-      reloadQuiz()
     } catch (err: any) {
       alert(err.message)
     } finally {
@@ -182,6 +207,77 @@ export default function QuizDetail() {
     } catch (err: any) {
       alert(err.message)
     }
+  }
+
+  const handleAIAccept = (questions: GeneratedQuestion[]) => {
+    setDraftQuestions(prev => [...prev, ...questions.map(q => ({
+      questionText: q.questionText,
+      options: q.options,
+      correctAnswerIndex: q.correctAnswerIndex,
+      explanation: q.explanation,
+      points: q.points,
+      questionType: q.questionType,
+      sampleAnswer: q.sampleAnswer,
+      isDraft: true as const,
+    }))])
+    setShowAIGenerator(false)
+  }
+
+  const handleSaveDrafts = async () => {
+    if (!quizId || draftQuestions.length === 0) return
+    setSubmitting(true)
+    try {
+      for (const q of draftQuestions) {
+        await api.addQuestion(quizId, {
+          question: q.questionText,
+          options: q.options,
+          correctAnswer: q.correctAnswerIndex,
+          explanation: q.explanation || undefined,
+          points: q.points,
+        })
+      }
+      setDraftQuestions([])
+      reloadQuiz()
+    } catch (err: any) { alert(err.message) }
+    finally { setSubmitting(false) }
+  }
+
+  const handleDeleteDraft = (idx: number) => {
+    if (!confirm('Remove this draft question?')) return
+    setDraftQuestions(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const startEditDraft = (idx: number) => {
+    setEditingDraftIdx(idx)
+    setEditDraftForm({ ...draftQuestions[idx] })
+  }
+
+  const saveEditDraft = () => {
+    if (editingDraftIdx === null || !editDraftForm) return
+    setDraftQuestions(prev => {
+      const next = [...prev]
+      next[editingDraftIdx] = editDraftForm
+      return next
+    })
+    setEditingDraftIdx(null)
+    setEditDraftForm(null)
+  }
+
+  const handleAddManualQuestion = (e: React.FormEvent) => {
+    e.preventDefault()
+    const newDraft: DraftQuestion = {
+      questionText: questionForm.question,
+      options: questionForm.options.filter(o => o.trim()),
+      correctAnswerIndex: questionForm.correctAnswer,
+      points: questionForm.points,
+      explanation: questionForm.explanation || '',
+      questionType: 'MCQ',
+      isDraft: true,
+    }
+    setDraftQuestions(prev => [...prev, newDraft])
+    setShowQuestionForm(false)
+    setEditingQuestion(null)
+    setQuestionForm({ ...emptyQuestionForm })
   }
 
   if (loading) {
@@ -261,20 +357,47 @@ export default function QuizDetail() {
 
       {/* Questions Section */}
       <div>
+        {/* Draft save bar */}
+        {draftQuestions.length > 0 && (
+          <div className='bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-center justify-between mb-4'>
+            <div>
+              <p className='text-sm font-bold text-amber-700'>{draftQuestions.length} draft question{draftQuestions.length !== 1 ? 's' : ''} unsaved</p>
+              <p className='text-xs text-amber-500 mt-0.5'>Save to add them to this quiz</p>
+            </div>
+            <div className='flex gap-2'>
+              <button onClick={() => setDraftQuestions([])} className='px-4 py-2 bg-white border border-amber-300 text-amber-700 text-sm font-bold rounded-xl hover:bg-amber-50 transition-colors'>
+                Discard
+              </button>
+              <button onClick={handleSaveDrafts} disabled={submitting} className='px-4 py-2 bg-[#084A59] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors disabled:opacity-50'>
+                {submitting ? 'Saving...' : 'Save to Quiz'}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className='flex items-center justify-between mb-3'>
-          <span className='text-[11px] font-bold text-gray-400 uppercase tracking-wider'>Questions</span>
-          <button
-            onClick={openAddQuestionForm}
-            className='px-4 py-2 bg-[#F2B138] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'
-          >
-            + Add Question
-          </button>
+          <span className='text-[11px] font-bold text-gray-400 uppercase tracking-wider'>Questions ({questions.length + draftQuestions.length})</span>
+          <div className='flex gap-2'>
+            <button
+              onClick={() => setShowAIGenerator(true)}
+              className='px-4 py-2 bg-[#F2B138] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors flex items-center gap-2'
+            >
+              <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z' /></svg>
+              Generate with AI
+            </button>
+            <button
+              onClick={openAddQuestionForm}
+              className='px-4 py-2 bg-[#F2B138] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'
+            >
+              + Add Question
+            </button>
+          </div>
         </div>
 
-        {questions.length === 0 ? (
+        {(questions.length === 0 && draftQuestions.length === 0) ? (
           <div className='bg-white rounded-2xl border border-gray-200 p-12 text-center'>
             <p className='text-gray-400 font-medium'>No questions yet</p>
-            <p className='text-xs text-gray-400 mt-1'>Add your first question to get started</p>
+            <p className='text-xs text-gray-400 mt-1'>Add questions manually or generate with AI</p>
           </div>
         ) : (
           <div className='space-y-3'>
@@ -336,6 +459,137 @@ export default function QuizDetail() {
                       </button>
                     </div>
                   </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Draft questions */}
+            {draftQuestions.map((q, idx) => (
+              <div key={`draft-${idx}`} className='bg-white border-2 border-dashed border-amber-300 rounded-xl overflow-hidden relative'>
+                <div className='absolute -top-2.5 left-4 bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200'>
+                  DRAFT
+                </div>
+                <div className='px-5 py-4 mt-1'>
+                  {editingDraftIdx === idx && editDraftForm ? (
+                    <div className='space-y-3'>
+                      <div className='flex items-center gap-2'>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${editDraftForm.questionType === 'MCQ' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                          {editDraftForm.questionType}
+                        </span>
+                        <span className='text-[10px] font-bold text-amber-500'>Editing Draft</span>
+                      </div>
+                      <textarea
+                        value={editDraftForm.questionText}
+                        onChange={e => setEditDraftForm({ ...editDraftForm, questionText: e.target.value })}
+                        rows={2}
+                        className='w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 resize-none'
+                      />
+                      {editDraftForm.questionType === 'MCQ' && (
+                        <div className='space-y-2'>
+                          {editDraftForm.options.map((opt, oi) => (
+                            <div key={oi} className='flex items-center gap-2'>
+                              <input
+                                type='radio'
+                                name={`edit-draft-${idx}`}
+                                checked={editDraftForm.correctAnswerIndex === oi}
+                                onChange={() => setEditDraftForm({ ...editDraftForm, correctAnswerIndex: oi })}
+                                className='accent-green-600'
+                              />
+                              <input
+                                value={opt}
+                                onChange={e => {
+                                  const newOpts = [...editDraftForm.options]
+                                  newOpts[oi] = e.target.value
+                                  setEditDraftForm({ ...editDraftForm, options: newOpts })
+                                }}
+                                placeholder={`Option ${String.fromCharCode(65 + oi)}`}
+                                className='flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#084A59]/20'
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className='grid grid-cols-2 gap-3'>
+                        <div>
+                          <label className='text-xs font-semibold text-gray-500'>Points</label>
+                          <input
+                            type='number'
+                            value={editDraftForm.points}
+                            onChange={e => setEditDraftForm({ ...editDraftForm, points: Number(e.target.value) })}
+                            min={1}
+                            className='w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#084A59]/20'
+                          />
+                        </div>
+                        <div>
+                          <label className='text-xs font-semibold text-gray-500'>Explanation</label>
+                          <input
+                            value={editDraftForm.explanation}
+                            onChange={e => setEditDraftForm({ ...editDraftForm, explanation: e.target.value })}
+                            className='w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#084A59]/20'
+                          />
+                        </div>
+                      </div>
+                      <div className='flex gap-2'>
+                        <button onClick={saveEditDraft} className='px-4 py-1.5 bg-[#084A59] text-white text-xs font-semibold rounded-lg'>Save</button>
+                        <button onClick={() => { setEditingDraftIdx(null); setEditDraftForm(null) }} className='px-4 py-1.5 text-xs text-gray-500 font-semibold'>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className='flex items-start justify-between gap-4'>
+                      <div className='flex-1 min-w-0'>
+                        <div className='flex items-center gap-2 mb-2'>
+                          <span className='w-7 h-7 rounded-lg bg-amber-100 text-amber-600 text-xs font-bold flex items-center justify-center flex-shrink-0'>
+                            {questions.length + idx + 1}
+                          </span>
+                          <span className='text-[10px] font-bold text-amber-500'>Draft</span>
+                          {q.points > 0 && (
+                            <span className='text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200'>
+                              {q.points} pt{q.points !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                        <p className='text-sm font-semibold text-[#084A59] mb-2'>{q.questionText}</p>
+                        {q.questionType === 'MCQ' && q.options && q.options.length > 0 && (
+                          <div className='space-y-1 ml-1'>
+                            {q.options.map((opt: string, oi: number) => (
+                              <div key={oi} className='flex items-center gap-2'>
+                                <span className={`text-xs font-semibold ${oi === q.correctAnswerIndex ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>
+                                  {String.fromCharCode(65 + oi)}.
+                                </span>
+                                <span className={`text-xs ${oi === q.correctAnswerIndex ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>
+                                  {opt}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {q.questionType === 'STRUCTURAL' && (
+                          <p className='text-xs text-purple-500 mt-1 italic'>Structural question — requires manual grading</p>
+                        )}
+                        {q.explanation && (
+                          <p className='text-[11px] text-gray-400 mt-2 ml-1 italic'>Explanation: {q.explanation}</p>
+                        )}
+                      </div>
+                      <div className='flex gap-1 flex-shrink-0'>
+                        <button
+                          onClick={() => startEditDraft(idx)}
+                          className='p-2 rounded-lg text-amber-500 hover:text-[#084A59] hover:bg-slate-50 transition-colors'
+                        >
+                          <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
+                            <path strokeLinecap='round' strokeLinejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125' />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDraft(idx)}
+                          className='p-2 rounded-lg text-amber-500 hover:text-red-500 hover:bg-slate-50 transition-colors'
+                        >
+                          <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
+                            <path strokeLinecap='round' strokeLinejoin='round' d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0' />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -479,6 +733,16 @@ export default function QuizDetail() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* AI Question Generator */}
+      {showAIGenerator && chapterId && (
+        <AIQuestionGenerator
+          mode='quiz'
+          chapterId={chapterId}
+          onAccept={handleAIAccept}
+          onClose={() => setShowAIGenerator(false)}
+        />
       )}
     </div>
   )
