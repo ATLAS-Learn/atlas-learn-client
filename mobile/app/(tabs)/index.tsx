@@ -1,11 +1,15 @@
-import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image, Animated as RNAnimated, Easing } from "react-native";
 import { Svg, Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useUserStore } from "@/lib/store/user";
 import { useOverallProgress, useStreak, useUserQuizAttempts, useLearningPath } from "@/lib/hooks/api";
 import { API_BASE_URL } from "@/lib/constants/api";
+
+const TEAL = "#1A5C6B";
+const CIRCUMFERENCE = 2 * Math.PI * 34;
+const AnimatedCircle = RNAnimated.createAnimatedComponent(Circle);
 
 export default function HomeTab() {
     const router = useRouter();
@@ -37,6 +41,21 @@ export default function HomeTab() {
     const totalTimeSpent = overallProgress?.overall?.totalTimeSpent ?? 0;
     const streak = streakData?.streak ?? 0;
 
+    // Animate progress ring — starts from 0
+    const animatedCompletion = useRef(new RNAnimated.Value(0)).current;
+    useEffect(() => {
+        animatedCompletion.setValue(0);
+        const timer = setTimeout(() => {
+            RNAnimated.timing(animatedCompletion, {
+                toValue: completion,
+                duration: 1200,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: false,
+            }).start();
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [completion]);
+
     const averageScore = useMemo(() => {
         if (!Array.isArray(quizAttempts) || quizAttempts.length === 0) return 0;
         const total = quizAttempts.reduce((sum, a) => sum + (a.score ?? 0), 0);
@@ -56,7 +75,7 @@ export default function HomeTab() {
             style={styles.container}
             contentContainerStyle={styles.content}
             refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B138" />
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={TEAL} />
             }
         >
             {/* Header */}
@@ -106,19 +125,22 @@ export default function HomeTab() {
                                 cy={40}
                                 r={34}
                                 fill="none"
-                                stroke="#F0F0F0"
+                                stroke="#E8F0F2"
                                 strokeWidth={6}
                             />
                             {/* Progress circle */}
-                            <Circle
+                            <AnimatedCircle
                                 cx={40}
                                 cy={40}
                                 r={34}
                                 fill="none"
-                                stroke="#1F2524"
+                                stroke={TEAL}
                                 strokeWidth={6}
-                                strokeDasharray={`${2 * Math.PI * 34}`}
-                                strokeDashoffset={`${2 * Math.PI * 34 * (1 - completion / 100)}`}
+                                strokeDasharray={CIRCUMFERENCE}
+                                strokeDashoffset={animatedCompletion.interpolate({
+                                    inputRange: [0, 100],
+                                    outputRange: [CIRCUMFERENCE, 0],
+                                })}
                                 strokeLinecap="round"
                                 transform="rotate(-90 40 40)"
                             />
@@ -221,22 +243,22 @@ export default function HomeTab() {
                 <Text style={styles.sectionTitle}>Quick Actions</Text>
                 <View style={styles.actionsRow}>
                     <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/learn")} activeOpacity={0.7}>
-                        <Ionicons name="book-outline" size={20} color="#1F2524" />
+                        <Ionicons name="book-outline" size={20} color={TEAL} />
                         <Text style={styles.actionTitle}>Learn</Text>
                         <Text style={styles.actionDesc}>Continue lessons</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/exams" as any)} activeOpacity={0.7}>
-                        <Ionicons name="school-outline" size={20} color="#1F2524" />
+                        <Ionicons name="school-outline" size={20} color={TEAL} />
                         <Text style={styles.actionTitle}>Exams</Text>
                         <Text style={styles.actionDesc}>Take exams</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.7}>
-                        <Ionicons name="person-outline" size={20} color="#1F2524" />
+                        <Ionicons name="person-outline" size={20} color={TEAL} />
                         <Text style={styles.actionTitle}>Profile</Text>
                         <Text style={styles.actionDesc}>View progress</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionCard} onPress={() => router.push({ pathname: "/(tabs)/profile", params: { openFeedback: "true" } } as any)} activeOpacity={0.7}>
-                        <Ionicons name="chatbubble-outline" size={20} color="#1F2524" />
+                        <Ionicons name="chatbubble-outline" size={20} color={TEAL} />
                         <Text style={styles.actionTitle}>Feedback</Text>
                         <Text style={styles.actionDesc}>Send feedback</Text>
                     </TouchableOpacity>
@@ -274,32 +296,32 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     greeting: { fontSize: 15, color: "#999", fontWeight: "500" },
-    name: { fontSize: 26, fontWeight: "800", color: "#1F2524", marginTop: 2 },
+    name: { fontSize: 26, fontWeight: "800", color: "#000", marginTop: 2 },
     streakBadge: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#FFF3E0",
+        backgroundColor: TEAL + "15",
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
         gap: 4,
     },
     streakIcon: { fontSize: 16 },
-    streakText: { fontSize: 14, fontWeight: "700", color: "#E65100" },
+    streakText: { fontSize: 14, fontWeight: "700", color: TEAL },
 
     // Streak Banner
     streakBanner: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#FFF3E0",
+        backgroundColor: TEAL + "10",
         borderRadius: 14,
         padding: 14,
         marginBottom: 20,
     },
     streakBannerEmoji: { fontSize: 28, marginRight: 12 },
     streakBannerInfo: { flex: 1 },
-    streakBannerTitle: { fontSize: 14, fontWeight: "700", color: "#E65100" },
-    streakBannerText: { fontSize: 12, color: "#BF360C", marginTop: 2 },
+    streakBannerTitle: { fontSize: 14, fontWeight: "700", color: TEAL },
+    streakBannerText: { fontSize: 12, color: "#555", marginTop: 2 },
 
     // Progress Card
     progressCard: {
@@ -327,11 +349,11 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    progressPercent: { fontSize: 20, fontWeight: "800", color: "#1F2524" },
+    progressPercent: { fontSize: 20, fontWeight: "800", color: TEAL },
     progressLabel: { fontSize: 10, color: "#999", marginTop: -2 },
     progressStats: { flex: 1, flexDirection: "row", alignItems: "center" },
     progressStat: { flex: 1, alignItems: "center" },
-    progressStatValue: { fontSize: 16, fontWeight: "700", color: "#1F2524", marginTop: 4 },
+    progressStatValue: { fontSize: 16, fontWeight: "700", color: "#000", marginTop: 4 },
     progressStatLabel: { fontSize: 11, color: "#999", marginTop: 2 },
     progressStatDivider: { width: 1, height: 30, backgroundColor: "#F0F0F0" },
 
@@ -344,12 +366,12 @@ const styles = StyleSheet.create({
         padding: 12,
         alignItems: "center",
     },
-    statValue: { fontSize: 15, fontWeight: "700", color: "#1F2524", marginTop: 6 },
+    statValue: { fontSize: 15, fontWeight: "700", color: "#000", marginTop: 6 },
     statLabel: { fontSize: 10, color: "#999", marginTop: 2, fontWeight: "500" },
 
     // Sections
     section: { marginBottom: 24 },
-    sectionTitle: { fontSize: 15, fontWeight: "700", color: "#1F2524", marginBottom: 12 },
+    sectionTitle: { fontSize: 15, fontWeight: "700", color: "#000", marginBottom: 12 },
 
     // Learning Path
     pathCard: {
@@ -362,11 +384,11 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     pathLeft: { flexDirection: "row", alignItems: "center", flex: 1, gap: 10 },
-    pathDot: { width: 4, height: 32, borderRadius: 2, backgroundColor: "#1F2524" },
+    pathDot: { width: 4, height: 32, borderRadius: 2, backgroundColor: TEAL },
     pathSubject: { fontSize: 11, color: "#999", fontWeight: "600" },
-    pathChapter: { fontSize: 14, fontWeight: "600", color: "#1F2524", marginTop: 2 },
+    pathChapter: { fontSize: 14, fontWeight: "600", color: "#000", marginTop: 2 },
     pathRight: { flexDirection: "row", alignItems: "center", gap: 4 },
-    pathPercent: { fontSize: 12, fontWeight: "700", color: "#999" },
+    pathPercent: { fontSize: 12, fontWeight: "700", color: TEAL },
     studyPlan: { fontSize: 12, color: "#999", fontStyle: "italic", marginTop: 4 },
 
     // Actions
@@ -378,6 +400,6 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 16,
     },
-    actionTitle: { marginTop: 10, fontSize: 14, fontWeight: "700", color: "#1F2524" },
+    actionTitle: { marginTop: 10, fontSize: 14, fontWeight: "700", color: "#000" },
     actionDesc: { marginTop: 4, fontSize: 11, color: "#999" },
 });

@@ -34,6 +34,7 @@ interface LeaderboardEntry {
 }
 
 const MEDAL_COLORS = ["#FFD700", "#C0C0C0", "#CD7F32"];
+const TOP5_BG = ["#FFF8E1", "#FFF8E1", "#FFF8E1", "#F5F5F5", "#F5F5F5"];
 
 export default function LeaderboardScreen() {
     const { user } = useUserStore();
@@ -43,7 +44,6 @@ export default function LeaderboardScreen() {
 
     const loadLeaderboard = useCallback(async (force = false) => {
         try {
-            // Fetch-once: skip network when valid cache exists
             const cached = getCacheSync<LeaderboardEntry[]>(LEADERBOARD_CACHE_KEY);
             if (cached && !force) {
                 setLeaderboard(cached);
@@ -55,12 +55,10 @@ export default function LeaderboardScreen() {
                 setLoading(false);
             }
 
-            // Fetch fresh data
             const data = await apiClient.getLeaderboard();
             setLeaderboard(data);
             setCache(LEADERBOARD_CACHE_KEY, data, DISK_TTL.LEADERBOARD).catch(() => {});
         } catch {
-            // If fetch fails, keep showing cached data
             const cached = getCacheSync<LeaderboardEntry[]>(LEADERBOARD_CACHE_KEY);
             if (!cached) setLeaderboard([]);
         } finally {
@@ -69,7 +67,6 @@ export default function LeaderboardScreen() {
         }
     }, []);
 
-    // Load on first mount only
     React.useEffect(() => {
         loadLeaderboard();
     }, [loadLeaderboard]);
@@ -80,12 +77,24 @@ export default function LeaderboardScreen() {
     }, [loadLeaderboard]);
 
     const getRankBadge = (index: number) => {
-        if (index < 3) {
+        if (index === 0) {
             return (
-                <View style={[styles.rankBadge, { backgroundColor: MEDAL_COLORS[index] + "20" }]}>
-                    <Text style={[styles.rankBadgeText, { color: MEDAL_COLORS[index] }]}>
-                        {index + 1}
-                    </Text>
+                <View style={styles.rankBadgeTop}>
+                    <Ionicons name="trophy" size={20} color="#D4A017" />
+                </View>
+            );
+        }
+        if (index === 1) {
+            return (
+                <View style={[styles.rankBadge, { backgroundColor: MEDAL_COLORS[1] + "20" }]}>
+                    <Text style={[styles.rankBadgeText, { color: MEDAL_COLORS[1] }]}>2</Text>
+                </View>
+            );
+        }
+        if (index === 2) {
+            return (
+                <View style={[styles.rankBadge, { backgroundColor: MEDAL_COLORS[2] + "20" }]}>
+                    <Text style={[styles.rankBadgeText, { color: MEDAL_COLORS[2] }]}>3</Text>
                 </View>
             );
         }
@@ -96,34 +105,50 @@ export default function LeaderboardScreen() {
         );
     };
 
-    const renderItem = ({ item, index }: { item: LeaderboardEntry; index: number }) => (
-        <View style={[styles.card, item.isCurrentUser && styles.cardCurrentUser]}>
-            {getRankBadge(index)}
-            <View style={styles.avatarContainer}>
-                {item.image ? (
-                    <Image
-                        source={{ uri: item.image.startsWith("http") ? item.image : `${API_BASE_URL}${item.image}` }}
-                        style={styles.avatar}
-                    />
-                ) : (
-                    <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                        <Ionicons name="person" size={18} color="#999" />
-                    </View>
-                )}
+    const renderItem = ({ item, index }: { item: LeaderboardEntry; index: number }) => {
+        const isTop5 = index < 5;
+        return (
+            <View
+                style={[
+                    styles.card,
+                    item.isCurrentUser && styles.cardCurrentUser,
+                    isTop5 && index < 3 && styles.cardTop3,
+                ]}
+            >
+                {getRankBadge(index)}
+                <View style={styles.avatarContainer}>
+                    {item.image ? (
+                        <Image
+                            source={{
+                                uri: item.image.startsWith("http")
+                                    ? item.image
+                                    : `${API_BASE_URL}${item.image}`,
+                            }}
+                            style={styles.avatar}
+                        />
+                    ) : (
+                        <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                            <Ionicons name="person" size={18} color="#999" />
+                        </View>
+                    )}
+                </View>
+                <View style={styles.info}>
+                    <Text
+                        style={[styles.name, item.isCurrentUser && styles.nameCurrentUser]}
+                        numberOfLines={1}
+                    >
+                        {item.username ? `@${item.username}` : item.name}
+                        {item.isCurrentUser ? " (You)" : ""}
+                    </Text>
+                    <Text style={styles.meta}>
+                        {item.lessonsCompleted} lessons · {item.totalQuizzes} quizzes
+                        {item.longestStreak ? ` · 🔥 ${item.longestStreak}d streak` : ""}
+                    </Text>
+                </View>
+                <Text style={styles.score}>{item.avgScore}%</Text>
             </View>
-            <View style={styles.info}>
-                <Text style={[styles.name, item.isCurrentUser && styles.nameCurrentUser]} numberOfLines={1}>
-                    {item.username ? `@${item.username}` : item.name}
-                    {item.isCurrentUser ? " (You)" : ""}
-                </Text>
-                <Text style={styles.meta}>
-                    {item.totalQuizzes} quizzes · {item.totalExams} exams · {item.lessonsCompleted} lessons
-                    {item.longestStreak ? ` · ${item.longestStreak}d streak` : ""}
-                </Text>
-            </View>
-            <Text style={styles.score}>{item.avgScore}%</Text>
-        </View>
-    );
+        );
+    };
 
     return (
         <View style={styles.container}>
@@ -145,10 +170,25 @@ export default function LeaderboardScreen() {
                     data={leaderboard}
                     renderItem={renderItem}
                     keyExtractor={(item) => item.userId}
+                    ListHeaderComponent={
+                        <View style={styles.headerBanner}>
+                            <View style={styles.headerTrophyContainer}>
+                        <Ionicons name="trophy" size={48} color="#D4A017" />
+                    </View>
+                            <Text style={styles.headerTitle}>Top Learners</Text>
+                            <Text style={styles.headerSubtitle}>
+                                Based on quiz & exam performance
+                            </Text>
+                        </View>
+                    }
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B138" />
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor="#F2B138"
+                        />
                     }
                 />
             )}
@@ -170,6 +210,28 @@ const styles = StyleSheet.create({
         padding: 16,
         paddingBottom: 32,
     },
+    headerBanner: {
+        alignItems: "center",
+        paddingVertical: 28,
+        marginBottom: 12,
+        backgroundColor: "#FFF",
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "#F0F0F0",
+    },
+    headerTrophyContainer: {
+        marginBottom: 8,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: "800",
+        color: "#1F2524",
+    },
+    headerSubtitle: {
+        fontSize: 13,
+        color: "#999",
+        marginTop: 4,
+    },
     card: {
         flexDirection: "row",
         alignItems: "center",
@@ -184,6 +246,10 @@ const styles = StyleSheet.create({
         borderColor: "#F2B138",
         backgroundColor: "#FFFDF5",
     },
+    cardTop3: {
+        backgroundColor: "#FFFBF0",
+        borderColor: "#F2D98B",
+    },
     rankBadge: {
         width: 32,
         height: 32,
@@ -192,6 +258,17 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         marginRight: 10,
+    },
+    rankBadgeTop: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: "#FFF8E1",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 8,
+        borderWidth: 1.5,
+        borderColor: "#D4A017",
     },
     rankBadgeText: {
         fontSize: 13,

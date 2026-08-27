@@ -61,6 +61,7 @@ export default function ProfileScreen() {
     const [feedbackSubject, setFeedbackSubject] = useState("");
     const [feedbackMessage, setFeedbackMessage] = useState("");
     const [feedbackRating, setFeedbackRating] = useState<number>(0);
+    const [avatarModalVisible, setAvatarModalVisible] = useState(false);
 
     // User data comes from the persisted store (single /auth/me fetch at startup).
     // Profile edits below update the store directly after saving.
@@ -251,7 +252,7 @@ export default function ProfileScreen() {
 
     const handleWhatsApp = () => {
         const phoneNumber = "237600000000";
-        const message = encodeURIComponent("Hello! I need help with Atlas Learn.");
+        const message = encodeURIComponent("Hello! I need help with Apex Learn.");
         const url = `https://wa.me/${phoneNumber}?text=${message}`;
         Linking.openURL(url).catch(() => {
             Alert.alert("Error", "WhatsApp is not installed on this device.");
@@ -265,16 +266,77 @@ export default function ProfileScreen() {
         });
     };
 
+    const handleAvatarPickImage = async () => {
+        setAvatarModalVisible(false);
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+            Alert.alert("Permission needed", "Please grant photo library access.");
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+        if (!result.canceled && result.assets[0]) {
+            await uploadAvatar(result.assets[0].uri);
+        }
+    };
+
+    const handleAvatarTakePhoto = async () => {
+        setAvatarModalVisible(false);
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+            Alert.alert("Permission needed", "Please grant camera access.");
+            return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+        if (!result.canceled && result.assets[0]) {
+            await uploadAvatar(result.assets[0].uri);
+        }
+    };
+
+    const handleAvatarRemove = async () => {
+        setAvatarModalVisible(false);
+        try {
+            const updatedUser = await apiClient.updateCurrentUserProfile({ image: undefined });
+            const displayImage = updatedUser.image ? `${updatedUser.image}?t=${Date.now()}` : undefined;
+            setUser({ ...updatedUser, image: displayImage });
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to remove profile picture.");
+        }
+    };
+
+    const uploadAvatar = async (uri: string) => {
+        try {
+            const imageUrl = await apiClient.uploadProfileImage(uri);
+            const displayImage = `${imageUrl}?t=${Date.now()}`;
+            setUser({ ...user!, image: displayImage });
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to upload profile picture.");
+        }
+    };
+
     return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             <View style={[styles.header, { paddingHorizontal: width < 390 ? 16 : 24 }]}>
-                <View style={styles.avatarContainer}>
-                    {user?.image ? (
-                        <Image source={{ uri: user.image.startsWith("http") ? user.image : `${API_BASE_URL}${user.image}` }} style={styles.avatarImage} />
-                    ) : (
-                        <Ionicons name="person" size={48} color="#666" />
-                    )}
+                <View>
+                    <View style={styles.avatarContainer}>
+                        {user?.image ? (
+                            <Image source={{ uri: user.image.startsWith("http") ? user.image : `${API_BASE_URL}${user.image}` }} style={styles.avatarImage} />
+                        ) : (
+                            <Ionicons name="person" size={48} color="#666" />
+                        )}
+                    </View>
+                    <TouchableOpacity style={styles.avatarEditButton} onPress={() => setAvatarModalVisible(true)}>
+                        <Ionicons name="pencil" size={14} color="#fff" />
+                    </TouchableOpacity>
                 </View>
                 <Text style={styles.name}>{user?.name || "User"}</Text>
                 <Text style={styles.email}>{user?.email || ""}</Text>
@@ -574,7 +636,7 @@ export default function ProfileScreen() {
                     <View style={styles.requestModalCard}>
                         <Text style={styles.requestModalTitle}>Send Feedback</Text>
                         <Text style={styles.requestModalSubtitle}>
-                            Help us improve Atlas Learn. Your feedback is sent to our team.
+                            Help us improve Apex Learn. Your feedback is sent to our team.
                         </Text>
 
                         <Text style={styles.requestFieldLabel}>Category</Text>
@@ -654,6 +716,37 @@ export default function ProfileScreen() {
                     </ScrollView>
                 </KeyboardAvoidingView>
             </Modal>
+
+            {/* Avatar Edit Modal */}
+            <Modal
+                visible={avatarModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setAvatarModalVisible(false)}
+            >
+                <TouchableOpacity style={styles.avatarModalOverlay} activeOpacity={1} onPress={() => setAvatarModalVisible(false)}>
+                    <View style={styles.avatarModalCard}>
+                        <Text style={styles.avatarModalTitle}>Profile Picture</Text>
+                        <TouchableOpacity style={styles.avatarModalOption} onPress={handleAvatarPickImage}>
+                            <Ionicons name="images-outline" size={22} color="#F2B138" />
+                            <Text style={styles.avatarModalOptionText}>Choose from Gallery</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.avatarModalOption} onPress={handleAvatarTakePhoto}>
+                            <Ionicons name="camera-outline" size={22} color="#F2B138" />
+                            <Text style={styles.avatarModalOptionText}>Take a Photo</Text>
+                        </TouchableOpacity>
+                        {user?.image && (
+                            <TouchableOpacity style={[styles.avatarModalOption, styles.avatarModalOptionDanger]} onPress={handleAvatarRemove}>
+                                <Ionicons name="trash-outline" size={22} color="#E57373" />
+                                <Text style={[styles.avatarModalOptionText, styles.avatarModalOptionTextDanger]}>Remove Photo</Text>
+                            </TouchableOpacity>
+                        )}
+                        <TouchableOpacity style={styles.avatarModalCancel} onPress={() => setAvatarModalVisible(false)}>
+                            <Text style={styles.avatarModalCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 }
@@ -687,6 +780,19 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
+    },
+    avatarEditButton: {
+        position: "absolute",
+        bottom: 8,
+        right: -4,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: "#F2B138",
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 2,
+        borderColor: "#fff",
     },
     name: {
         fontSize: 24,
@@ -1010,5 +1116,54 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         gap: 8,
         marginBottom: 8,
+    },
+    avatarModalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.4)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    avatarModalCard: {
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        width: 280,
+        padding: 8,
+    },
+    avatarModalTitle: {
+        fontSize: 17,
+        fontWeight: "700",
+        color: "#282F2E",
+        textAlign: "center",
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: "#F0F0F0",
+    },
+    avatarModalOption: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 14,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: "#F0F0F0",
+    },
+    avatarModalOptionText: {
+        fontSize: 16,
+        color: "#282F2E",
+    },
+    avatarModalOptionDanger: {
+        borderBottomColor: "#F0F0F0",
+    },
+    avatarModalOptionTextDanger: {
+        color: "#E57373",
+    },
+    avatarModalCancel: {
+        paddingVertical: 14,
+        alignItems: "center",
+    },
+    avatarModalCancelText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#999",
     },
 });

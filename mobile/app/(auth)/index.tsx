@@ -87,7 +87,7 @@ export default function SignIn() {
         >
           <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
             <Image
-              source={require("@/assets/images/Blue atlas icon.png")}
+              source={require("@/assets/images/icon.png")}
               style={[styles.logo, { height: width < 390 ? 130 : 170, width: width < 390 ? 130 : 170 }]}
             />
           </View>
