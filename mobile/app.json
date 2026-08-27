@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Atlas Learn",
+    "name": "Apex Learn",
     "slug": "atlas-learn-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,8 +11,8 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Allow Atlas Learn to access your camera to take a profile picture.",
-        "NSPhotoLibraryUsageDescription": "Allow Atlas Learn to access your photos to select a profile picture."
+        "NSCameraUsageDescription": "Allow Apex Learn to access your camera to take a profile picture.",
+        "NSPhotoLibraryUsageDescription": "Allow Apex Learn to access your photos to select a profile picture."
       },
       "bundleIdentifier": "com.atlaslearn.app"
     },

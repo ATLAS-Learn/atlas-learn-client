@@ -252,7 +252,7 @@ export default function ProfileScreen() {
 
     const handleWhatsApp = () => {
         const phoneNumber = "237600000000";
-        const message = encodeURIComponent("Hello! I need help with Atlas Learn.");
+        const message = encodeURIComponent("Hello! I need help with Apex Learn.");
         const url = `https://wa.me/${phoneNumber}?text=${message}`;
         Linking.openURL(url).catch(() => {
             Alert.alert("Error", "WhatsApp is not installed on this device.");
@@ -636,7 +636,7 @@ export default function ProfileScreen() {
                     <View style={styles.requestModalCard}>
                         <Text style={styles.requestModalTitle}>Send Feedback</Text>
                         <Text style={styles.requestModalSubtitle}>
-                            Help us improve Atlas Learn. Your feedback is sent to our team.
+                            Help us improve Apex Learn. Your feedback is sent to our team.
                         </Text>
 
                         <Text style={styles.requestFieldLabel}>Category</Text>
