@@ -52,10 +52,10 @@ export default function SubjectList() {
     <div className='space-y-6'>
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
         <div>
-          <h2 className='text-2xl font-bold text-[#1F2524]'>Subjects</h2>
+          <h2 className='text-2xl font-bold text-[#084A59]'>Subjects</h2>
           <p className='text-sm text-gray-400 mt-0.5'>{subjects.length} subject{subjects.length !== 1 ? 's' : ''} &middot; Subjects → Chapters → Lessons → Quizzes</p>
         </div>
-        <button onClick={() => { setShowForm(true); setEditingId(null); setForm({ name: '', code: '', description: '' }) }} className='px-5 py-2.5 bg-[#F2B138] text-white font-bold text-sm rounded-xl hover:bg-[#996515] transition-colors'>+ New Subject</button>
+        <button onClick={() => { setShowForm(true); setEditingId(null); setForm({ name: '', code: '', description: '' }) }} className='px-5 py-2.5 bg-[#F2B138] text-white font-bold text-sm rounded-xl hover:bg-[#011C26] transition-colors'>+ New Subject</button>
       </div>
 
       {loading ? (
@@ -85,12 +85,12 @@ export default function SubjectList() {
                       {s.code?.slice(0, 2) || s.name?.slice(0, 2)}
                     </div>
                     <div>
-                      <h3 className='font-bold text-[#1F2524]'>{s.name}</h3>
+                      <h3 className='font-bold text-[#084A59]'>{s.name}</h3>
                       <p className='text-xs text-gray-400 font-medium'>{s.code}</p>
                     </div>
                   </div>
                   <div className='flex items-center gap-1' onClick={e => e.stopPropagation()}>
-                    <button onClick={(e) => handleEdit(e, s)} className='p-1.5 rounded-lg text-gray-400 hover:text-[#B8860B] hover:bg-slate-50 transition-colors'>
+                    <button onClick={(e) => handleEdit(e, s)} className='p-1.5 rounded-lg text-gray-400 hover:text-[#084A59] hover:bg-slate-50 transition-colors'>
                       <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
                         <path strokeLinecap='round' strokeLinejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125' />
                       </svg>
@@ -121,7 +121,7 @@ export default function SubjectList() {
         <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4' onClick={() => setShowForm(false)}>
           <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
-              <h3 className='text-lg font-bold text-[#1F2524]'>{editingId ? 'Edit Subject' : 'New Subject'}</h3>
+              <h3 className='text-lg font-bold text-[#084A59]'>{editingId ? 'Edit Subject' : 'New Subject'}</h3>
               <button onClick={() => setShowForm(false)} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400'>
                 <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
                   <path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' />
@@ -135,7 +135,7 @@ export default function SubjectList() {
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
                   required
-                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all'
+                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all'
                 />
               </div>
               <div>
@@ -144,7 +144,7 @@ export default function SubjectList() {
                   value={form.code}
                   onChange={e => setForm({ ...form, code: e.target.value })}
                   required
-                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all'
+                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all'
                 />
               </div>
               <div>
@@ -153,12 +153,12 @@ export default function SubjectList() {
                   value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })}
                   rows={3}
-                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all resize-none'
+                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all resize-none'
                 />
               </div>
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => setShowForm(false)} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50'>Cancel</button>
-                <button type='submit' className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#996515] transition-colors text-sm'>{editingId ? 'Update' : 'Create'}</button>
+                <button type='submit' className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editingId ? 'Update' : 'Create'}</button>
               </div>
             </form>
           </div>

@@ -7,6 +7,9 @@ import {
     ScrollView,
     ActivityIndicator,
     Alert,
+    TextInput,
+    KeyboardAvoidingView,
+    Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +24,7 @@ export default function ExamTakeScreen() {
     const [exam, setExam] = useState<any>(null);
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [answers, setAnswers] = useState<number[]>([]);
+    const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -88,15 +92,23 @@ export default function ExamTakeScreen() {
         setAnswers(newAnswers);
     };
 
+    const updateTextAnswer = (questionId: string, text: string) => {
+        setTextAnswers(prev => ({ ...prev, [questionId]: text }));
+    };
+
     const handleSubmit = async () => {
         if (submitting) return;
         if (timerRef.current) clearInterval(timerRef.current);
 
         const unanswered = answers.filter((a) => a === -1).length;
-        if (unanswered > 0) {
+        const unansweredStructural = (exam?.questions || []).filter(
+            (q: any, i: number) => q.questionType === 'STRUCTURAL' && !textAnswers[q.id]?.trim() && answers[i] === -1
+        ).length;
+        const totalUnanswered = unanswered;
+        if (totalUnanswered > 0) {
             Alert.alert(
                 "Incomplete Exam",
-                `You have ${unanswered} unanswered question(s). Submit anyway?`,
+                `You have ${totalUnanswered} unanswered question(s). Submit anyway?`,
                 [
                     { text: "Cancel", style: "cancel" },
                     { text: "Submit", onPress: doSubmit },
@@ -116,6 +128,7 @@ export default function ExamTakeScreen() {
                 : 0;
             await apiClient.submitExam(examId, {
                 answers,
+                textAnswers,
                 timeSpent,
             });
             router.replace({
@@ -153,7 +166,12 @@ export default function ExamTakeScreen() {
 
     const question = exam.questions[currentQuestion];
     const total = exam.questions.length;
-    const answered = answers.filter((a) => a !== -1).length;
+    const answered = exam.questions.reduce((count: number, q: any, i: number) => {
+        if (q.questionType === 'STRUCTURAL') {
+            return count + (textAnswers[q.id]?.trim() ? 1 : 0);
+        }
+        return count + (answers[i] !== -1 ? 1 : 0);
+    }, 0);
 
     return (
         <View style={styles.container}>
@@ -209,7 +227,22 @@ export default function ExamTakeScreen() {
                 </Text>
                 <Text style={styles.questionText}>{question.questionText}</Text>
 
-                {question.options.map((option: string, index: number) => (
+                {question.questionType === 'STRUCTURAL' ? (
+                    <View style={styles.structuralInputContainer}>
+                        <Text style={styles.structuralHint}>Type your answer below:</Text>
+                        <TextInput
+                            style={styles.structuralInput}
+                            placeholder="Enter your answer..."
+                            placeholderTextColor="#999"
+                            multiline
+                            numberOfLines={6}
+                            textAlignVertical="top"
+                            value={textAnswers[question.id] || ''}
+                            onChangeText={(text) => updateTextAnswer(question.id, text)}
+                        />
+                    </View>
+                ) : (
+                (question.options || []).map((option: string, index: number) => (
                     <TouchableOpacity
                         key={index}
                         style={[
@@ -247,7 +280,8 @@ export default function ExamTakeScreen() {
                             {option}
                         </Text>
                     </TouchableOpacity>
-                ))}
+                ))
+                )}
             </ScrollView>
 
             <View style={styles.navBar}>
@@ -462,5 +496,24 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "700",
         color: "#FFF",
+    },
+    structuralInputContainer: {
+        marginTop: 8,
+    },
+    structuralHint: {
+        fontSize: 13,
+        color: "#999",
+        marginBottom: 8,
+    },
+    structuralInput: {
+        backgroundColor: "#FFF",
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+        borderRadius: 12,
+        padding: 14,
+        fontSize: 15,
+        color: "#1F2524",
+        minHeight: 140,
+        lineHeight: 22,
     },
 });

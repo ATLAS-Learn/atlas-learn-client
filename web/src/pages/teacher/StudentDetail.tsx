@@ -51,13 +51,13 @@ export default function StudentDetail() {
     <div className='space-y-6'>
       {/* Header */}
       <div>
-        <Link to='/teacher/students' style={{ textDecoration: 'none' }} className='inline-flex items-center gap-1.5 text-sm text-[#B8860B] hover:text-[#996515] font-medium mb-2 transition-colors'>
+        <Link to='/teacher/students' style={{ textDecoration: 'none' }} className='inline-flex items-center gap-1.5 text-sm text-[#084A59] hover:text-[#011C26] font-medium mb-2 transition-colors'>
           <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
             <path strokeLinecap='round' strokeLinejoin='round' d='M15.75 19.5L8.25 12l7.5-7.5' />
           </svg>
           Back to Students
         </Link>
-        <h2 className='text-2xl font-bold text-[#1F2524]'>Student Progress</h2>
+        <h2 className='text-2xl font-bold text-[#084A59]'>Student Progress</h2>
         <p className='text-sm text-gray-400 mt-0.5'>{progress?.student?.name || progress?.student?.email || studentId}</p>
       </div>
 
@@ -71,7 +71,7 @@ export default function StudentDetail() {
         ].map((s, i) => (
           <div key={i} className='bg-white rounded-2xl border border-gray-200 p-5'>
             <p className='text-sm font-medium text-gray-500'>{s.label}</p>
-            <p className='text-2xl font-bold text-[#1F2524] mt-1'>{s.value}</p>
+            <p className='text-2xl font-bold text-[#084A59] mt-1'>{s.value}</p>
           </div>
         ))}
       </div>
@@ -84,7 +84,7 @@ export default function StudentDetail() {
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               tab === t
-                ? 'bg-[#1F2524] text-white'
+                ? 'bg-[#084A59] text-white'
                 : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'
             }`}
           >
@@ -105,8 +105,8 @@ export default function StudentDetail() {
               <div key={i} className='bg-white rounded-2xl border border-gray-200 overflow-hidden'>
                 <div className='px-5 py-4'>
                   <div className='flex items-center justify-between mb-3'>
-                    <h3 className='font-bold text-[#1F2524]'>{sub.name || sub.subjectName}</h3>
-                    <span className='text-sm font-bold text-[#B8860B]'>{sub.completionPercentage ?? 0}%</span>
+                    <h3 className='font-bold text-[#084A59]'>{sub.name || sub.subjectName}</h3>
+                    <span className='text-sm font-bold text-[#084A59]'>{sub.completionPercentage ?? 0}%</span>
                   </div>
                   <div className='h-2 bg-gray-100 rounded-full overflow-hidden mb-4'>
                     <div
@@ -122,7 +122,7 @@ export default function StudentDetail() {
                     ].map((item, j) => (
                       <div key={j}>
                         <p className='text-xs text-gray-400 mb-0.5'>{item.label}</p>
-                        <p className='text-sm font-bold text-[#1F2524]'>{item.done}/{item.total}</p>
+                        <p className='text-sm font-bold text-[#084A59]'>{item.done}/{item.total}</p>
                       </div>
                     ))}
                   </div>
@@ -151,9 +151,9 @@ export default function StudentDetail() {
                   <tr><td colSpan={5} className='px-6 py-12 text-center text-gray-400'>No quiz attempts</td></tr>
                 ) : quizAttempts.map((a: any, i: number) => (
                   <tr key={i} className='hover:bg-gray-50/50 transition-colors'>
-                    <td className='px-6 py-3.5 text-sm font-semibold text-[#1F2524]'>{a.quiz?.title || a.quizTitle || '—'}</td>
+                    <td className='px-6 py-3.5 text-sm font-semibold text-[#084A59]'>{a.quiz?.title || a.quizTitle || '—'}</td>
                     <td className='px-6 py-3.5 text-sm text-gray-500'>{a.subject?.name || a.subjectName || '—'}</td>
-                    <td className='px-6 py-3.5 text-sm font-bold text-[#1F2524]'>{a.score}%</td>
+                    <td className='px-6 py-3.5 text-sm font-bold text-[#084A59]'>{a.score}%</td>
                     <td className='px-6 py-3.5'>
                       <span className={`inline-flex px-2.5 py-0.5 rounded-lg text-xs font-semibold ${
                         a.passed || a.isPassed ? 'bg-slate-100 text-slate-600' : 'bg-slate-50 text-slate-400'

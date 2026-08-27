@@ -17,6 +17,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import Markdown from "react-native-markdown-display";
+import RenderHtml from "react-native-render-html";
+import { useWindowDimensions } from "react-native";
 import { apiClient } from "@/lib/api";
 import { Lesson, LessonWithProgress } from "@/lib/types";
 import ScreenHeader from "@/components/ui/screen-header";
@@ -48,9 +50,15 @@ const normalizeStringArray = (value: unknown): string[] => {
     return [];
 };
 
+const isHtmlContent = (content: string): boolean => {
+    const trimmed = content.trim();
+    return /<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table|img|strong|em|a|br|hr)\b/i.test(trimmed);
+};
+
 export default function LessonDetailScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
+    const { width } = useWindowDimensions();
     const { id, lessonId, subjectId } = useLocalSearchParams<{
         id: string;
         lessonId: string;
@@ -297,9 +305,29 @@ export default function LessonDetailScreen() {
 
                 {lesson.content ? (
                     <View style={styles.markdownContainer}>
-                        <Markdown style={markdownStyles}>
-                            {lesson.content}
-                        </Markdown>
+                        {isHtmlContent(lesson.content) ? (
+                            <RenderHtml
+                                contentWidth={width - 32}
+                                source={{ html: lesson.content }}
+                                tagsStyles={{
+                                    body: { color: '#374151', fontSize: 15, lineHeight: 24 },
+                                    h1: { fontSize: 22, fontWeight: '700', color: '#111827', marginVertical: 12 },
+                                    h2: { fontSize: 19, fontWeight: '700', color: '#111827', marginVertical: 10 },
+                                    h3: { fontSize: 17, fontWeight: '600', color: '#111827', marginVertical: 8 },
+                                    p: { marginVertical: 6 },
+                                    a: { color: '#084A59', textDecorationLine: 'underline' },
+                                    li: { marginVertical: 2 },
+                                    blockquote: { borderLeftWidth: 3, borderLeftColor: '#084A59', paddingLeft: 12, marginVertical: 8, backgroundColor: '#F3F4F6', paddingVertical: 8, borderRadius: 4 },
+                                    pre: { backgroundColor: '#1F2937', color: '#E5E7EB', padding: 12, borderRadius: 8, marginVertical: 8 },
+                                    code: { backgroundColor: '#F3F4F6', paddingHorizontal: 4, borderRadius: 3 },
+                                    img: { marginVertical: 8 },
+                                }}
+                            />
+                        ) : (
+                            <Markdown style={markdownStyles}>
+                                {lesson.content}
+                            </Markdown>
+                        )}
                     </View>
                 ) : null}
 

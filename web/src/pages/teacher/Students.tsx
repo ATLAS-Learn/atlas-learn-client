@@ -25,7 +25,7 @@ export default function TeacherStudents() {
   return (
     <div className='space-y-6'>
       <div>
-        <h2 className='text-2xl font-bold text-[#1F2524]'>Students</h2>
+        <h2 className='text-2xl font-bold text-[#084A59]'>Students</h2>
         <p className='text-sm text-gray-400 mt-0.5'>{total} student{total !== 1 ? 's' : ''}</p>
       </div>
 
@@ -67,7 +67,7 @@ export default function TeacherStudents() {
                         {(s.name || s.email || '?')[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className='text-sm font-semibold text-[#1F2524]'>{s.name || s.email?.split('@')[0]}</p>
+                        <p className='text-sm font-semibold text-[#084A59]'>{s.name || s.email?.split('@')[0]}</p>
                         <p className='text-xs text-gray-400'>{s.email}</p>
                       </div>
                     </div>
@@ -83,7 +83,7 @@ export default function TeacherStudents() {
                     <Link
                       to={`/teacher/students/${s.id}`}
                       style={{ textDecoration: 'none' }}
-                      className='inline-flex items-center gap-1.5 text-xs font-semibold text-[#B8860B] hover:text-[#996515] px-3 py-1.5 rounded-lg hover:bg-amber-50 transition-colors'
+                      className='inline-flex items-center gap-1.5 text-xs font-semibold text-[#084A59] hover:text-[#011C26] px-3 py-1.5 rounded-lg hover:bg-amber-50 transition-colors'
                     >
                       View Progress
                       <svg className='w-3.5 h-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../../api/client'
+import RichTextEditor from '../../components/RichTextEditor'
 
 export default function TeacherSubjectDetail() {
   const { subjectId } = useParams<{ subjectId: string }>()
@@ -72,7 +73,7 @@ export default function TeacherSubjectDetail() {
     return (
       <div className='flex items-center justify-center h-[60vh]'>
         <div className='flex flex-col items-center gap-3'>
-          <div className='w-8 h-8 border-3 border-[#B8860B] border-t-transparent rounded-full animate-spin' />
+          <div className='w-8 h-8 border-3 border-[#084A59] border-t-transparent rounded-full animate-spin' />
           <p className='text-sm text-gray-400'>Loading subject...</p>
         </div>
       </div>
@@ -92,7 +93,7 @@ export default function TeacherSubjectDetail() {
       <div>
         <button
           onClick={() => navigate('/teacher/content')}
-          className='text-sm text-gray-400 hover:text-[#B8860B] font-medium transition-colors mb-3 inline-flex items-center gap-1'
+          className='text-sm text-gray-400 hover:text-[#084A59] font-medium transition-colors mb-3 inline-flex items-center gap-1'
         >
           <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
             <path strokeLinecap='round' strokeLinejoin='round' d='M15.75 19.5L8.25 12l7.5-7.5' />
@@ -102,7 +103,7 @@ export default function TeacherSubjectDetail() {
         <div className='flex items-center justify-between'>
           <div>
             <div className='flex items-center gap-3'>
-              <h2 className='text-2xl font-bold text-[#1F2524]'>{subject.name}</h2>
+              <h2 className='text-2xl font-bold text-[#084A59]'>{subject.name}</h2>
               <span className='text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded-lg'>
                 {subject.code}
               </span>
@@ -113,7 +114,7 @@ export default function TeacherSubjectDetail() {
           </div>
           <button
             onClick={openCreateChapter}
-            className='px-5 py-2.5 bg-[#F2B138] text-white font-bold text-sm rounded-xl hover:bg-[#996515] transition-colors'
+            className='px-5 py-2.5 bg-[#F2B138] text-white font-bold text-sm rounded-xl hover:bg-[#011C26] transition-colors'
           >
             + Chapter
           </button>
@@ -139,7 +140,7 @@ export default function TeacherSubjectDetail() {
                     {ch.orderIndex}
                   </span>
                   <div className='min-w-0 flex-1'>
-                    <h3 className='font-bold text-[#1F2524]'>{ch.title}</h3>
+                    <h3 className='font-bold text-[#084A59]'>{ch.title}</h3>
                     {ch.description && (
                       <p className='text-sm text-gray-400 mt-0.5 line-clamp-2'>{ch.description}</p>
                     )}
@@ -197,7 +198,7 @@ export default function TeacherSubjectDetail() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
-              <h3 className='text-lg font-bold text-[#1F2524]'>New Chapter</h3>
+              <h3 className='text-lg font-bold text-[#084A59]'>New Chapter</h3>
               <button
                 onClick={() => setShowChapterForm(false)}
                 className='p-2 rounded-lg hover:bg-gray-100 text-gray-400'
@@ -214,16 +215,16 @@ export default function TeacherSubjectDetail() {
                   value={chapterForm.title}
                   onChange={(e) => setChapterForm({ ...chapterForm, title: e.target.value })}
                   required
-                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all'
+                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all'
                 />
               </div>
               <div>
                 <label className='block text-sm font-semibold text-gray-700 mb-1.5'>Description</label>
-                <textarea
+                <RichTextEditor
                   value={chapterForm.description}
-                  onChange={(e) => setChapterForm({ ...chapterForm, description: e.target.value })}
-                  rows={3}
-                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all resize-none'
+                  onChange={(val) => setChapterForm({ ...chapterForm, description: val })}
+                  placeholder='Describe what this chapter covers...'
+                  minHeight='120px'
                 />
               </div>
               <div className='grid grid-cols-3 gap-4'>
@@ -235,7 +236,7 @@ export default function TeacherSubjectDetail() {
                     onChange={(e) => setChapterForm({ ...chapterForm, orderIndex: Number(e.target.value) })}
                     required
                     min={1}
-                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all'
+                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all'
                   />
                 </div>
                 <div>
@@ -248,7 +249,7 @@ export default function TeacherSubjectDetail() {
                     }
                     min={0}
                     max={100}
-                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all'
+                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all'
                   />
                 </div>
                 <div>
@@ -260,7 +261,7 @@ export default function TeacherSubjectDetail() {
                       setChapterForm({ ...chapterForm, estimatedMinutes: Number(e.target.value) })
                     }
                     min={1}
-                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all'
+                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all'
                   />
                 </div>
               </div>
@@ -274,7 +275,7 @@ export default function TeacherSubjectDetail() {
                 </button>
                 <button
                   type='submit'
-                  className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#996515] transition-colors text-sm'
+                  className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'
                 >
                   Create
                 </button>

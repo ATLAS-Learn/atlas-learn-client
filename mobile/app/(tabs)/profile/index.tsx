@@ -397,7 +397,7 @@ export default function ProfileScreen() {
                     <Text style={styles.menuText}>Send Feedback</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem} disabled>
+                <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/(tabs)/profile/notifications" as any)}>
                     <Ionicons name="notifications-outline" size={24} color="#666" />
                     <Text style={styles.menuText}>Notifications</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />

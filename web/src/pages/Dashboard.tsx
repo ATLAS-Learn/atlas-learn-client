@@ -54,10 +54,10 @@ export default function Dashboard() {
       <div className='w-full lg:w-1/2 flex flex-col justify-center px-10 md:px-16 bg-white'>
         <div className='w-full max-w-md mx-auto'>
           <div className='flex justify-center mb-10'>
-            <img src='/logo.png' alt='Atlas' className='h-14' />
+            <img src='/logo-console.png' alt='Apex Learn' className='h-24' />
           </div>
 
-          <h1 className='text-3xl font-bold text-[#1F2524] mb-2'>
+          <h1 className='text-3xl font-bold text-[#084A59] mb-2'>
             {role === 'admin' ? 'Admin Portal' : 'Teacher Portal'}
           </h1>
           <p className='text-base text-gray-500 mb-8'>
@@ -73,7 +73,7 @@ export default function Dashboard() {
                   setRole(r);
                   setError('');
                 }}
-                className={`flex-1 py-2.5 rounded-md text-base font-medium transition-colors ${role === r ? 'bg-white text-[#1F2524] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`flex-1 py-2.5 rounded-md text-base font-medium transition-colors ${role === r ? 'bg-white text-[#084A59] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 {r === 'admin' ? 'Admin' : 'Teacher'}
               </button>
@@ -96,7 +96,7 @@ export default function Dashboard() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className='w-full px-4 py-3 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-[#1F2524] focus:ring-1 focus:ring-[#1F2524]/10 transition-all'
+                className='w-full px-4 py-3 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-[#084A59] focus:ring-1 focus:ring-[#084A59]/10 transition-all'
                 placeholder='you@example.com'
               />
             </div>
@@ -110,14 +110,14 @@ export default function Dashboard() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className='w-full px-4 py-3 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-[#1F2524] focus:ring-1 focus:ring-[#1F2524]/10 transition-all'
+                className='w-full px-4 py-3 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-[#084A59] focus:ring-1 focus:ring-[#084A59]/10 transition-all'
                 placeholder='••••••••'
               />
               <div className='text-right mt-2'>
                 <a
                   href='/forgot-password'
                   style={{ textDecoration: 'none' }}
-                  className='text-sm text-[#B8860B] hover:text-[#996515] transition-colors'
+                  className='text-sm text-[#084A59] hover:text-[#011C26] transition-colors'
                 >
                   Forgot Password?
                 </a>
@@ -127,7 +127,7 @@ export default function Dashboard() {
             <button
               type='submit'
               disabled={loading}
-              className='w-full py-3.5 bg-[#1F2524] text-white font-semibold rounded-lg hover:bg-[#282F2E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base'
+              className='w-full py-3.5 bg-[#084A59] text-white font-semibold rounded-lg hover:bg-[#011C26] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base'
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
@@ -136,7 +136,7 @@ export default function Dashboard() {
       </div>
 
       {/* Right: Branding Panel */}
-      <div className='hidden lg:flex w-1/2 bg-[#1F2524] relative overflow-hidden flex-col justify-center items-start'>
+      <div className='hidden lg:flex w-1/2 bg-[#084A59] relative overflow-hidden flex-col justify-center items-start'>
         {/* Decorative circles */}
         <div className='absolute top-20 right-20 w-72 h-72 bg-[#F2B138]/10 rounded-full blur-3xl' />
         <div className='absolute bottom-32 left-16 w-48 h-48 bg-[#F2B138]/5 rounded-full blur-2xl' />
@@ -145,7 +145,7 @@ export default function Dashboard() {
           <h2 className='text-4xl font-extrabold text-white leading-tight mb-5'>
             Manage learning
             <br />
-            <span className='text-[#B8860B]'>that actually works.</span>
+            <span className='text-[#F2B138]'>that actually works.</span>
           </h2>
 
           <p className='text-gray-400 text-lg leading-relaxed mb-10'>
@@ -163,7 +163,7 @@ export default function Dashboard() {
               <div key={i} className='flex items-center gap-3'>
                 <div className='w-6 h-6 rounded-full bg-[#F2B138]/20 flex items-center justify-center shrink-0'>
                   <svg
-                    className='w-3.5 h-3.5 text-[#B8860B]'
+                    className='w-3.5 h-3.5 text-[#084A59]'
                     fill='none'
                     viewBox='0 0 24 24'
                     stroke='currentColor'

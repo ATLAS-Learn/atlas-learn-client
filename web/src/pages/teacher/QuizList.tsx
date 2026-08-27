@@ -101,7 +101,7 @@ export default function QuizList() {
   return (
     <div className='space-y-6'>
       <div>
-        <h2 className='text-2xl font-bold text-[#1F2524]'>Quiz Management</h2>
+        <h2 className='text-2xl font-bold text-[#084A59]'>Quiz Management</h2>
         <p className='text-sm text-gray-400 mt-0.5'>Browse quizzes by subject and chapter</p>
       </div>
 
@@ -122,7 +122,7 @@ export default function QuizList() {
                     {subject.code?.slice(0, 2) || subject.name?.slice(0, 2)}
                   </div>
                   <div>
-                    <h3 className='font-bold text-[#1F2524]'>{subject.name}</h3>
+                    <h3 className='font-bold text-[#084A59]'>{subject.name}</h3>
                     <p className='text-xs text-gray-400 font-medium'>
                       {subject.code} &middot; {chapters[subject.id]?.length ?? subject.chapters?.length ?? 0} chapters
                     </p>
@@ -152,7 +152,7 @@ export default function QuizList() {
                                   {ch.orderIndex}
                                 </span>
                                 <div>
-                                  <p className='text-sm font-bold text-[#1F2524]'>{ch.title}</p>
+                                  <p className='text-sm font-bold text-[#084A59]'>{ch.title}</p>
                                   <p className='text-[11px] text-gray-400'>
                                     {quizzes[ch.id]?.length ?? ch._count?.quizzes ?? 0} quizzes
                                   </p>
@@ -169,7 +169,7 @@ export default function QuizList() {
                                   <p className='text-[11px] font-bold text-gray-400 uppercase tracking-wider'>Quizzes</p>
                                   <button
                                     onClick={() => openQuizForm(ch.id)}
-                                    className='px-3 py-1 bg-[#F2B138] text-white text-xs font-bold rounded-lg hover:bg-[#996515] transition-colors'
+                                    className='px-3 py-1 bg-[#F2B138] text-white text-xs font-bold rounded-lg hover:bg-[#011C26] transition-colors'
                                   >
                                     + New Quiz
                                   </button>
@@ -181,7 +181,7 @@ export default function QuizList() {
                                     <div key={quiz.id} className='border border-gray-100 rounded-xl overflow-hidden'>
                                       <div className='flex items-center justify-between px-4 py-3 bg-slate-50/80'>
                                         <div>
-                                          <p className='text-sm font-bold text-[#1F2524]'>{quiz.title}</p>
+                                          <p className='text-sm font-bold text-[#084A59]'>{quiz.title}</p>
                                           <p className='text-[10px] text-gray-400'>
                                             {quiz.timeLimit ? `${quiz.timeLimit} min` : ''} · {quiz.questions?.length ?? quiz._count?.questions ?? 0} questions
                                           </p>
@@ -189,7 +189,7 @@ export default function QuizList() {
                                         <div className='flex gap-1.5'>
                                           <button
                                             onClick={() => navigate(`/teacher/quizzes/${quiz.id}`, { state: { quiz, chapterId: ch.id } })}
-                                            className='px-2.5 py-1.5 text-xs font-semibold text-[#B8860B] border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-600 transition-colors'
+                                            className='px-2.5 py-1.5 text-xs font-semibold text-[#084A59] border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-600 transition-colors'
                                           >
                                             View Details
                                           </button>
@@ -222,7 +222,7 @@ export default function QuizList() {
         <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4' onClick={() => setShowQuizForm(null)}>
           <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
-              <h3 className='text-lg font-bold text-[#1F2524]'>New Quiz</h3>
+              <h3 className='text-lg font-bold text-[#084A59]'>New Quiz</h3>
               <button onClick={() => setShowQuizForm(null)} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors'>
                 <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg>
               </button>
@@ -242,7 +242,7 @@ export default function QuizList() {
               </div>
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => setShowQuizForm(null)} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors'>Cancel</button>
-                <button type='submit' className='flex-1 py-2.5 bg-[#1F2524] text-white font-semibold rounded-xl hover:bg-[#282F2E] transition-colors text-sm'>Create Quiz</button>
+                <button type='submit' className='flex-1 py-2.5 bg-[#084A59] text-white font-semibold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>Create Quiz</button>
               </div>
             </form>
           </div>

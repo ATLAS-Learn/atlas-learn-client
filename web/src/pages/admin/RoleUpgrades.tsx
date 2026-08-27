@@ -51,7 +51,7 @@ export default function AdminRoleUpgrades() {
     <div className='space-y-6'>
       {/* Header */}
       <div>
-        <h2 className='text-2xl font-bold text-[#1F2524]'>Role Upgrades</h2>
+        <h2 className='text-2xl font-bold text-[#084A59]'>Role Upgrades</h2>
         <p className='text-sm text-gray-400 mt-0.5'>
           {tab === 'pending'
             ? `${requests.length} pending request${requests.length !== 1 ? 's' : ''} from students wanting to become teachers`
@@ -67,7 +67,7 @@ export default function AdminRoleUpgrades() {
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               tab === t
-                ? 'bg-[#1F2524] text-white'
+                ? 'bg-[#084A59] text-white'
                 : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'
             }`}
           >
@@ -87,7 +87,7 @@ export default function AdminRoleUpgrades() {
                 <path strokeLinecap='round' strokeLinejoin='round' d='M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' />
               </svg>
             </div>
-            <p className='text-lg font-bold text-[#1F2524]'>All caught up</p>
+            <p className='text-lg font-bold text-[#084A59]'>All caught up</p>
             <p className='text-sm text-gray-400 mt-1 max-w-sm mx-auto'>No pending role upgrade requests. New requests from students will appear here.</p>
           </div>
         ) : (
@@ -104,7 +104,7 @@ export default function AdminRoleUpgrades() {
                           {(user.name || user.email || '?')[0].toUpperCase()}
                         </div>
                         <div>
-                          <h3 className='text-base font-bold text-[#1F2524]'>{user.name || 'Unknown'}</h3>
+                          <h3 className='text-base font-bold text-[#084A59]'>{user.name || 'Unknown'}</h3>
                           <p className='text-sm text-gray-400'>{user.email}</p>
                           <div className='flex items-center gap-2 mt-2'>
                             <span className='inline-flex px-2.5 py-0.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-semibold ring-1 ring-slate-200'>Student</span>
@@ -172,7 +172,7 @@ export default function AdminRoleUpgrades() {
                     <tr key={h.id} className='hover:bg-gray-50/50 transition-colors'>
                       <td className='px-6 py-3.5'>
                         <div>
-                          <p className='text-sm font-semibold text-[#1F2524]'>{h.user?.name || 'Unknown'}</p>
+                          <p className='text-sm font-semibold text-[#084A59]'>{h.user?.name || 'Unknown'}</p>
                           <p className='text-xs text-gray-400'>{h.user?.email}</p>
                         </div>
                       </td>

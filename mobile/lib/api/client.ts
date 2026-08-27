@@ -1065,7 +1065,7 @@ class APIClient {
         return res.data?.data;
     }
 
-    async submitExam(examId: string, data: { answers: number[]; timeSpent?: number }): Promise<any> {
+    async submitExam(examId: string, data: { answers: number[]; textAnswers?: Record<string, string>; timeSpent?: number }): Promise<any> {
         const res = await this.axiosInstance.post(`/exams/${examId}/submit`, data);
         return res.data?.data;
     }
@@ -1088,6 +1088,25 @@ class APIClient {
     async getLeaderboard(): Promise<any[]> {
         const res = await this.axiosInstance.get("/leaderboard");
         return res.data?.data || [];
+    }
+
+    // Notification endpoints
+    async getNotifications(params?: { unreadOnly?: boolean }): Promise<any[]> {
+        const res = await this.axiosInstance.get("/notifications", { params });
+        return res.data?.data || [];
+    }
+
+    async getUnreadNotificationCount(): Promise<number> {
+        const res = await this.axiosInstance.get("/notifications/unread-count");
+        return res.data?.data?.count ?? 0;
+    }
+
+    async markNotificationRead(notificationId: string): Promise<void> {
+        await this.axiosInstance.patch(`/notifications/${notificationId}/read`);
+    }
+
+    async markAllNotificationsRead(): Promise<void> {
+        await this.axiosInstance.patch("/notifications/read-all");
     }
 }
 
