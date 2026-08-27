@@ -103,7 +103,7 @@ export default function AdminSubjectDetail() {
           <div>
             <button
               onClick={() => navigate('/admin/subjects')}
-              className='text-sm text-gray-400 hover:text-[#B8860B] font-medium transition-colors mb-3 inline-flex items-center gap-1'
+              className='text-sm text-gray-400 hover:text-[#084A59] font-medium transition-colors mb-3 inline-flex items-center gap-1'
             >
               <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
                 <path strokeLinecap='round' strokeLinejoin='round' d='M15.75 19.5L8.25 12l7.5-7.5' />
@@ -113,7 +113,7 @@ export default function AdminSubjectDetail() {
             <div className='flex items-center justify-between'>
               <div>
                 <div className='flex items-center gap-3'>
-                  <h2 className='text-2xl font-bold text-[#1F2524]'>{subject.name}</h2>
+                  <h2 className='text-2xl font-bold text-[#084A59]'>{subject.name}</h2>
                   <span className='text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded-lg'>
                     {subject.code}
                   </span>
@@ -124,7 +124,7 @@ export default function AdminSubjectDetail() {
               </div>
               <button
                 onClick={openCreateChapter}
-                className='px-5 py-2.5 bg-[#F2B138] text-white font-bold text-sm rounded-xl hover:bg-[#996515] transition-colors'
+                className='px-5 py-2.5 bg-[#F2B138] text-white font-bold text-sm rounded-xl hover:bg-[#011C26] transition-colors'
               >
                 + Chapter
               </button>
@@ -150,7 +150,7 @@ export default function AdminSubjectDetail() {
                         {ch.orderIndex}
                       </span>
                       <div className='min-w-0 flex-1'>
-                        <h3 className='font-bold text-[#1F2524]'>{ch.title}</h3>
+                        <h3 className='font-bold text-[#084A59]'>{ch.title}</h3>
                         {ch.description && (
                           <p className='text-sm text-gray-400 mt-0.5 line-clamp-2'>{ch.description}</p>
                         )}
@@ -182,7 +182,7 @@ export default function AdminSubjectDetail() {
                           e.stopPropagation()
                           openEditChapter(ch)
                         }}
-                        className='p-2 rounded-lg text-gray-400 hover:text-[#B8860B] hover:bg-slate-50 transition-colors'
+                        className='p-2 rounded-lg text-gray-400 hover:text-[#084A59] hover:bg-slate-50 transition-colors'
                       >
                         <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
                           <path strokeLinecap='round' strokeLinejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125' />
@@ -222,7 +222,7 @@ export default function AdminSubjectDetail() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
-              <h3 className='text-lg font-bold text-[#1F2524]'>
+              <h3 className='text-lg font-bold text-[#084A59]'>
                 {editingChapterId ? 'Edit Chapter' : 'New Chapter'}
               </h3>
               <button
@@ -241,7 +241,7 @@ export default function AdminSubjectDetail() {
                   value={chapterForm.title}
                   onChange={(e) => setChapterForm({ ...chapterForm, title: e.target.value })}
                   required
-                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all'
+                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all'
                 />
               </div>
               <div>
@@ -250,7 +250,7 @@ export default function AdminSubjectDetail() {
                   value={chapterForm.description}
                   onChange={(e) => setChapterForm({ ...chapterForm, description: e.target.value })}
                   rows={3}
-                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all resize-none'
+                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all resize-none'
                 />
               </div>
               <div className='grid grid-cols-3 gap-4'>
@@ -262,7 +262,7 @@ export default function AdminSubjectDetail() {
                     onChange={(e) => setChapterForm({ ...chapterForm, orderIndex: Number(e.target.value) })}
                     required
                     min={1}
-                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all'
+                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all'
                   />
                 </div>
                 <div>
@@ -275,7 +275,7 @@ export default function AdminSubjectDetail() {
                     }
                     min={0}
                     max={100}
-                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all'
+                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all'
                   />
                 </div>
                 <div>
@@ -287,7 +287,7 @@ export default function AdminSubjectDetail() {
                       setChapterForm({ ...chapterForm, estimatedMinutes: Number(e.target.value) })
                     }
                     min={1}
-                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] transition-all'
+                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all'
                   />
                 </div>
               </div>
@@ -301,7 +301,7 @@ export default function AdminSubjectDetail() {
                 </button>
                 <button
                   type='submit'
-                  className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#996515] transition-colors text-sm'
+                  className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'
                 >
                   {editingChapterId ? 'Update' : 'Create'}
                 </button>

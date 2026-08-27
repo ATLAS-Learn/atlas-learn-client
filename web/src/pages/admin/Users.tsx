@@ -92,7 +92,7 @@ export default function AdminUsers() {
       {/* Header Row */}
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
         <div>
-          <h2 className='text-2xl font-bold text-[#1F2524]'>Users</h2>
+          <h2 className='text-2xl font-bold text-[#084A59]'>Users</h2>
           <p className='text-sm text-gray-400 mt-0.5'>{total} registered user{total !== 1 ? 's' : ''}</p>
         </div>
         <div className='flex items-center gap-2'>
@@ -104,7 +104,7 @@ export default function AdminUsers() {
           </button>
           <button
             onClick={() => { setShowInviteModal(true); setInviteError(''); setInviteSuccess('') }}
-            className='px-4 py-2.5 text-sm font-semibold rounded-xl bg-[#1F2524] text-white hover:bg-[#282F2E] transition-colors'
+            className='px-4 py-2.5 text-sm font-semibold rounded-xl bg-[#084A59] text-white hover:bg-[#011C26] transition-colors'
           >
             + Invite User
           </button>
@@ -115,7 +115,7 @@ export default function AdminUsers() {
       {showInvites && (
         <div className='bg-white rounded-2xl border border-gray-200 overflow-hidden'>
           <div className='px-6 py-4 border-b border-gray-100 flex items-center justify-between'>
-            <h3 className='font-bold text-[#1F2524]'>Pending Invites</h3>
+            <h3 className='font-bold text-[#084A59]'>Pending Invites</h3>
             <button onClick={() => setShowInvites(false)} className='text-gray-400 hover:text-gray-600'>
               <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg>
             </button>
@@ -133,14 +133,14 @@ export default function AdminUsers() {
                       {(inv.user.name || inv.user.email || '?')[0].toUpperCase()}
                     </div>
                     <div>
-                      <p className='text-sm font-semibold text-[#1F2524]'>{inv.user.name || 'Unnamed'}</p>
+                      <p className='text-sm font-semibold text-[#084A59]'>{inv.user.name || 'Unnamed'}</p>
                       <p className='text-xs text-gray-400'>{inv.user.email}</p>
                     </div>
                     <span className='px-2 py-0.5 bg-gray-100 rounded text-[10px] font-semibold text-gray-500 uppercase'>{inv.user.role}</span>
                   </div>
                   <div className='flex items-center gap-3'>
                     <span className='text-xs text-gray-400'>Expires {new Date(inv.expiresAt).toLocaleDateString()}</span>
-                    <button onClick={() => handleResendInvite(inv.user.id)} className='text-xs font-semibold text-[#B8860B] hover:text-[#996515] transition-colors'>
+                    <button onClick={() => handleResendInvite(inv.user.id)} className='text-xs font-semibold text-[#084A59] hover:text-[#011C26] transition-colors'>
                       Resend
                     </button>
                   </div>
@@ -172,7 +172,7 @@ export default function AdminUsers() {
               onClick={() => { setRoleFilter(role); setPage(0) }}
               className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
                 roleFilter === role
-                  ? 'bg-[#1F2524] text-white'
+                  ? 'bg-[#084A59] text-white'
                   : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'
               }`}
             >
@@ -205,11 +205,11 @@ export default function AdminUsers() {
                   <tr key={u.id} className='hover:bg-gray-50/50 transition-colors'>
                     <td className='px-6 py-3.5'>
                       <div className='flex items-center gap-3'>
-                        <div className='w-9 h-9 rounded-full bg-[#1F2524] flex items-center justify-center text-xs font-bold text-white flex-shrink-0'>
+                        <div className='w-9 h-9 rounded-full bg-[#084A59] flex items-center justify-center text-xs font-bold text-white flex-shrink-0'>
                           {(u.name || u.email || '?')[0].toUpperCase()}
                         </div>
                         <div>
-                          <p className='text-sm font-semibold text-[#1F2524]'>{u.name || 'Unnamed'}</p>
+                          <p className='text-sm font-semibold text-[#084A59]'>{u.name || 'Unnamed'}</p>
                           <p className='text-xs text-gray-400'>{u.email}</p>
                         </div>
                       </div>
@@ -277,8 +277,8 @@ export default function AdminUsers() {
           <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={(e) => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <div>
-                <h3 className='text-lg font-bold text-[#1F2524]'>Invite a User</h3>
-                <p className='text-sm text-gray-400 mt-0.5'>Send an email invitation to join Atlas Learn</p>
+                <h3 className='text-lg font-bold text-[#084A59]'>Invite a User</h3>
+                <p className='text-sm text-gray-400 mt-0.5'>Send an email invitation to join Apex Learn</p>
               </div>
               <button onClick={() => setShowInviteModal(false)} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors'>
                 <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg>
@@ -336,7 +336,7 @@ export default function AdminUsers() {
                       onClick={() => setInviteRole('admin')}
                       className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
                         inviteRole === 'admin'
-                          ? 'border-[#B8860B] bg-slate-50 text-[#B8860B]'
+                          ? 'border-[#084A59] bg-slate-50 text-[#084A59]'
                           : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
                       }`}
                     >
@@ -354,7 +354,7 @@ export default function AdminUsers() {
                   <button
                     type='submit'
                     disabled={inviteLoading}
-                    className='flex-1 py-2.5 bg-[#1F2524] text-white font-semibold rounded-xl hover:bg-[#282F2E] transition-colors disabled:opacity-50 text-sm'
+                    className='flex-1 py-2.5 bg-[#084A59] text-white font-semibold rounded-xl hover:bg-[#011C26] transition-colors disabled:opacity-50 text-sm'
                   >
                     {inviteLoading ? 'Sending...' : 'Send Invite'}
                   </button>

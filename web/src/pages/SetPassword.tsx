@@ -58,10 +58,10 @@ export default function SetPassword() {
       <div className='w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-8'>
         <div className='text-center mb-6'>
           <div className='w-14 h-14 bg-[#F2B138]/20 rounded-2xl flex items-center justify-center mx-auto mb-4'>
-            <img src='/logo192.png' alt='Atlas Learn' className='w-8 h-8' />
+            <img src='/icon.png' alt='Apex Learn' className='w-8 h-8' />
           </div>
           <h1 className='text-2xl font-bold text-gray-900'>Set Your Password</h1>
-          <p className='text-gray-500 mt-1'>Welcome to Atlas Learn</p>
+          <p className='text-gray-500 mt-1'>Welcome to Apex Learn</p>
         </div>
 
         {validating ? (
@@ -76,7 +76,7 @@ export default function SetPassword() {
             </div>
             <h2 className='text-xl font-semibold text-gray-900 mb-2'>Invalid Link</h2>
             <p className='text-gray-500 mb-6'>{error}</p>
-            <button onClick={() => navigate('/dashboard')} className='px-6 py-2.5 bg-[#1F2524] text-white rounded-lg hover:bg-[#282F2E] transition-colors'>
+            <button onClick={() => navigate('/dashboard')} className='px-6 py-2.5 bg-[#084A59] text-white rounded-lg hover:bg-[#011C26] transition-colors'>
               Go to Login
             </button>
           </div>
@@ -87,7 +87,7 @@ export default function SetPassword() {
             </div>
             <h2 className='text-xl font-semibold text-gray-900 mb-2'>Password Set Successfully</h2>
             <p className='text-gray-500 mb-6'>Your account is ready. You can now log in.</p>
-            <button onClick={() => navigate('/dashboard')} className='px-6 py-2.5 bg-[#1F2524] text-white rounded-lg hover:bg-[#282F2E] transition-colors'>
+            <button onClick={() => navigate('/dashboard')} className='px-6 py-2.5 bg-[#084A59] text-white rounded-lg hover:bg-[#011C26] transition-colors'>
               Go to Login
             </button>
           </div>
@@ -107,7 +107,7 @@ export default function SetPassword() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className='w-full px-4 py-3 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-[#1F2524] focus:ring-1 focus:ring-[#1F2524]/10 transition-all'
+                  className='w-full px-4 py-3 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-[#084A59] focus:ring-1 focus:ring-[#084A59]/10 transition-all'
                   placeholder='••••••••'
                 />
               </div>
@@ -118,14 +118,14 @@ export default function SetPassword() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className='w-full px-4 py-3 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-[#1F2524] focus:ring-1 focus:ring-[#1F2524]/10 transition-all'
+                  className='w-full px-4 py-3 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-[#084A59] focus:ring-1 focus:ring-[#084A59]/10 transition-all'
                   placeholder='••••••••'
                 />
               </div>
               <button
                 type='submit'
                 disabled={loading}
-                className='w-full py-3 bg-[#1F2524] text-white font-semibold rounded-lg hover:bg-[#282F2E] transition-colors disabled:opacity-50 text-base'
+                className='w-full py-3 bg-[#084A59] text-white font-semibold rounded-lg hover:bg-[#011C26] transition-colors disabled:opacity-50 text-base'
               >
                 {loading ? 'Setting Password...' : 'Set Password'}
               </button>

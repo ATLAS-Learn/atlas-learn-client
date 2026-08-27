@@ -129,7 +129,7 @@ export default function AdminFeedback() {
       <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
         <div className='bg-white rounded-xl p-4'>
           <p className='text-sm text-gray-500'>Total</p>
-          <p className='text-2xl font-bold text-[#1F2524]'>{total}</p>
+          <p className='text-2xl font-bold text-[#084A59]'>{total}</p>
         </div>
         <div className='bg-white rounded-xl p-4'>
           <p className='text-sm text-gray-500'>Pending</p>
@@ -155,7 +155,7 @@ export default function AdminFeedback() {
                 setCategoryFilter(cat);
                 setPage(0);
               }}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${categoryFilter === cat ? 'bg-[#1F2524] text-white' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${categoryFilter === cat ? 'bg-[#084A59] text-white' : 'text-gray-500 hover:text-gray-700'}`}
             >
               {cat === 'all' ? 'All' : CATEGORY_LABELS[cat] || cat}
             </button>
@@ -169,7 +169,7 @@ export default function AdminFeedback() {
                 setStatusFilter(s);
                 setPage(0);
               }}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${statusFilter === s ? 'bg-[#1F2524] text-white' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${statusFilter === s ? 'bg-[#084A59] text-white' : 'text-gray-500 hover:text-gray-700'}`}
             >
               {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
@@ -219,7 +219,7 @@ export default function AdminFeedback() {
                   className='border-b border-gray-50 hover:bg-gray-50/50 transition-colors'
                 >
                   <td className='px-5 py-4'>
-                    <p className='font-medium text-[#1F2524]'>
+                    <p className='font-medium text-[#084A59]'>
                       {fb.user?.name || 'Unknown'}
                     </p>
                     <p className='text-xs text-gray-400'>{fb.user?.email}</p>
@@ -232,7 +232,7 @@ export default function AdminFeedback() {
                     </span>
                   </td>
                   <td className='px-5 py-4 max-w-50'>
-                    <p className='font-medium text-[#1F2524] truncate'>
+                    <p className='font-medium text-[#084A59] truncate'>
                       {fb.subject}
                     </p>
                     <p className='text-xs text-gray-400 truncate max-w-50'>
@@ -374,13 +374,13 @@ export default function AdminFeedback() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className='px-6 py-4 border-b border-gray-100'>
-              <h3 className='text-lg font-bold text-[#1F2524]'>
+              <h3 className='text-lg font-bold text-[#084A59]'>
                 Reply to Feedback
               </h3>
             </div>
             <div className='px-6 py-4 space-y-4'>
               <div className='bg-gray-50 rounded-lg p-3'>
-                <p className='text-sm font-medium text-[#1F2524]'>
+                <p className='text-sm font-medium text-[#084A59]'>
                   {replyModal.feedback.subject}
                 </p>
                 <p className='text-xs text-gray-500 mt-1 line-clamp-3'>
@@ -392,7 +392,7 @@ export default function AdminFeedback() {
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder='Type your reply...'
                 rows={5}
-                className='w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1F2524] focus:ring-1 focus:ring-[#1F2524]/10 resize-none'
+                className='w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#084A59] focus:ring-1 focus:ring-[#084A59]/10 resize-none'
               />
             </div>
             <div className='px-6 py-4 border-t border-gray-100 flex justify-end gap-3'>
@@ -405,7 +405,7 @@ export default function AdminFeedback() {
               <button
                 onClick={handleSendReply}
                 disabled={!replyText.trim() || updateMutation.isPending}
-                className='px-4 py-2 text-sm font-medium text-white bg-[#F2B138] hover:bg-[#D99E30] rounded-lg transition-colors disabled:opacity-50'
+                className='px-4 py-2 text-sm font-medium text-white bg-[#F2B138] hover:bg-[#084A59] rounded-lg transition-colors disabled:opacity-50'
               >
                 {updateMutation.isPending ? 'Sending...' : 'Send Reply'}
               </button>

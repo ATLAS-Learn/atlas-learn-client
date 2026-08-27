@@ -74,11 +74,11 @@ export default function Landing() {
       {/* Navbar */}
       <nav className='flex items-center justify-between px-6 md:px-12 py-5 bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50'>
         <Link to='/' style={{ textDecoration: 'none' }} className='flex items-center gap-2.5'>
-          <img src='/logo.png' alt='Atlas' className='h-8' />
+          <img src='/logo.png' alt='Apex' className='h-8' />
         </Link>
         <button
           onClick={() => scrollTo('download')}
-          className='px-5 py-2 text-sm font-semibold text-[#1F2524] border border-gray-200 rounded-full hover:bg-gray-50 transition-colors cursor-pointer'
+          className='px-5 py-2 text-sm font-semibold text-[#084A59] border border-gray-200 rounded-full hover:bg-gray-50 transition-colors cursor-pointer'
         >
           Get the App
         </button>
@@ -90,10 +90,10 @@ export default function Landing() {
           <span className='w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse'></span>
           Built for WAEC &amp; NECO Students
         </div>
-        <h1 className='text-5xl md:text-7xl font-extrabold text-[#1F2524] leading-[1.05] mb-6 tracking-tight'>
+        <h1 className='text-5xl md:text-7xl font-extrabold text-[#084A59] leading-[1.05] mb-6 tracking-tight'>
           Study Smarter.
           <br />
-          <span className='text-[#B8860B]'>Score Higher.</span>
+          <span className='text-[#084A59]'>Score Higher.</span>
         </h1>
         <p className='text-lg md:text-xl text-gray-500 max-w-xl mx-auto mb-10 leading-relaxed'>
           Structured lessons, chapter quizzes, and a personalized learning path
@@ -102,7 +102,7 @@ export default function Landing() {
         <div className='flex flex-col sm:flex-row items-center justify-center gap-3'>
           <button
             onClick={() => scrollTo('download')}
-            className='px-8 py-3.5 bg-[#1F2524] text-white font-semibold rounded-full hover:bg-[#282F2E] transition-all shadow-lg shadow-gray-200/80 cursor-pointer'
+            className='px-8 py-3.5 bg-[#084A59] text-white font-semibold rounded-full hover:bg-[#011C26] transition-all shadow-lg shadow-gray-200/80 cursor-pointer'
           >
             Download for Free
           </button>
@@ -112,7 +112,7 @@ export default function Landing() {
         <div className='mt-16 flex items-center justify-center gap-8 md:gap-16'>
           {stats.map((s, i) => (
             <div key={i} className='text-center'>
-              <p className='text-2xl md:text-3xl font-extrabold text-[#1F2524]'>{s.value}</p>
+              <p className='text-2xl md:text-3xl font-extrabold text-[#084A59]'>{s.value}</p>
               <p className='text-xs text-gray-500 font-medium mt-1'>{s.label}</p>
             </div>
           ))}
@@ -124,7 +124,7 @@ export default function Landing() {
         <div className='max-w-5xl mx-auto'>
           <div className='text-center mb-14'>
             <p className='text-xs font-semibold tracking-widest text-gray-500 uppercase mb-3'>Features</p>
-            <h2 className='text-3xl md:text-4xl font-extrabold text-[#1F2524]'>
+            <h2 className='text-3xl md:text-4xl font-extrabold text-[#084A59]'>
               Everything you need,<br className='hidden md:block' /> nothing you don't.
             </h2>
           </div>
@@ -134,10 +134,10 @@ export default function Landing() {
                 key={i}
                 className='p-6 bg-white rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 group'
               >
-                <div className='w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-[#B8860B] mb-4 group-hover:bg-[#FFF8E1] transition-colors'>
+                <div className='w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-[#084A59] mb-4 group-hover:bg-[#FFF8E1] transition-colors'>
                   {f.icon}
                 </div>
-                <h3 className='text-base font-bold text-[#1F2524] mb-1.5'>
+                <h3 className='text-base font-bold text-[#084A59] mb-1.5'>
                   {f.title}
                 </h3>
                 <p className='text-sm text-gray-500 leading-relaxed'>
@@ -154,7 +154,7 @@ export default function Landing() {
         <div className='max-w-5xl mx-auto'>
           <div className='text-center mb-14'>
             <p className='text-xs font-semibold tracking-widest text-gray-500 uppercase mb-3'>How it works</p>
-            <h2 className='text-3xl md:text-4xl font-extrabold text-[#1F2524]'>
+            <h2 className='text-3xl md:text-4xl font-extrabold text-[#084A59]'>
               Start learning in 3 steps
             </h2>
           </div>
@@ -178,7 +178,7 @@ export default function Landing() {
             ].map((s, i) => (
               <div key={i} className='relative'>
                 <div className='text-5xl font-extrabold text-gray-200 mb-3'>{s.step}</div>
-                <h3 className='text-lg font-bold text-[#1F2524] mb-2'>
+                <h3 className='text-lg font-bold text-[#084A59] mb-2'>
                   {s.title}
                 </h3>
                 <p className='text-sm text-gray-500 leading-relaxed'>{s.desc}</p>
@@ -191,20 +191,20 @@ export default function Landing() {
       {/* Download CTA */}
       <section id='download' className='px-6 md:px-12 py-20'>
         <div className='max-w-3xl mx-auto text-center'>
-          <h2 className='text-3xl md:text-4xl font-extrabold text-[#1F2524] mb-4'>
+          <h2 className='text-3xl md:text-4xl font-extrabold text-[#084A59] mb-4'>
             Ready to start?
           </h2>
           <p className='text-gray-500 max-w-md mx-auto mb-10'>
-            Download Atlas Learn on your phone and begin your learning journey today.
+            Download Apex Learn on your phone and begin your learning journey today.
           </p>
           <div className='flex flex-col sm:flex-row items-center justify-center gap-4'>
-            <button className='flex items-center gap-3 px-7 py-3.5 bg-[#1F2524] text-white font-semibold rounded-full hover:bg-[#282F2E] transition-all shadow-lg shadow-gray-200/80 cursor-pointer'>
+            <button className='flex items-center gap-3 px-7 py-3.5 bg-[#084A59] text-white font-semibold rounded-full hover:bg-[#011C26] transition-all shadow-lg shadow-gray-200/80 cursor-pointer'>
               <svg className='w-5 h-5' viewBox='0 0 24 24' fill='currentColor'>
                 <path d='M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z' />
               </svg>
               App Store
             </button>
-            <button className='flex items-center gap-3 px-7 py-3.5 bg-[#1F2524] text-white font-semibold rounded-full hover:bg-[#282F2E] transition-all shadow-lg shadow-gray-200/80 cursor-pointer'>
+            <button className='flex items-center gap-3 px-7 py-3.5 bg-[#084A59] text-white font-semibold rounded-full hover:bg-[#011C26] transition-all shadow-lg shadow-gray-200/80 cursor-pointer'>
               <svg className='w-5 h-5' viewBox='0 0 24 24' fill='currentColor'>
                 <path d='M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92z' />
                 <path d='M14.5 12.707l2.302 2.302-10.937 6.333 8.635-8.635z' />
@@ -220,9 +220,9 @@ export default function Landing() {
       {/* Footer */}
       <footer className='px-6 md:px-12 py-8 border-t border-gray-100'>
         <div className='flex flex-col md:flex-row items-center justify-between gap-4'>
-          <img src='/logo.png' alt='Atlas' className='h-6' />
+          <img src='/logo.png' alt='Apex' className='h-6' />
           <p className='text-xs text-gray-500'>
-            &copy; {new Date().getFullYear()} Atlas Learn. All rights reserved.
+            &copy; {new Date().getFullYear()} Apex Learn. All rights reserved.
           </p>
         </div>
       </footer>

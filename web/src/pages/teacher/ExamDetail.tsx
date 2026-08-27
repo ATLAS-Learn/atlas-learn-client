@@ -126,7 +126,7 @@ export default function ExamDetail() {
     return (
       <div className='text-center py-16'>
         <p className='text-gray-500 font-semibold'>Exam not found</p>
-        <button onClick={() => navigate('/teacher/exams')} className='mt-4 text-sm text-[#B8860B] font-semibold'>Back to Exams</button>
+        <button onClick={() => navigate('/teacher/exams')} className='mt-4 text-sm text-[#084A59] font-semibold'>Back to Exams</button>
       </div>
     )
   }
@@ -140,7 +140,7 @@ export default function ExamDetail() {
             <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M15.75 19.5L8.25 12l7.5-7.5' /></svg>
             Back to Exams
           </button>
-          <h2 className='text-2xl font-bold text-[#1F2524]'>{exam.title}</h2>
+          <h2 className='text-2xl font-bold text-[#084A59]'>{exam.title}</h2>
           <p className='text-sm text-gray-400 mt-1'>
             {exam.subject?.name} · {exam.questions?.length ?? 0} questions · {exam.timeLimit ? `${Math.round(exam.timeLimit / 60)} min` : 'No time limit'}
           </p>
@@ -164,7 +164,7 @@ export default function ExamDetail() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors capitalize ${tab === t ? 'bg-[#1F2524] text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors capitalize ${tab === t ? 'bg-[#084A59] text-white' : 'text-gray-500 hover:bg-gray-100'}`}
           >
             {t} {t === 'questions' ? `(${exam.questions?.length ?? 0})` : `(${stats?.totalAttempts ?? 0})`}
           </button>
@@ -175,7 +175,7 @@ export default function ExamDetail() {
       {tab === 'questions' && (
         <div className='space-y-3'>
           <div className='flex justify-end'>
-            <button onClick={() => setShowAddQuestion(true)} className='px-4 py-2 bg-[#F2B138] text-white text-sm font-bold rounded-xl hover:bg-[#996515] transition-colors'>
+            <button onClick={() => setShowAddQuestion(true)} className='px-4 py-2 bg-[#F2B138] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors'>
               + Add Question
             </button>
           </div>
@@ -191,7 +191,7 @@ export default function ExamDetail() {
                 <div className='flex items-start justify-between'>
                   <div className='flex-1'>
                     <p className='text-xs font-bold text-gray-400 mb-1'>Q{idx + 1} · {q.points} pt{q.points !== 1 ? 's' : ''}</p>
-                    <p className='text-sm font-semibold text-[#1F2524]'>{q.questionText}</p>
+                    <p className='text-sm font-semibold text-[#084A59]'>{q.questionText}</p>
                     <div className='mt-2 space-y-1'>
                       {q.options.map((opt: string, oi: number) => (
                         <div key={oi} className={`text-xs px-3 py-1.5 rounded-lg ${oi === q.correctAnswerIndex ? 'bg-green-50 text-green-700 font-semibold' : 'bg-slate-50 text-gray-500'}`}>
@@ -220,11 +220,11 @@ export default function ExamDetail() {
             <div className='grid grid-cols-2 gap-4'>
               <div className='bg-white rounded-2xl border border-gray-200 p-5'>
                 <p className='text-sm text-gray-400 font-semibold'>Total Attempts</p>
-                <p className='text-2xl font-bold text-[#1F2524] mt-1'>{stats.totalAttempts}</p>
+                <p className='text-2xl font-bold text-[#084A59] mt-1'>{stats.totalAttempts}</p>
               </div>
               <div className='bg-white rounded-2xl border border-gray-200 p-5'>
                 <p className='text-sm text-gray-400 font-semibold'>Average Score</p>
-                <p className='text-2xl font-bold text-[#1F2524] mt-1'>{stats.avgScore}%</p>
+                <p className='text-2xl font-bold text-[#084A59] mt-1'>{stats.avgScore}%</p>
               </div>
             </div>
           )}
@@ -248,7 +248,7 @@ export default function ExamDetail() {
                   {attempts.map((a: any) => (
                     <tr key={a.id} className='border-b border-gray-50 hover:bg-slate-50/50 transition-colors'>
                       <td className='px-5 py-3'>
-                        <p className='text-sm font-semibold text-[#1F2524]'>{a.user?.name || 'Unknown'}</p>
+                        <p className='text-sm font-semibold text-[#084A59]'>{a.user?.name || 'Unknown'}</p>
                         <p className='text-xs text-gray-400'>{a.user?.email}</p>
                       </td>
                       <td className='px-5 py-3'>
@@ -276,7 +276,7 @@ export default function ExamDetail() {
         <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4' onClick={() => setShowAddQuestion(false)}>
           <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
-              <h3 className='text-lg font-bold text-[#1F2524]'>Add Question</h3>
+              <h3 className='text-lg font-bold text-[#084A59]'>Add Question</h3>
               <button onClick={() => setShowAddQuestion(false)} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400'>
                 <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg>
               </button>
@@ -338,7 +338,7 @@ export default function ExamDetail() {
               </div>
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => setShowAddQuestion(false)} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50'>Cancel</button>
-                <button type='submit' disabled={saving} className='flex-1 py-2.5 bg-[#1F2524] text-white font-semibold rounded-xl hover:bg-[#282F2E] text-sm disabled:opacity-50'>
+                <button type='submit' disabled={saving} className='flex-1 py-2.5 bg-[#084A59] text-white font-semibold rounded-xl hover:bg-[#011C26] text-sm disabled:opacity-50'>
                   {saving ? 'Adding...' : 'Add Question'}
                 </button>
               </div>

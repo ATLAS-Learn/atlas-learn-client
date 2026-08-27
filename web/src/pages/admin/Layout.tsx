@@ -120,17 +120,12 @@ export default function AdminLayout() {
     <div className='h-screen bg-[#F0F0F0] flex overflow-hidden'>
       {/* Sidebar */}
       <aside
-        className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-64 bg-[#1F2524] flex flex-col transition-transform lg:translate-x-0 lg:static lg:shrink-0`}
+        className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-64 bg-[#084A59] flex flex-col transition-transform lg:translate-x-0 lg:static lg:shrink-0`}
       >
         {/* Logo */}
-        <div className='px-6 py-6 flex items-center gap-3'>
-          <img src='/icon.png' alt='Atlas' className='w-9 h-9' />
-          <div>
-            <p className='text-white font-bold text-base leading-tight pb-2'>
-              Atlas Learn
-            </p>
-            <p className='text-gray-400 text-xs'>Admin Console</p>
-          </div>
+        <div className='px-6 py-6 flex flex-col items-center'>
+          <img src='/logo-console.png' alt='Apex' className='h-20 w-auto' />
+          <p className='text-gray-300 text-sm font-medium mt-2'>Admin Console</p>
         </div>
 
         {/* Nav */}
@@ -213,7 +208,7 @@ export default function AdminLayout() {
             </svg>
           </button>
           <div className='flex-1'>
-            <h1 className='text-lg font-bold text-[#1F2524]'>
+            <h1 className='text-lg font-bold text-[#084A59]'>
               {currentPage?.label || 'Admin'}
             </h1>
           </div>

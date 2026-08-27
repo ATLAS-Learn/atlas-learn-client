@@ -199,14 +199,14 @@ export default function QuizDetail() {
     return (
       <div className='space-y-6'>
         <div className='flex items-center gap-3 text-sm text-gray-400'>
-          <button onClick={() => navigate('/teacher/quizzes')} className='hover:text-[#B8860B] transition-colors font-medium'>&larr; Back to Quizzes</button>
+          <button onClick={() => navigate('/teacher/quizzes')} className='hover:text-[#084A59] transition-colors font-medium'>&larr; Back to Quizzes</button>
         </div>
         <div className='bg-white rounded-2xl border border-gray-200 p-16 text-center'>
           <p className='text-gray-500 font-semibold text-lg'>Quiz not found</p>
           <p className='text-sm text-gray-400 mt-2'>The quiz could not be loaded. Please go back to the quizzes list.</p>
           <button
             onClick={() => navigate('/teacher/quizzes')}
-            className='mt-4 px-5 py-2.5 bg-[#F2B138] text-white text-sm font-bold rounded-xl hover:bg-[#996515] transition-colors'
+            className='mt-4 px-5 py-2.5 bg-[#F2B138] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors'
           >
             Go to Quizzes
           </button>
@@ -220,14 +220,14 @@ export default function QuizDetail() {
   return (
     <div className='space-y-6'>
       <div className='flex items-center gap-3 text-sm text-gray-400 mb-2'>
-        <button onClick={() => navigate('/teacher/quizzes')} className='hover:text-[#B8860B] transition-colors font-medium'>&larr; Back to Quizzes</button>
+        <button onClick={() => navigate('/teacher/quizzes')} className='hover:text-[#084A59] transition-colors font-medium'>&larr; Back to Quizzes</button>
       </div>
 
       {/* Quiz Header */}
       <div className='bg-white rounded-2xl border border-gray-200 overflow-hidden'>
         <div className='bg-slate-50/80 px-6 py-5 flex items-start justify-between'>
           <div className='flex-1 min-w-0'>
-            <h2 className='text-2xl font-bold text-[#1F2524]'>{quiz.title}</h2>
+            <h2 className='text-2xl font-bold text-[#084A59]'>{quiz.title}</h2>
             {quiz.description && (
               <p className='text-sm text-gray-400 mt-1'>{quiz.description}</p>
             )}
@@ -245,7 +245,7 @@ export default function QuizDetail() {
           <div className='flex gap-2 flex-shrink-0 ml-4'>
             <button
               onClick={openQuizEditForm}
-              className='px-3.5 py-2 text-xs font-bold text-[#B8860B] border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors'
+              className='px-3.5 py-2 text-xs font-bold text-[#084A59] border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors'
             >
               Edit Quiz
             </button>
@@ -265,7 +265,7 @@ export default function QuizDetail() {
           <span className='text-[11px] font-bold text-gray-400 uppercase tracking-wider'>Questions</span>
           <button
             onClick={openAddQuestionForm}
-            className='px-4 py-2 bg-[#F2B138] text-white text-xs font-bold rounded-xl hover:bg-[#996515] transition-colors'
+            className='px-4 py-2 bg-[#F2B138] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'
           >
             + Add Question
           </button>
@@ -288,12 +288,12 @@ export default function QuizDetail() {
                           {qi + 1}
                         </span>
                         {q.points != null && q.points > 0 && (
-                          <span className='text-[10px] font-semibold text-[#B8860B] bg-white px-2 py-0.5 rounded border border-gray-100'>
+                          <span className='text-[10px] font-semibold text-[#084A59] bg-white px-2 py-0.5 rounded border border-gray-100'>
                             {q.points} pt{q.points !== 1 ? 's' : ''}
                           </span>
                         )}
                       </div>
-                      <p className='text-sm font-semibold text-[#1F2524] mb-2'>{q.question}</p>
+                      <p className='text-sm font-semibold text-[#084A59] mb-2'>{q.question}</p>
                       {q.options && q.options.length > 0 && (
                         <div className='space-y-1 ml-1'>
                           {q.options.map((opt: string, oi: number) => (
@@ -320,7 +320,7 @@ export default function QuizDetail() {
                     <div className='flex gap-1 flex-shrink-0'>
                       <button
                         onClick={() => openEditQuestionForm(q)}
-                        className='p-2 rounded-lg text-gray-400 hover:text-[#B8860B] hover:bg-slate-50 transition-colors'
+                        className='p-2 rounded-lg text-gray-400 hover:text-[#084A59] hover:bg-slate-50 transition-colors'
                       >
                         <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
                           <path strokeLinecap='round' strokeLinejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125' />
@@ -348,7 +348,7 @@ export default function QuizDetail() {
         <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4' onClick={() => setShowQuizForm(false)}>
           <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
-              <h3 className='text-lg font-bold text-[#1F2524]'>Edit Quiz</h3>
+              <h3 className='text-lg font-bold text-[#084A59]'>Edit Quiz</h3>
               <button onClick={() => setShowQuizForm(false)} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors'>
                 <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg>
               </button>
@@ -384,7 +384,7 @@ export default function QuizDetail() {
               </div>
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => setShowQuizForm(false)} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors'>Cancel</button>
-                <button type='submit' disabled={submitting} className='flex-1 py-2.5 bg-[#1F2524] text-white font-semibold rounded-xl hover:bg-[#282F2E] transition-colors text-sm disabled:opacity-50'>
+                <button type='submit' disabled={submitting} className='flex-1 py-2.5 bg-[#084A59] text-white font-semibold rounded-xl hover:bg-[#011C26] transition-colors text-sm disabled:opacity-50'>
                   {submitting ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
@@ -398,7 +398,7 @@ export default function QuizDetail() {
         <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4' onClick={() => { setShowQuestionForm(false); setEditingQuestion(null) }}>
           <div className='bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10'>
-              <h3 className='text-lg font-bold text-[#1F2524]'>{editingQuestion ? 'Edit Question' : 'Add Question'}</h3>
+              <h3 className='text-lg font-bold text-[#084A59]'>{editingQuestion ? 'Edit Question' : 'Add Question'}</h3>
               <button onClick={() => { setShowQuestionForm(false); setEditingQuestion(null) }} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors'>
                 <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg>
               </button>
@@ -472,7 +472,7 @@ export default function QuizDetail() {
 
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => { setShowQuestionForm(false); setEditingQuestion(null) }} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors'>Cancel</button>
-                <button type='submit' disabled={submitting} className='flex-1 py-2.5 bg-[#1F2524] text-white font-semibold rounded-xl hover:bg-[#282F2E] transition-colors text-sm disabled:opacity-50'>
+                <button type='submit' disabled={submitting} className='flex-1 py-2.5 bg-[#084A59] text-white font-semibold rounded-xl hover:bg-[#011C26] transition-colors text-sm disabled:opacity-50'>
                   {submitting ? 'Saving...' : editingQuestion ? 'Update Question' : 'Add Question'}
                 </button>
               </div>

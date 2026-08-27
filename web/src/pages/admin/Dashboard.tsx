@@ -24,13 +24,13 @@ function StatCard({ label, value, sub, icon, color = 'bg-white' }: { label: stri
         <p className='text-sm font-medium text-gray-500'>{label}</p>
         {icon && <div className='text-gray-400'>{icon}</div>}
       </div>
-      <p className='text-3xl font-bold text-[#1F2524] tracking-tight'>{value}</p>
+      <p className='text-3xl font-bold text-[#084A59] tracking-tight'>{value}</p>
       {sub && <p className='text-xs font-medium text-gray-400'>{sub}</p>}
     </div>
   )
 }
 
-function MiniBarChart({ data, maxVal, color = '#1F2524', hoverColor = '#F2B138', height = 100 }: { data: number[]; maxVal: number; color?: string; hoverColor?: string; height?: number }) {
+function MiniBarChart({ data, maxVal, color = '#084A59', hoverColor = '#F2B138', height = 100 }: { data: number[]; maxVal: number; color?: string; hoverColor?: string; height?: number }) {
   const max = Math.max(maxVal, 1)
   return (
     <div className='flex items-end gap-1' style={{ height }}>
@@ -181,11 +181,11 @@ export default function AdminDashboard() {
           <div className='bg-white rounded-2xl p-6'>
             <div className='flex items-center justify-between mb-5'>
               <div>
-                <h3 className='text-base font-bold text-[#1F2524]'>Weekly Active Users</h3>
+                <h3 className='text-base font-bold text-[#084A59]'>Weekly Active Users</h3>
                 <p className='text-sm text-gray-400 mt-0.5'>Last 12 weeks</p>
               </div>
               <div className='text-right'>
-                <p className='text-2xl font-bold text-[#1F2524]'>{wau.currentWAU}</p>
+                <p className='text-2xl font-bold text-[#084A59]'>{wau.currentWAU}</p>
                 <p className={`text-sm font-semibold ${(wau.wauChangePercent ?? 0) >= 0 ? 'text-slate-500' : 'text-slate-400'}`}>
                   {(wau.wauChangePercent ?? 0) >= 0 ? '+' : ''}{wau.wauChangePercent ?? 0}%
                 </p>
@@ -211,18 +211,18 @@ export default function AdminDashboard() {
           <div className='bg-white rounded-2xl p-6'>
             <div className='flex items-center justify-between mb-5'>
               <div>
-                <h3 className='text-base font-bold text-[#1F2524]'>New Signups</h3>
+                <h3 className='text-base font-bold text-[#084A59]'>New Signups</h3>
                 <p className='text-sm text-gray-400 mt-0.5'>Last 30 days — {signupTrend.totalNewUsers ?? 0} total</p>
               </div>
               <div className='flex items-center gap-3 text-xs'>
-                <span className='flex items-center gap-1.5'><span className='w-2 h-2 rounded-full bg-[#1F2524]' /> Teachers</span>
+                <span className='flex items-center gap-1.5'><span className='w-2 h-2 rounded-full bg-[#084A59]' /> Teachers</span>
                 <span className='flex items-center gap-1.5'><span className='w-2 h-2 rounded-full bg-slate-300' /> Students</span>
               </div>
             </div>
             <StackedBarChart
               data={signupData.slice(-30).map((d: any) => ({ students: d.students || 0, teachers: d.teachers || 0 }))}
               maxVal={signupMax}
-              colors={{ students: '#CBD5E1', teachers: '#1F2524' }}
+              colors={{ students: '#CBD5E1', teachers: '#084A59' }}
               height={120}
             />
           </div>
@@ -234,7 +234,7 @@ export default function AdminDashboard() {
         {/* Chapter Completion */}
         {chapterCompletion?.primaryMetric && (
           <div className='bg-white rounded-2xl p-6'>
-            <h3 className='text-base font-bold text-[#1F2524] mb-4'>Chapter 1 Funnel</h3>
+            <h3 className='text-base font-bold text-[#084A59] mb-4'>Chapter 1 Funnel</h3>
             <p className='text-xs text-gray-400 mb-5'>Student progression through first chapter</p>
             <div className='space-y-4'>
               {[
@@ -245,7 +245,7 @@ export default function AdminDashboard() {
                 <div key={i}>
                   <div className='flex items-center justify-between mb-1.5'>
                     <span className='text-sm font-medium text-gray-600'>{item.label}</span>
-                    <span className='text-sm font-bold text-[#1F2524]'>
+                    <span className='text-sm font-bold text-[#084A59]'>
                       {i === 0 ? item.value : `${item.value}%`}
                     </span>
                   </div>
@@ -264,14 +264,14 @@ export default function AdminDashboard() {
         {/* Quiz Stats */}
         {quizStats?.summary && (
           <div className='bg-white rounded-2xl p-6'>
-            <h3 className='text-base font-bold text-[#1F2524] mb-4'>Quiz Performance</h3>
+            <h3 className='text-base font-bold text-[#084A59] mb-4'>Quiz Performance</h3>
             <p className='text-xs text-gray-400 mb-5'>Overall quiz metrics</p>
             <div className='grid grid-cols-2 gap-4'>
               {[
-                { label: 'Total Attempts', value: summary.totalAttempts, color: 'text-[#1F2524]' },
+                { label: 'Total Attempts', value: summary.totalAttempts, color: 'text-[#084A59]' },
                 { label: 'Passed', value: summary.totalPassed, color: 'text-slate-600' },
                 { label: 'Failed', value: summary.totalFailed, color: 'text-slate-400' },
-                { label: 'Pass Rate', value: `${summary.overallPassRate ?? 0}%`, color: 'text-[#B8860B]' },
+                { label: 'Pass Rate', value: `${summary.overallPassRate ?? 0}%`, color: 'text-[#084A59]' },
               ].map((s, i) => (
                 <div key={i} className='bg-gray-50 rounded-xl p-3'>
                   <p className='text-xs text-gray-400 mb-1'>{s.label}</p>
@@ -284,7 +284,7 @@ export default function AdminDashboard() {
 
         {/* Platform Breakdown */}
         <div className='bg-white rounded-2xl p-6'>
-          <h3 className='text-base font-bold text-[#1F2524] mb-4'>User Breakdown</h3>
+          <h3 className='text-base font-bold text-[#084A59] mb-4'>User Breakdown</h3>
           <p className='text-xs text-gray-400 mb-5'>Platform user composition</p>
           <div className='space-y-3'>
             {[
@@ -296,7 +296,7 @@ export default function AdminDashboard() {
               <div key={i}>
                 <div className='flex items-center justify-between mb-1.5'>
                   <span className='text-sm font-medium text-gray-600'>{item.label}</span>
-                  <span className='text-sm font-bold text-[#1F2524]'>{item.value}</span>
+                  <span className='text-sm font-bold text-[#084A59]'>{item.value}</span>
                 </div>
                 <div className='h-2 bg-gray-100 rounded-full overflow-hidden'>
                   <div
@@ -310,7 +310,7 @@ export default function AdminDashboard() {
 
           {/* Content Summary */}
           <div className='mt-6 pt-5 border-t border-gray-100'>
-            <h4 className='text-sm font-bold text-[#1F2524] mb-3'>Content Summary</h4>
+            <h4 className='text-sm font-bold text-[#084A59] mb-3'>Content Summary</h4>
             <div className='grid grid-cols-3 gap-3'>
               {[
                 { label: 'Subjects', value: content.subjects ?? 0 },
@@ -318,7 +318,7 @@ export default function AdminDashboard() {
                 { label: 'Lessons', value: content.lessons ?? 0 },
               ].map((s, i) => (
                 <div key={i} className='text-center'>
-                  <p className='text-xl font-bold text-[#1F2524]'>{s.value}</p>
+                  <p className='text-xl font-bold text-[#084A59]'>{s.value}</p>
                   <p className='text-[11px] text-gray-400 font-medium'>{s.label}</p>
                 </div>
               ))}

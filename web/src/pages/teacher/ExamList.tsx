@@ -87,12 +87,12 @@ export default function ExamList() {
     <div className='space-y-6'>
       <div className='flex items-center justify-between'>
         <div>
-          <h2 className='text-2xl font-bold text-[#1F2524]'>Exam Management</h2>
+          <h2 className='text-2xl font-bold text-[#084A59]'>Exam Management</h2>
           <p className='text-sm text-gray-400 mt-0.5'>Create and manage subject exams</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className='px-4 py-2.5 bg-[#1F2524] text-white text-sm font-bold rounded-xl hover:bg-[#282F2E] transition-colors'
+          className='px-4 py-2.5 bg-[#084A59] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors'
         >
           + New Exam
         </button>
@@ -131,7 +131,7 @@ export default function ExamList() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className='font-bold text-[#1F2524] text-lg'>{exam.title}</h3>
+                    <h3 className='font-bold text-[#084A59] text-lg'>{exam.title}</h3>
                     <p className='text-sm text-gray-400'>
                       {exam.subject?.name || 'Unknown Subject'} · {exam._count?.questions ?? 0} questions · {exam.timeLimit ? `${Math.round(exam.timeLimit / 60)} min` : 'No time limit'}
                     </p>
@@ -149,7 +149,7 @@ export default function ExamList() {
               <div className='flex gap-2 px-5 pb-4'>
                 <button
                   onClick={() => navigate(`/teacher/exams/${exam.id}`)}
-                  className='px-3 py-1.5 text-xs font-semibold text-[#B8860B] border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors'
+                  className='px-3 py-1.5 text-xs font-semibold text-[#084A59] border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors'
                 >
                   View Details
                 </button>
@@ -180,7 +180,7 @@ export default function ExamList() {
         <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4' onClick={() => setShowCreateModal(false)}>
           <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
-              <h3 className='text-lg font-bold text-[#1F2524]'>New Exam</h3>
+              <h3 className='text-lg font-bold text-[#084A59]'>New Exam</h3>
               <button onClick={() => setShowCreateModal(false)} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors'>
                 <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg>
               </button>
@@ -231,7 +231,7 @@ export default function ExamList() {
               </div>
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => setShowCreateModal(false)} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors'>Cancel</button>
-                <button type='submit' disabled={creating} className='flex-1 py-2.5 bg-[#1F2524] text-white font-semibold rounded-xl hover:bg-[#282F2E] transition-colors text-sm disabled:opacity-50'>
+                <button type='submit' disabled={creating} className='flex-1 py-2.5 bg-[#084A59] text-white font-semibold rounded-xl hover:bg-[#011C26] transition-colors text-sm disabled:opacity-50'>
                   {creating ? 'Creating...' : 'Create Exam'}
                 </button>
               </div>

@@ -41,7 +41,7 @@ export default function ForgotPassword() {
             </div>
             <h2 className='text-xl font-semibold text-gray-900 mb-2'>Check Your Email</h2>
             <p className='text-gray-500 mb-6'>We've sent a password reset link to <strong>{email}</strong></p>
-            <button onClick={() => navigate('/dashboard')} className='px-6 py-2.5 bg-[#1F2524] text-white rounded-lg hover:bg-[#282F2E] transition-colors'>
+            <button onClick={() => navigate('/dashboard')} className='px-6 py-2.5 bg-[#084A59] text-white rounded-lg hover:bg-[#011C26] transition-colors'>
               Return to Login
             </button>
           </div>
@@ -55,14 +55,14 @@ export default function ForgotPassword() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className='w-full px-4 py-3 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-[#1F2524] focus:ring-1 focus:ring-[#1F2524]/10 transition-all'
+                className='w-full px-4 py-3 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-[#084A59] focus:ring-1 focus:ring-[#084A59]/10 transition-all'
                 placeholder='you@example.com'
               />
             </div>
             <button
               type='submit'
               disabled={loading}
-              className='w-full py-3 bg-[#1F2524] text-white font-semibold rounded-lg hover:bg-[#282F2E] transition-colors disabled:opacity-50 text-base'
+              className='w-full py-3 bg-[#084A59] text-white font-semibold rounded-lg hover:bg-[#011C26] transition-colors disabled:opacity-50 text-base'
             >
               {loading ? 'Sending...' : 'Send Reset Link'}
             </button>
