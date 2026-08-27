@@ -54,7 +54,10 @@ function SubjectCard({ subject }: { subject: SubjectProgress }) {
                     <View
                         style={[
                             styles.progressBarFill,
-                            { width: `${Math.min(subject.completionPercentage, 100)}%` },
+                            {
+                                width: `${Math.min(subject.completionPercentage, 100)}%`,
+                                backgroundColor: subject.completionPercentage >= 100 ? "#4CAF50" : "#1A5C6B",
+                            },
                         ]}
                     />
                 </View>
