@@ -80,7 +80,7 @@ export default function LeaderboardScreen() {
         if (index === 0) {
             return (
                 <View style={styles.rankBadgeTop}>
-                    <Text style={styles.trophyIcon}>🏆</Text>
+                    <Ionicons name="trophy" size={20} color="#D4A017" />
                 </View>
             );
         }
@@ -172,7 +172,9 @@ export default function LeaderboardScreen() {
                     keyExtractor={(item) => item.userId}
                     ListHeaderComponent={
                         <View style={styles.headerBanner}>
-                            <Text style={styles.headerTrophy}>🏆</Text>
+                            <View style={styles.headerTrophyContainer}>
+                        <Ionicons name="trophy" size={48} color="#D4A017" />
+                    </View>
                             <Text style={styles.headerTitle}>Top Learners</Text>
                             <Text style={styles.headerSubtitle}>
                                 Based on quiz & exam performance
@@ -217,8 +219,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#F0F0F0",
     },
-    headerTrophy: {
-        fontSize: 52,
+    headerTrophyContainer: {
         marginBottom: 8,
     },
     headerTitle: {
@@ -267,10 +268,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginRight: 8,
         borderWidth: 1.5,
-        borderColor: "#FFD700",
-    },
-    trophyIcon: {
-        fontSize: 20,
+        borderColor: "#D4A017",
     },
     rankBadgeText: {
         fontSize: 13,

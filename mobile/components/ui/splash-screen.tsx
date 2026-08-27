@@ -9,11 +9,10 @@ export function SplashScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="#FFD580" translucent={false} />
       <View style={styles.content}>
         <Image
-          source={require("@/assets/images/logo/Blue atlas logo.png")}
+          source={require("@/assets/images/splash-icon.png")}
           resizeMode="contain"
           style={styles.logo}
         />
-        <Text style={styles.learnText}>Learn</Text>
         <Text style={styles.tagline}>Your Gateway to an A Grade</Text>
       </View>
       <Image
@@ -41,15 +40,8 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: width * 0.55,
-    height: width * 0.3,
-    marginBottom: 1,
-  },
-  learnText: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#1B3A5C",
-    letterSpacing: 4,
-    marginBottom: 32,
+    height: width * 0.55,
+    marginBottom: 16,
   },
   tagline: {
     fontSize: Math.min(width, height) * 0.045,
