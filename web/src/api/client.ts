@@ -463,6 +463,77 @@ class WebAPIClient {
     const res = await this.request<any>('/exams/subjects');
     return this.unwrap(res);
   }
+
+  // AI Generation
+  async generateExamQuestions(data: {
+    prompt?: string;
+    subjectId: string;
+    chapterIds?: string[];
+    count?: number;
+    questionType?: 'MCQ' | 'STRUCTURAL' | 'MIXED';
+  }) {
+    const res = await this.request<any>('/exams/generate-questions', {
+      method: 'POST',
+      data,
+    });
+    return this.unwrap(res);
+  }
+
+  async generateQuizQuestions(data: {
+    prompt?: string;
+    chapterId: string;
+    count?: number;
+    questionType?: 'MCQ' | 'STRUCTURAL' | 'MIXED';
+  }) {
+    const res = await this.request<any>('/quizzes/generate-questions', {
+      method: 'POST',
+      data,
+    });
+    return this.unwrap(res);
+  }
+
+  // Exam corrections
+  async getPendingCorrections(examId: string) {
+    const res = await this.request<any>(`/exams/${examId}/pending-corrections`);
+    return this.unwrap(res);
+  }
+
+  async correctExamAttempt(examId: string, data: {
+    attemptId: string;
+    corrections: { questionId: string; points: number; comment?: string }[];
+    overallComment?: string;
+  }) {
+    const res = await this.request<any>(`/exams/${examId}/correct`, {
+      method: 'POST',
+      data,
+    });
+    return this.unwrap(res);
+  }
+
+  // Notifications
+  async getNotifications(params?: { limit?: number; offset?: number; unreadOnly?: boolean }) {
+    const res = await this.request<any>('/notifications', { params });
+    return this.unwrap(res);
+  }
+
+  async getUnreadNotificationCount() {
+    const res = await this.request<any>('/notifications/unread-count');
+    return this.unwrap(res);
+  }
+
+  async markNotificationRead(notificationId: string) {
+    return this.request<any>(`/notifications/${notificationId}/read`, { method: 'PATCH' });
+  }
+
+  async markAllNotificationsRead() {
+    return this.request<any>('/notifications/read-all', { method: 'PATCH' });
+  }
+
+  // Chapters (for curriculum picker)
+  async getChaptersBySubject(subjectId: string) {
+    const res = await this.request<any>('/chapters', { params: { subjectId } });
+    return this.unwrap(res);
+  }
 }
 
 export const api = new WebAPIClient();

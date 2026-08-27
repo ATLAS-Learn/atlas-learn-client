@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../../api/client'
+import RichTextEditor from '../../components/RichTextEditor'
 
 export default function TeacherChapterDetail() {
   const { subjectId, chapterId } = useParams<{ subjectId: string; chapterId: string }>()
@@ -217,7 +218,7 @@ export default function TeacherChapterDetail() {
       {/* Lesson Modal */}
       {showLessonForm && (
         <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4' onClick={() => { setShowLessonForm(false); setEditingLesson(null) }}>
-          <div className='bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl' onClick={e => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10'>
               <h3 className='text-lg font-bold text-[#084A59]'>{editingLesson ? 'Edit Lesson' : 'New Lesson'}</h3>
               <button onClick={() => { setShowLessonForm(false); setEditingLesson(null) }} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400'><svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg></button>
@@ -225,7 +226,7 @@ export default function TeacherChapterDetail() {
             <form onSubmit={handleLessonSubmit} className='px-6 py-5 space-y-4'>
               <div className='grid grid-cols-2 gap-4'>
                 <div className='col-span-2'><label className='block text-sm font-semibold text-gray-700 mb-1.5'>Title *</label><input value={lessonForm.title} onChange={e => setLessonForm({ ...lessonForm, title: e.target.value })} required className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all' /></div>
-                <div className='col-span-2'><label className='block text-sm font-semibold text-gray-700 mb-1.5'>Content</label><textarea value={lessonForm.content} onChange={e => setLessonForm({ ...lessonForm, content: e.target.value })} rows={4} placeholder='Lesson content (markdown supported)...' className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all resize-none' /></div>
+                <div className='col-span-2'><label className='block text-sm font-semibold text-gray-700 mb-1.5'>Content</label><RichTextEditor value={lessonForm.content} onChange={val => setLessonForm({ ...lessonForm, content: val })} placeholder='Write your lesson content here...' minHeight='200px' /></div>
                 <div><label className='block text-sm font-semibold text-gray-700 mb-1.5'>Video URL</label><input value={lessonForm.videoUrl} onChange={e => setLessonForm({ ...lessonForm, videoUrl: e.target.value })} placeholder='https://...' className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all' /></div>
                 <div><label className='block text-sm font-semibold text-gray-700 mb-1.5'>PDF URL</label><input value={lessonForm.pdfUrl} onChange={e => setLessonForm({ ...lessonForm, pdfUrl: e.target.value })} placeholder='https://...' className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all' /></div>
                 <div><label className='block text-sm font-semibold text-gray-700 mb-1.5'>Order *</label><input type='number' value={lessonForm.orderIndex} onChange={e => setLessonForm({ ...lessonForm, orderIndex: Number(e.target.value) })} required min={1} className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all' /></div>

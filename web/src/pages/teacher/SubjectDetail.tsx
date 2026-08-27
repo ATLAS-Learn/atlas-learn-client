@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../../api/client'
+import RichTextEditor from '../../components/RichTextEditor'
 
 export default function TeacherSubjectDetail() {
   const { subjectId } = useParams<{ subjectId: string }>()
@@ -219,11 +220,11 @@ export default function TeacherSubjectDetail() {
               </div>
               <div>
                 <label className='block text-sm font-semibold text-gray-700 mb-1.5'>Description</label>
-                <textarea
+                <RichTextEditor
                   value={chapterForm.description}
-                  onChange={(e) => setChapterForm({ ...chapterForm, description: e.target.value })}
-                  rows={3}
-                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all resize-none'
+                  onChange={(val) => setChapterForm({ ...chapterForm, description: val })}
+                  placeholder='Describe what this chapter covers...'
+                  minHeight='120px'
                 />
               </div>
               <div className='grid grid-cols-3 gap-4'>
