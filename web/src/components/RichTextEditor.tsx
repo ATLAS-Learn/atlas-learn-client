@@ -6,6 +6,8 @@ import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import TextAlign from '@tiptap/extension-text-align';
 import Highlight from '@tiptap/extension-highlight';
+import Mathematics from '@tiptap/extension-mathematics';
+import 'katex/dist/katex.min.css';
 import {
   Bold,
   Italic,
@@ -27,6 +29,7 @@ import {
   Redo,
   RemoveFormatting,
   Minus,
+  Sigma,
 } from 'lucide-react';
 import { useState, useCallback, useEffect } from 'react';
 
@@ -81,6 +84,8 @@ export default function RichTextEditor({
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [showImageInput, setShowImageInput] = useState(false);
+  const [showFormulaInput, setShowFormulaInput] = useState(false);
+  const [formulaInput, setFormulaInput] = useState('');
 
   const editor = useEditor({
     extensions: [
@@ -100,6 +105,7 @@ export default function RichTextEditor({
         types: ['heading', 'paragraph'],
       }),
       Highlight.configure({ multicolor: false }),
+      Mathematics,
     ],
     content: value || '',
     onUpdate: ({ editor }) => {
@@ -138,6 +144,13 @@ export default function RichTextEditor({
     setImageUrl('');
     setShowImageInput(false);
   }, [editor, imageUrl]);
+
+  const insertFormula = useCallback(() => {
+    if (!editor || !formulaInput.trim()) return;
+    editor.chain().focus().insertContent(`$${formulaInput}$`).run();
+    setFormulaInput('');
+    setShowFormulaInput(false);
+  }, [editor, formulaInput]);
 
   if (!editor) return null;
 
@@ -276,6 +289,13 @@ export default function RichTextEditor({
         >
           <ImagePlus size={iconSize} />
         </ToolbarButton>
+        <ToolbarButton
+          onClick={() => setShowFormulaInput(!showFormulaInput)}
+          active={showFormulaInput}
+          title='Insert Formula (LaTeX)'
+        >
+          <Sigma size={iconSize} />
+        </ToolbarButton>
 
         <Divider />
 
@@ -359,6 +379,39 @@ export default function RichTextEditor({
             onClick={() => {
               setShowImageInput(false);
               setImageUrl('');
+            }}
+            className='px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors'
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Formula Input */}
+      {showFormulaInput && (
+        <div className='flex items-center gap-2 px-3 py-2 bg-purple-50 border-b border-purple-100'>
+          <Sigma size={14} className='text-purple-500 shrink-0' />
+          <input
+            type='text'
+            value={formulaInput}
+            onChange={(e) => setFormulaInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && insertFormula()}
+            placeholder='LaTeX formula, e.g. E = mc^2 or \frac{1}{2}mv^2'
+            className='flex-1 text-sm px-3 py-1.5 border border-purple-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 bg-white font-mono'
+            autoFocus
+          />
+          <button
+            type='button'
+            onClick={insertFormula}
+            className='px-3 py-1.5 bg-[#084A59] text-white text-sm rounded-lg hover:bg-[#011C26] transition-colors'
+          >
+            Insert
+          </button>
+          <button
+            type='button'
+            onClick={() => {
+              setShowFormulaInput(false);
+              setFormulaInput('');
             }}
             className='px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors'
           >

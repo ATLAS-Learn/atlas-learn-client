@@ -26,3 +26,25 @@ a, button, [role="link"] {
   text-decoration: none !important;
   -webkit-text-decoration: none !important;
 }
+
+/* TipTap Mathematics styles */
+.tiptap .math-node {
+  display: inline-block;
+  cursor: pointer;
+}
+.tiptap .math-node .katex-display {
+  margin: 0;
+}
+.tiptap .math-node .math-inline {
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: #f3e8ff;
+}
+.tiptap .math-node .math-display {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f3e8ff;
+  display: block;
+  text-align: center;
+  margin: 8px 0;
+}
