@@ -173,15 +173,6 @@ export default function ExamResultScreen() {
                     </View>
                 ))}
             </ScrollView>
-
-            <View style={styles.bottomBar}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.replace("/(tabs)/exams" as any)}
-                >
-                    <Text style={styles.backButtonText}>Back to Exams</Text>
-                </TouchableOpacity>
-            </View>
         </View>
     );
 }

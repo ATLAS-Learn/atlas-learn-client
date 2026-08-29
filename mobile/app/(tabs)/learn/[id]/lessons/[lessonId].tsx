@@ -22,6 +22,7 @@ import { useWindowDimensions } from "react-native";
 import { apiClient } from "@/lib/api";
 import { Lesson, LessonWithProgress } from "@/lib/types";
 import ScreenHeader from "@/components/ui/screen-header";
+import FloatingChatButton from "@/components/chat/FloatingChatButton";
 import { getCacheSync, setCache } from "@/lib/utils/cache";
 import { DISK_TTL } from "@/lib/config/cachePolicy";
 import { useProgressionPrefetch } from "@/hooks/useProgressionPrefetch";
@@ -443,6 +444,11 @@ export default function LessonDetailScreen() {
                     {statusMessage ? <Text style={styles.statusMessage}>{statusMessage}</Text> : null}
                 </View>
             </ScrollView>
+            <FloatingChatButton
+                subjectName={undefined}
+                chapterName={undefined}
+                lessonName={lesson?.title}
+            />
             </KeyboardAvoidingView>
     );
 }

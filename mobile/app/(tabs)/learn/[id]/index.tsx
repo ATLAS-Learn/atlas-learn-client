@@ -17,6 +17,7 @@ import { Chapter, Lesson, LessonWithProgress } from "@/lib/types";
 import ChapterHeader from "@/components/lessons/chapter-header";
 import ContentSection from "@/components/lessons/content-section";
 import ScreenHeader from "@/components/ui/screen-header";
+import FloatingChatButton from "@/components/chat/FloatingChatButton";
 import { getCacheSync, setCache } from "@/lib/utils/cache";
 import { useProgressionPrefetch } from "@/hooks/useProgressionPrefetch";
 
@@ -371,7 +372,7 @@ export default function ChapterScreen() {
             <View style={styles.footer}>
                 <TouchableOpacity style={styles.quizButton} onPress={handleStartQuiz}>
                     <Text style={styles.quizButtonText}>Start Quiz</Text>
-                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                    <Ionicons name="arrow-forward" size={16} color="#fff" />
                 </TouchableOpacity>
             </View>
 
@@ -393,6 +394,9 @@ export default function ChapterScreen() {
                     </View>
                 </View>
             </Modal>
+            <FloatingChatButton
+                chapterName={chapter?.title}
+            />
         </View>
     );
 }
@@ -559,24 +563,26 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     footer: {
-        padding: 16,
+        padding: 12,
+        paddingHorizontal: 16,
         backgroundColor: "#fff",
         borderTopWidth: 1,
         borderTopColor: "#E0E0E0",
     },
     quizButton: {
-        backgroundColor: "#F2B138",
-        paddingVertical: 16,
-        paddingHorizontal: 24,
-        borderRadius: 25,
+        backgroundColor: "#084A59",
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 12,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: 8,
+        gap: 6,
+        alignSelf: "flex-start",
     },
     quizButtonText: {
         color: "#fff",
-        fontSize: 18,
+        fontSize: 14,
         fontWeight: "700",
     },
     modalOverlay: {

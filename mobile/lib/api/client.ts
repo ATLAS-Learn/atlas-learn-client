@@ -1111,6 +1111,18 @@ class APIClient {
     async markAllNotificationsRead(): Promise<void> {
         await this.axiosInstance.patch("/notifications/read-all");
     }
+
+    // Chat
+    async chatWithAI(params: {
+        message: string;
+        subjectName?: string;
+        chapterName?: string;
+        lessonName?: string;
+        history?: { role: "user" | "assistant"; content: string }[];
+    }): Promise<string> {
+        const res = await this.axiosInstance.post("/chat/ask", params);
+        return res.data?.data?.reply || "No response from AI.";
+    }
 }
 
 // Export singleton instance
