@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { getCacheSync, setCache } from "@/lib/utils/cache";
 import { DISK_TTL } from "@/lib/config/cachePolicy";
+import ScreenHeader from "@/components/ui/screen-header";
 
 const EXAM_LIST_CACHE_KEY = "cache:exam-list";
 
@@ -167,6 +168,7 @@ export default function ExamListScreen() {
 
     return (
         <View style={styles.container}>
+            <ScreenHeader title="Exams" showBack={false} />
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#F2B138" />
