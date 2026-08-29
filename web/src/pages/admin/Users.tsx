@@ -72,6 +72,16 @@ export default function AdminUsers() {
     loadPendingInvites()
   }
 
+  const handleCancelInvite = async (userId: string, email: string) => {
+    if (!confirm(`Cancel invite for ${email}? This will delete the pending invitation.`)) return
+    try {
+      await api.cancelInvite(userId)
+      loadPendingInvites()
+    } catch (err: any) {
+      alert(err.message || 'Failed to cancel invite')
+    }
+  }
+
   useEffect(() => { loadPendingInvites() }, [])
 
   const roleBadge = (role: string) => {
@@ -142,6 +152,9 @@ export default function AdminUsers() {
                     <span className='text-xs text-gray-400'>Expires {new Date(inv.expiresAt).toLocaleDateString()}</span>
                     <button onClick={() => handleResendInvite(inv.user.id)} className='text-xs font-semibold text-[#084A59] hover:text-[#011C26] transition-colors'>
                       Resend
+                    </button>
+                    <button onClick={() => handleCancelInvite(inv.user.id, inv.user.email)} className='text-xs font-semibold text-red-400 hover:text-red-600 transition-colors'>
+                      Cancel
                     </button>
                   </div>
                 </div>

@@ -414,16 +414,23 @@ class WebAPIClient {
     });
   }
 
+  async cancelInvite(userId: string) {
+    return this.request<any>('/auth/admin/cancel-invite', {
+      method: 'POST',
+      data: { userId },
+    });
+  }
+
   // Set password (public - from invite link)
   async validateInviteToken(token: string) {
     const res = await this.request<any>(`/auth/invite/${token}`);
     return res;
   }
 
-  async setPassword(token: string, password: string) {
+  async setPassword(token: string, password: string, profile?: { name?: string; school?: string; teacherSubjects?: string[] }) {
     return this.request<any>('/auth/set-password', {
       method: 'POST',
-      data: { token, password },
+      data: { token, password, ...profile },
     });
   }
 

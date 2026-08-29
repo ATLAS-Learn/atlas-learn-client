@@ -28,7 +28,6 @@ export default function SignUpScreen() {
   const [username, setUsername] = useState("");
   const [school, setSchool] = useState("");
   const [examYear, setExamYear] = useState("");
-  const [image, setImage] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
 
@@ -36,6 +35,7 @@ export default function SignUpScreen() {
     const newErrors: ValidationErrors = validateFields({
       fullName,
       email,
+      school,
     });
 
     setErrors(newErrors);
@@ -47,8 +47,7 @@ export default function SignUpScreen() {
           name: fullName,
           email,
           username: username.trim() || undefined,
-          image: image.trim() || undefined,
-          school: school.trim() || undefined,
+          school: school.trim(),
           examYear: examYear.trim() ? Number(examYear) : undefined,
         });
 
@@ -97,7 +96,7 @@ export default function SignUpScreen() {
         >
           <View style={[styles.logoContainer, { marginTop: width < 390 ? 32 : 52 }]}>
             <Image
-              source={require("@/assets/images/icon.png")}
+              source={require("@/assets/images/icon-yellow-transparent.png")}
               style={[styles.logo, { height: width < 390 ? 130 : 170, width: width < 390 ? 130 : 170 }]}
             />
           </View>
@@ -152,7 +151,7 @@ export default function SignUpScreen() {
           <View style={styles.inputContainer}>
             <Ionicons name="school-outline" size={24} color="#B3B3B3" style={styles.icon} />
             <TextInput
-              placeholder="School (optional)"
+              placeholder="School"
               placeholderTextColor="#B3B3B3"
               value={school}
               onChangeText={setSchool}
@@ -168,17 +167,6 @@ export default function SignUpScreen() {
               onChangeText={setExamYear}
               style={styles.input}
               keyboardType="number-pad"
-            />
-          </View>
-          <View style={styles.inputContainer}>
-            <Ionicons name="link-outline" size={24} color="#B3B3B3" style={styles.icon} />
-            <TextInput
-              placeholder="Image URL (optional)"
-              placeholderTextColor="#B3B3B3"
-              value={image}
-              onChangeText={setImage}
-              style={styles.input}
-              autoCapitalize="none"
             />
           </View>
           <TouchableOpacity

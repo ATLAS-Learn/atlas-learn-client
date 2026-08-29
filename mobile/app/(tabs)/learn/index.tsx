@@ -74,11 +74,10 @@ export default function LearnScreen() {
     const [preferredIds, setPreferredIds] = useState<string[] | null>(null);
 
     useEffect(() => {
-        // Fetch-once: skip network when valid cache exists
+        // Always fetch fresh — cache is only a fallback
         const cached = getCacheSync<string[]>(PREFERRED_SUBJECTS_CACHE_KEY);
-        if (cached) {
+        if (cached && cached.length > 0) {
             setPreferredIds(cached);
-            return;
         }
         apiClient.getPreferredSubjects()
             .then((ids) => {
@@ -86,13 +85,13 @@ export default function LearnScreen() {
                 setCache(PREFERRED_SUBJECTS_CACHE_KEY, ids, PREFERRED_SUBJECTS_TTL).catch(() => {});
             })
             .catch(() => {
-                setPreferredIds([]);
+                if (!cached || cached.length === 0) setPreferredIds([]);
             });
     }, []);
 
     const subjects = useMemo(() => {
         const allSubjects = progressData?.subjects || [];
-        if (!preferredIds || preferredIds.length === 0) return [];
+        if (!preferredIds || preferredIds.length === 0) return allSubjects;
         return allSubjects.filter((s: SubjectProgress) => preferredIds.includes(s.subjectId));
     }, [progressData, preferredIds]);
 
