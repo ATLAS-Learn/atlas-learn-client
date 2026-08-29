@@ -125,7 +125,7 @@ export default function AdminSubjectDetail() {
               </div>
               <button
                 onClick={openCreateChapter}
-                className='px-5 py-2.5 bg-[#F2B138] text-white font-bold text-sm rounded-xl hover:bg-[#011C26] transition-colors'
+                className='px-5 py-2.5 bg-[#084A59] text-white font-bold text-sm rounded-xl hover:bg-[#011C26] transition-colors'
               >
                 + Chapter
               </button>
@@ -302,7 +302,7 @@ export default function AdminSubjectDetail() {
                 </button>
                 <button
                   type='submit'
-                  className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'
+                  className='flex-1 py-2.5 bg-[#084A59] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'
                 >
                   {editingChapterId ? 'Update' : 'Create'}
                 </button>

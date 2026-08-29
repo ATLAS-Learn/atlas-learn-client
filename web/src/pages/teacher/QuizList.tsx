@@ -153,7 +153,7 @@ export default function QuizList() {
                                 </span>
                                 <div>
                                   <p className='text-sm font-bold text-[#084A59]'>{ch.title}</p>
-                                  <p className='text-[11px] text-gray-400'>
+                                  <p className='text-xs text-gray-400'>
                                     {quizzes[ch.id]?.length ?? ch._count?.quizzes ?? 0} quizzes
                                   </p>
                                 </div>
@@ -166,10 +166,10 @@ export default function QuizList() {
                             {expandedChapter === ch.id && (
                               <div className='px-4 py-3 bg-white space-y-3'>
                                 <div className='flex items-center justify-between'>
-                                  <p className='text-[11px] font-bold text-gray-400 uppercase tracking-wider'>Quizzes</p>
+                                  <p className='text-xs font-bold text-gray-400 uppercase tracking-wider'>Quizzes</p>
                                   <button
                                     onClick={() => openQuizForm(ch.id)}
-                                    className='px-3 py-1 bg-[#F2B138] text-white text-xs font-bold rounded-lg hover:bg-[#011C26] transition-colors'
+                                    className='px-3 py-1 bg-[#084A59] text-white text-xs font-bold rounded-lg hover:bg-[#011C26] transition-colors'
                                   >
                                     + New Quiz
                                   </button>
@@ -182,7 +182,7 @@ export default function QuizList() {
                                       <div className='flex items-center justify-between px-4 py-3 bg-slate-50/80'>
                                         <div>
                                           <p className='text-sm font-bold text-[#084A59]'>{quiz.title}</p>
-                                          <p className='text-[10px] text-gray-400'>
+                                          <p className='text-xs text-gray-400'>
                                             {quiz.timeLimit ? `${quiz.timeLimit} min` : ''} · {quiz.questions?.length ?? quiz._count?.questions ?? 0} questions
                                           </p>
                                         </div>

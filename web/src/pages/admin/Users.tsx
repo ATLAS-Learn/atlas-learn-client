@@ -100,7 +100,7 @@ export default function AdminUsers() {
             onClick={() => { setShowInvites(!showInvites); loadPendingInvites() }}
             className='px-4 py-2.5 text-sm font-semibold rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors'
           >
-            Invites {pendingInvites.length > 0 && <span className='ml-1.5 px-1.5 py-0.5 bg-[#F2B138] text-white text-xs rounded-md font-bold'>{pendingInvites.length}</span>}
+            Invites {pendingInvites.length > 0 && <span className='ml-1.5 px-1.5 py-0.5 bg-[#084A59] text-white text-xs rounded-md font-bold'>{pendingInvites.length}</span>}
           </button>
           <button
             onClick={() => { setShowInviteModal(true); setInviteError(''); setInviteSuccess('') }}
@@ -136,7 +136,7 @@ export default function AdminUsers() {
                       <p className='text-sm font-semibold text-[#084A59]'>{inv.user.name || 'Unnamed'}</p>
                       <p className='text-xs text-gray-400'>{inv.user.email}</p>
                     </div>
-                    <span className='px-2 py-0.5 bg-gray-100 rounded text-[10px] font-semibold text-gray-500 uppercase'>{inv.user.role}</span>
+                    <span className='px-2 py-0.5 bg-gray-100 rounded text-xs font-semibold text-gray-500 uppercase'>{inv.user.role}</span>
                   </div>
                   <div className='flex items-center gap-3'>
                     <span className='text-xs text-gray-400'>Expires {new Date(inv.expiresAt).toLocaleDateString()}</span>

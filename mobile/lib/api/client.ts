@@ -301,6 +301,8 @@ class APIClient {
         school?: string;
         examYear?: number;
         level?: Level;
+        role?: string;
+        teacherSubjects?: string[];
     }): Promise<{ success: boolean; message: string }> {
         return this.request<{ success: boolean; message: string }>("/auth/sign-up/otp", {
             method: "POST",
@@ -326,6 +328,7 @@ class APIClient {
         school?: string;
         examYear?: number;
         image?: string;
+        teacherSubjects?: string[];
     }): Promise<User> {
         const response = await this.request<User>("/auth/me", {
             method: "PATCH",

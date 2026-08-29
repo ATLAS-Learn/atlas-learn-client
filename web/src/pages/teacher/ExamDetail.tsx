@@ -297,11 +297,11 @@ export default function ExamDetail() {
       {tab === 'questions' && (
         <div className='space-y-3'>
           <div className='flex justify-end gap-2'>
-            <button onClick={() => setShowAIGenerator(true)} className='px-4 py-2 bg-[#F2B138] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors flex items-center gap-2'>
+            <button onClick={() => setShowAIGenerator(true)} className='px-4 py-2 bg-[#084A59] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors flex items-center gap-2'>
               <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z' /></svg>
               Generate with AI
             </button>
-            <button onClick={() => setShowAddQuestion(true)} className='px-4 py-2 bg-[#F2B138] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors'>
+            <button onClick={() => setShowAddQuestion(true)} className='px-4 py-2 bg-[#084A59] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors'>
               + Add Question
             </button>
           </div>
@@ -338,16 +338,16 @@ export default function ExamDetail() {
           {/* Draft questions */}
           {draftQuestions.map((q, idx) => (
             <div key={`draft-${idx}`} className='bg-white rounded-2xl border-2 border-dashed border-amber-300 p-5 relative'>
-              <div className='absolute -top-2.5 left-4 bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200'>
+              <div className='absolute -top-2.5 left-4 bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full border border-amber-200'>
                 DRAFT
               </div>
               {editingDraftIdx === idx && editDraftForm ? (
                 <div className='space-y-3 mt-1'>
                   <div className='flex items-center gap-2'>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${editDraftForm.questionType === 'MCQ' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${editDraftForm.questionType === 'MCQ' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
                       {editDraftForm.questionType}
                     </span>
-                    <span className='text-[10px] font-bold text-gray-400'>Editing Draft Q{idx + 1}</span>
+                    <span className='text-xs font-bold text-gray-400'>Editing Draft Q{idx + 1}</span>
                   </div>
                   <textarea
                     value={editDraftForm.questionText}
@@ -408,7 +408,7 @@ export default function ExamDetail() {
               ) : (
                 <div className='flex items-start justify-between mt-1'>
                   <div className='flex-1'>
-                    <p className='text-xs font-bold text-amber-500 mb-1'>Draft Q{(exam.questions?.length ?? 0) + idx + 1} · {q.points} pt{q.points !== 1 ? 's' : ''}</p>
+                    <p className='text-xs font-bold text-[#BF522A] mb-1'>Draft Q{(exam.questions?.length ?? 0) + idx + 1} · {q.points} pt{q.points !== 1 ? 's' : ''}</p>
                     <p className='text-sm font-semibold text-[#084A59]'>{q.questionText}</p>
                     {q.questionType === 'MCQ' ? (
                       <div className='mt-2 space-y-1'>
@@ -538,7 +538,7 @@ export default function ExamDetail() {
                         setCorrectionGrades(grades)
                       }
                     }}
-                    className='px-4 py-2 bg-[#F2B138] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'
+                    className='px-4 py-2 bg-[#084A59] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'
                   >
                     {correctingAttempt?.id === attempt.id ? 'Cancel' : 'Grade'}
                   </button>
@@ -650,7 +650,7 @@ export default function ExamDetail() {
                     </div>
                   ))}
                 </div>
-                <p className='text-[11px] text-gray-400 mt-1'>Select the correct answer</p>
+                <p className='text-xs text-gray-400 mt-1'>Select the correct answer</p>
               </div>
               ) : (
               <div>
@@ -662,7 +662,7 @@ export default function ExamDetail() {
                   placeholder='Provide a model answer for reference...'
                   className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F2B138]/20 focus:border-[#F2B138] resize-none'
                 />
-                <p className='text-[11px] text-gray-400 mt-1'>This will be used as a reference when grading</p>
+                <p className='text-xs text-gray-400 mt-1'>This will be used as a reference when grading</p>
               </div>
               )}
               <div className='grid grid-cols-2 gap-4'>

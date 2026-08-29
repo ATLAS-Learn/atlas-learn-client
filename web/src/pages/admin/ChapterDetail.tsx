@@ -203,8 +203,8 @@ export default function AdminChapterDetail() {
       {/* Lessons Section */}
       <div>
         <div className='flex items-center justify-between mb-3'>
-          <span className='text-[11px] font-bold text-gray-400 uppercase tracking-wider'>Lessons</span>
-          <button onClick={() => openLessonForm()} className='px-4 py-2 bg-[#F2B138] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'>+ Lesson</button>
+          <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>Lessons</span>
+          <button onClick={() => openLessonForm()} className='px-4 py-2 bg-[#084A59] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'>+ Lesson</button>
         </div>
         {sortedLessons.length === 0 ? (
           <div className='bg-white rounded-2xl border border-gray-200 p-12 text-center'>
@@ -221,18 +221,18 @@ export default function AdminChapterDetail() {
                       <h4 className='font-bold text-[#084A59] text-sm'>{lesson.title}</h4>
                       {lesson.content && <p className='text-xs text-gray-400 mt-1 line-clamp-2'>{lesson.content}</p>}
                       <div className='flex flex-wrap gap-2 mt-2'>
-                        {lesson.durationMinutes && <span className='text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded'>{lesson.durationMinutes} min</span>}
-                        {lesson.isFree && <span className='text-[10px] text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Free</span>}
-                        {lesson.videoUrl && <span className='text-[10px] text-[#084A59] bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Has Video</span>}
-                        {lesson.pdfUrl && <span className='text-[10px] text-[#084A59] bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Has PDF</span>}
-                        {lesson.externalLinks && <span className='text-[10px] text-[#084A59] bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Has Links</span>}
+                        {lesson.durationMinutes && <span className='text-xs text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded'>{lesson.durationMinutes} min</span>}
+                        {lesson.isFree && <span className='text-xs text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Free</span>}
+                        {lesson.videoUrl && <span className='text-xs text-[#084A59] bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Has Video</span>}
+                        {lesson.pdfUrl && <span className='text-xs text-[#084A59] bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Has PDF</span>}
+                        {lesson.externalLinks && <span className='text-xs text-[#084A59] bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Has Links</span>}
                       </div>
                       {lesson.keyPoints && lesson.keyPoints.length > 0 && (
                         <div className='mt-2 flex flex-wrap gap-1'>
                           {lesson.keyPoints.slice(0, 3).map((kp: string, ki: number) => (
-                            <span key={ki} className='text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded'>{kp}</span>
+                            <span key={ki} className='text-xs text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded'>{kp}</span>
                           ))}
-                          {lesson.keyPoints.length > 3 && <span className='text-[10px] text-gray-400'>+{lesson.keyPoints.length - 3} more</span>}
+                          {lesson.keyPoints.length > 3 && <span className='text-xs text-gray-400'>+{lesson.keyPoints.length - 3} more</span>}
                         </div>
                       )}
                     </div>
@@ -251,8 +251,8 @@ export default function AdminChapterDetail() {
       {/* Quizzes Section */}
       <div>
         <div className='flex items-center justify-between mb-3'>
-          <span className='text-[11px] font-bold text-gray-400 uppercase tracking-wider'>Quizzes</span>
-          <button onClick={() => openQuizForm()} className='px-4 py-2 bg-[#F2B138] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'>+ Quiz</button>
+          <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>Quizzes</span>
+          <button onClick={() => openQuizForm()} className='px-4 py-2 bg-[#084A59] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'>+ Quiz</button>
         </div>
         {quizzes.length === 0 ? (
           <div className='bg-white rounded-2xl border border-gray-200 p-12 text-center'>
@@ -282,12 +282,12 @@ export default function AdminChapterDetail() {
                             {q.options && (
                               <div className='flex flex-wrap gap-x-3 gap-y-0.5 mt-1 ml-4'>
                                 {q.options.map((opt: string, oi: number) => (
-                                  <span key={oi} className={`text-[11px] ${oi === q.correctAnswer ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>{String.fromCharCode(65 + oi)}. {opt}</span>
+                                  <span key={oi} className={`text-xs ${oi === q.correctAnswer ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>{String.fromCharCode(65 + oi)}. {opt}</span>
                                 ))}
                               </div>
                             )}
-                            {q.explanation && <p className='text-[10px] text-gray-400 mt-1 ml-4 italic'>Explanation: {q.explanation}</p>}
-                            {q.points && <span className='text-[9px] font-semibold text-[#084A59] ml-4'>{q.points} pt{q.points !== 1 ? 's' : ''}</span>}
+                            {q.explanation && <p className='text-xs text-gray-400 mt-1 ml-4 italic'>Explanation: {q.explanation}</p>}
+                            {q.points && <span className='text-xs font-semibold text-[#084A59] ml-4'>{q.points} pt{q.points !== 1 ? 's' : ''}</span>}
                           </div>
                           <div className='flex gap-0.5 flex-shrink-0'>
                             <button onClick={() => openQuestionForm(quiz.id, q)} className='p-0.5 rounded text-gray-400 hover:text-[#084A59] hover:bg-slate-50 transition-colors'><svg className='w-3 h-3' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125' /></svg></button>
@@ -299,7 +299,7 @@ export default function AdminChapterDetail() {
                   </div>
                 )}
                 <div className='border-t border-gray-100 px-5 py-2'>
-                  <button onClick={() => openQuestionForm(quiz.id)} className='px-3 py-1 bg-[#F2B138] text-white text-[10px] font-bold rounded-lg hover:bg-[#011C26] transition-colors'>+ Question</button>
+                  <button onClick={() => openQuestionForm(quiz.id)} className='px-3 py-1 bg-[#084A59] text-white text-xs font-bold rounded-lg hover:bg-[#011C26] transition-colors'>+ Question</button>
                 </div>
               </div>
             ))}
@@ -347,7 +347,7 @@ export default function AdminChapterDetail() {
               </div>
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => { setShowLessonForm(false); setEditingLesson(null) }} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50'>Cancel</button>
-                <button type='submit' className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editingLesson ? 'Update Lesson' : 'Create Lesson'}</button>
+                <button type='submit' className='flex-1 py-2.5 bg-[#084A59] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editingLesson ? 'Update Lesson' : 'Create Lesson'}</button>
               </div>
             </form>
           </div>
@@ -368,7 +368,7 @@ export default function AdminChapterDetail() {
               <div><label className='block text-sm font-semibold text-gray-700 mb-1.5'>Time Limit (minutes)</label><input type='number' value={quizForm.timeLimit} onChange={e => setQuizForm({ ...quizForm, timeLimit: Number(e.target.value) })} min={1} className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20 focus:border-[#084A59] transition-all' /></div>
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => { setShowQuizForm(false); setEditingQuiz(null) }} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50'>Cancel</button>
-                <button type='submit' className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editingQuiz ? 'Update Quiz' : 'Create Quiz'}</button>
+                <button type='submit' className='flex-1 py-2.5 bg-[#084A59] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editingQuiz ? 'Update Quiz' : 'Create Quiz'}</button>
               </div>
             </form>
           </div>
@@ -402,7 +402,7 @@ export default function AdminChapterDetail() {
               </div>
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => { setShowQuestionForm(null); setEditingQuestion(null) }} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50'>Cancel</button>
-                <button type='submit' className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editingQuestion ? 'Update Question' : 'Add Question'}</button>
+                <button type='submit' className='flex-1 py-2.5 bg-[#084A59] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editingQuestion ? 'Update Question' : 'Add Question'}</button>
               </div>
             </form>
           </div>

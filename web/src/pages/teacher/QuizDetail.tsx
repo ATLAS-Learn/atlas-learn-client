@@ -302,7 +302,7 @@ export default function QuizDetail() {
           <p className='text-sm text-gray-400 mt-2'>The quiz could not be loaded. Please go back to the quizzes list.</p>
           <button
             onClick={() => navigate('/teacher/quizzes')}
-            className='mt-4 px-5 py-2.5 bg-[#F2B138] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors'
+            className='mt-4 px-5 py-2.5 bg-[#084A59] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors'
           >
             Go to Quizzes
           </button>
@@ -376,18 +376,18 @@ export default function QuizDetail() {
         )}
 
         <div className='flex items-center justify-between mb-3'>
-          <span className='text-[11px] font-bold text-gray-400 uppercase tracking-wider'>Questions ({questions.length + draftQuestions.length})</span>
+          <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>Questions ({questions.length + draftQuestions.length})</span>
           <div className='flex gap-2'>
             <button
               onClick={() => setShowAIGenerator(true)}
-              className='px-4 py-2 bg-[#F2B138] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors flex items-center gap-2'
+              className='px-4 py-2 bg-[#084A59] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors flex items-center gap-2'
             >
               <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z' /></svg>
               Generate with AI
             </button>
             <button
               onClick={openAddQuestionForm}
-              className='px-4 py-2 bg-[#F2B138] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'
+              className='px-4 py-2 bg-[#084A59] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'
             >
               + Add Question
             </button>
@@ -411,7 +411,7 @@ export default function QuizDetail() {
                           {qi + 1}
                         </span>
                         {q.points != null && q.points > 0 && (
-                          <span className='text-[10px] font-semibold text-[#084A59] bg-white px-2 py-0.5 rounded border border-gray-100'>
+                          <span className='text-xs font-semibold text-[#084A59] bg-white px-2 py-0.5 rounded border border-gray-100'>
                             {q.points} pt{q.points !== 1 ? 's' : ''}
                           </span>
                         )}
@@ -437,7 +437,7 @@ export default function QuizDetail() {
                         </div>
                       )}
                       {q.explanation && (
-                        <p className='text-[11px] text-gray-400 mt-2 ml-1 italic'>Explanation: {q.explanation}</p>
+                        <p className='text-xs text-gray-400 mt-2 ml-1 italic'>Explanation: {q.explanation}</p>
                       )}
                     </div>
                     <div className='flex gap-1 flex-shrink-0'>
@@ -466,17 +466,17 @@ export default function QuizDetail() {
             {/* Draft questions */}
             {draftQuestions.map((q, idx) => (
               <div key={`draft-${idx}`} className='bg-white border-2 border-dashed border-amber-300 rounded-xl overflow-hidden relative'>
-                <div className='absolute -top-2.5 left-4 bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200'>
+                <div className='absolute -top-2.5 left-4 bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full border border-amber-200'>
                   DRAFT
                 </div>
                 <div className='px-5 py-4 mt-1'>
                   {editingDraftIdx === idx && editDraftForm ? (
                     <div className='space-y-3'>
                       <div className='flex items-center gap-2'>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${editDraftForm.questionType === 'MCQ' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${editDraftForm.questionType === 'MCQ' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
                           {editDraftForm.questionType}
                         </span>
-                        <span className='text-[10px] font-bold text-amber-500'>Editing Draft</span>
+                        <span className='text-xs font-bold text-amber-500'>Editing Draft</span>
                       </div>
                       <textarea
                         value={editDraftForm.questionText}
@@ -541,9 +541,9 @@ export default function QuizDetail() {
                           <span className='w-7 h-7 rounded-lg bg-amber-100 text-amber-600 text-xs font-bold flex items-center justify-center flex-shrink-0'>
                             {questions.length + idx + 1}
                           </span>
-                          <span className='text-[10px] font-bold text-amber-500'>Draft</span>
+                          <span className='text-xs font-bold text-amber-500'>Draft</span>
                           {q.points > 0 && (
-                            <span className='text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200'>
+                            <span className='text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200'>
                               {q.points} pt{q.points !== 1 ? 's' : ''}
                             </span>
                           )}
@@ -567,7 +567,7 @@ export default function QuizDetail() {
                           <p className='text-xs text-purple-500 mt-1 italic'>Structural question — requires manual grading</p>
                         )}
                         {q.explanation && (
-                          <p className='text-[11px] text-gray-400 mt-2 ml-1 italic'>Explanation: {q.explanation}</p>
+                          <p className='text-xs text-gray-400 mt-2 ml-1 italic'>Explanation: {q.explanation}</p>
                         )}
                       </div>
                       <div className='flex gap-1 flex-shrink-0'>
@@ -695,7 +695,7 @@ export default function QuizDetail() {
                         className='flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F2B138]/20 focus:border-[#F2B138] transition-all'
                       />
                       {questionForm.correctAnswer === oi && (
-                        <span className='text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg flex-shrink-0'>Correct</span>
+                        <span className='text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg flex-shrink-0'>Correct</span>
                       )}
                     </div>
                   ))}
