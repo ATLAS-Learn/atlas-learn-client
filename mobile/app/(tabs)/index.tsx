@@ -13,12 +13,13 @@ const BLACK = "#011C26";
 const CIRCUMFERENCE = 2 * Math.PI * 34;
 const AnimatedCircle = RNAnimated.createAnimatedComponent(Circle);
 
-function useAnimatedNumber(target: number, duration = 1200, delay = 200) {
+function useAnimatedNumber(target: number, duration = 1200, delay = 200, focusKey = 0) {
     const anim = useRef(new RNAnimated.Value(0)).current;
     const [display, setDisplay] = useState(0);
 
     useEffect(() => {
         anim.setValue(0);
+        setDisplay(0);
         const timer = setTimeout(() => {
             RNAnimated.timing(anim, {
                 toValue: target,
@@ -28,7 +29,7 @@ function useAnimatedNumber(target: number, duration = 1200, delay = 200) {
             }).start();
         }, delay);
         return () => clearTimeout(timer);
-    }, [target]);
+    }, [target, focusKey]);
 
     useEffect(() => {
         const listener = anim.addListener(({ value }) => {
@@ -40,12 +41,13 @@ function useAnimatedNumber(target: number, duration = 1200, delay = 200) {
     return display;
 }
 
-function useAnimatedTime(seconds: number, duration = 1200, delay = 200) {
+function useAnimatedTime(seconds: number, duration = 1200, delay = 200, focusKey = 0) {
     const anim = useRef(new RNAnimated.Value(0)).current;
     const [display, setDisplay] = useState("0s");
 
     useEffect(() => {
         anim.setValue(0);
+        setDisplay("0s");
         const timer = setTimeout(() => {
             RNAnimated.timing(anim, {
                 toValue: seconds,
@@ -55,7 +57,7 @@ function useAnimatedTime(seconds: number, duration = 1200, delay = 200) {
             }).start();
         }, delay);
         return () => clearTimeout(timer);
-    }, [seconds]);
+    }, [seconds, focusKey]);
 
     useEffect(() => {
         const listener = anim.addListener(({ value }) => {
@@ -131,11 +133,11 @@ export default function HomeTab() {
         return () => clearTimeout(timer);
     }, [completion, focusKey]);
 
-    const animCompletion = useAnimatedNumber(completion, 1400, 300);
-    const animLessonsDone = useAnimatedNumber(lessonsDone, 1000, 400);
-    const animQuizzesPassed = useAnimatedNumber(quizzesPassed, 1000, 500);
-    const animTimeSpent = useAnimatedTime(totalTimeSpent, 1000, 600);
-    const animAvgScore = useAnimatedNumber(averageScore, 1000, 700);
+    const animCompletion = useAnimatedNumber(completion, 1400, 300, focusKey);
+    const animLessonsDone = useAnimatedNumber(lessonsDone, 1000, 400, focusKey);
+    const animQuizzesPassed = useAnimatedNumber(quizzesPassed, 1000, 500, focusKey);
+    const animTimeSpent = useAnimatedTime(totalTimeSpent, 1000, 600, focusKey);
+    const animAvgScore = useAnimatedNumber(averageScore, 1000, 700, focusKey);
 
     return (
         <View style={styles.root}>
