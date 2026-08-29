@@ -123,7 +123,7 @@ export default function TeacherLayout() {
         className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-64 bg-[#084A59] flex flex-col transition-transform lg:translate-x-0 lg:static lg:shrink-0`}
       >
         <div className='px-6 py-6 flex flex-col items-center'>
-          <img src='/logo-console.png' alt='Apex' className='h-20 w-auto' />
+          <img src='/logo-teacher.png' alt='Apex' className='h-20 w-auto' />
           <p className='text-gray-300 text-sm font-medium mt-2'>Teacher Console</p>
         </div>
 

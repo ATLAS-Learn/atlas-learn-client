@@ -136,7 +136,7 @@ export default function Dashboard() {
       </div>
 
       {/* Right: Branding Panel */}
-      <div className='hidden lg:flex w-1/2 bg-[#084A59] relative overflow-hidden flex-col justify-center items-start'>
+      <div className='hidden lg:flex w-1/2 bg-[#084A59]/80 backdrop-blur-md relative overflow-hidden flex-col justify-center items-start'>
         {/* Decorative circles */}
         <div className='absolute top-20 right-20 w-72 h-72 bg-[#F2B138]/10 rounded-full blur-3xl' />
         <div className='absolute bottom-32 left-16 w-48 h-48 bg-[#F2B138]/5 rounded-full blur-2xl' />

@@ -14,6 +14,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
+import { setCache } from "@/lib/utils/cache";
 import ScreenHeader from "@/components/ui/screen-header";
 
 export default function ExamTakeScreen() {
@@ -126,11 +127,15 @@ export default function ExamTakeScreen() {
             const timeSpent = exam?.timeLimit
                 ? exam.timeLimit - (timeLeft ?? 0)
                 : 0;
-            await apiClient.submitExam(examId, {
+            const result = await apiClient.submitExam(examId, {
                 answers,
                 textAnswers,
                 timeSpent,
             });
+            // Cache the result for offline access
+            if (result) {
+                await setCache(`cache:exam-result:${examId}`, result, 30 * 24 * 60 * 60 * 1000); // 30 days
+            }
             router.replace({
                 pathname: "/(tabs)/exams/result/[id]" as any,
                 params: { id: examId },
@@ -177,35 +182,40 @@ export default function ExamTakeScreen() {
         <View style={styles.container}>
             <ScreenHeader title={exam.title} onBack={() => router.back()} />
 
-            <View style={styles.topBar}>
-                <View style={styles.progressInfo}>
-                    <Text style={styles.progressText}>
-                        {currentQuestion + 1} / {total}
-                    </Text>
-                    <Text style={styles.answeredText}>{answered} answered</Text>
-                </View>
-                {timeLeft !== null && (
+            <View style={styles.timerBar}>
+                <View style={styles.timerProgress}>
                     <View
                         style={[
-                            styles.timer,
-                            timeLeft < 60 && styles.timerWarning,
+                            styles.timerProgressFill,
+                            {
+                                width: exam?.timeLimit
+                                    ? `${((timeLeft ?? 0) / exam.timeLimit) * 100}%`
+                                    : "0%",
+                            },
+                            (timeLeft ?? 0) < 60 && styles.timerProgressFillWarning,
                         ]}
-                    >
+                    />
+                </View>
+                <View style={styles.timerContent}>
+                    <View style={[styles.timerBadge, (timeLeft ?? 0) < 60 && styles.timerBadgeWarning]}>
                         <Ionicons
-                            name="time-outline"
-                            size={16}
-                            color={timeLeft < 60 ? "#EF4444" : "#666"}
+                            name="time"
+                            size={20}
+                            color={(timeLeft ?? 0) < 60 ? "#FFF" : "#011C26"}
                         />
-                        <Text
-                            style={[
-                                styles.timerText,
-                                timeLeft < 60 && styles.timerTextWarning,
-                            ]}
-                        >
-                            {formatTime(timeLeft)}
+                        <Text style={[styles.timerText, (timeLeft ?? 0) < 60 && styles.timerTextWarning]}>
+                            {formatTime(timeLeft ?? 0)}
                         </Text>
                     </View>
-                )}
+                    <Text style={styles.timerLabel}>Time Remaining</Text>
+                </View>
+            </View>
+
+            <View style={styles.questionCounter}>
+                <Text style={styles.progressText}>
+                    {currentQuestion + 1} / {total}
+                </Text>
+                <Text style={styles.answeredText}>{answered} answered</Text>
             </View>
 
             <View style={styles.progressBar}>
@@ -341,17 +351,66 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    topBar: {
+    timerBar: {
+        backgroundColor: "#FFF",
+        marginHorizontal: 16,
+        marginTop: 8,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "#F0F0F0",
+        overflow: "hidden",
+    },
+    timerProgress: {
+        height: 4,
+        backgroundColor: "#E5E7EB",
+    },
+    timerProgressFill: {
+        height: 4,
+        backgroundColor: "#084A59",
+        borderRadius: 2,
+    },
+    timerProgressFillWarning: {
+        backgroundColor: "#EF4444",
+    },
+    timerContent: {
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
+        justifyContent: "space-between",
         paddingHorizontal: 16,
         paddingVertical: 12,
     },
-    progressInfo: {
+    timerBadge: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
+        gap: 8,
+        backgroundColor: "#011C26",
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 12,
+    },
+    timerBadgeWarning: {
+        backgroundColor: "#EF4444",
+    },
+    timerText: {
+        fontSize: 22,
+        fontWeight: "800",
+        color: "#FFF",
+        fontVariant: ["tabular-nums"],
+    },
+    timerTextWarning: {
+        color: "#FFF",
+    },
+    timerLabel: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: "#999",
+    },
+    questionCounter: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: 16,
+        paddingTop: 12,
     },
     progressText: {
         fontSize: 14,
@@ -361,26 +420,6 @@ const styles = StyleSheet.create({
     answeredText: {
         fontSize: 12,
         color: "#999",
-    },
-    timer: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        backgroundColor: "#F5F5F5",
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 20,
-    },
-    timerWarning: {
-        backgroundColor: "#FEE2E2",
-    },
-    timerText: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: "#666",
-    },
-    timerTextWarning: {
-        color: "#EF4444",
     },
     progressBar: {
         height: 4,
@@ -490,7 +529,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 12,
-        backgroundColor: "#1F2524",
+        backgroundColor: "#084A59",
     },
     submitButtonText: {
         fontSize: 14,

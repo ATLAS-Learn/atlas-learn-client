@@ -10,6 +10,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
 import ScreenHeader from "@/components/ui/screen-header";
 
 export default function ExamResultScreen() {
@@ -22,9 +23,31 @@ export default function ExamResultScreen() {
 
     const loadResult = useCallback(async () => {
         if (!examId) return;
+        const cacheKey = `cache:exam-result:${examId}`;
+
+        // Try cache first (instant, works offline)
+        const cached = getCacheSync<any>(cacheKey);
+        if (cached) {
+            setResult(cached);
+            setLoading(false);
+            // Still try to refresh in background
+            try {
+                const fresh = await apiClient.getExamResult(examId);
+                if (fresh) {
+                    await setCache(cacheKey, fresh, 30 * 24 * 60 * 60 * 1000);
+                    setResult(fresh);
+                }
+            } catch {}
+            return;
+        }
+
+        // No cache, fetch from server
         try {
             const data = await apiClient.getExamResult(examId);
             setResult(data);
+            if (data) {
+                await setCache(cacheKey, data, 30 * 24 * 60 * 60 * 1000);
+            }
         } catch {
         } finally {
             setLoading(false);

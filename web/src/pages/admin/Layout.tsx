@@ -124,7 +124,7 @@ export default function AdminLayout() {
       >
         {/* Logo */}
         <div className='px-6 py-6 flex flex-col items-center'>
-          <img src='/logo-console.png' alt='Apex' className='h-20 w-auto' />
+          <img src='/logo-admin.png' alt='Apex' className='h-20 w-auto' />
           <p className='text-gray-300 text-sm font-medium mt-2'>Admin Console</p>
         </div>
 
