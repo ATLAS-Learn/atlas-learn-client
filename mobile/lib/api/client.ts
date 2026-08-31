@@ -397,6 +397,11 @@ class APIClient {
         return this.verifyOTP(email, otp);
     }
 
+    async getSchools(): Promise<{ id: string; name: string }[]> {
+        const res = await this.request<{ data: { id: string; name: string }[] }>("/schools");
+        return res?.data ?? [];
+    }
+
     // Session management endpoints
     async getSessions(): Promise<{ id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[]> {
         const response = await this.request<{ sessions?: { id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[] }>("/auth/sessions");
@@ -458,9 +463,10 @@ class APIClient {
     /**
      * Submit assessment answers
      * @param answers Array of answer indices in question order (e.g., [0, 1, 2, 0, 1])
+     * @param questionIds Array of question IDs in the same order as answers
      * @returns Assessment result with score, level, and message
      */
-    async submitAssessment(answers: number[]): Promise<AssessmentResult> {
+    async submitAssessment(answers: number[], questionIds: string[]): Promise<AssessmentResult> {
         const result = await this.request<{
             success: boolean;
             message: string;
@@ -480,7 +486,7 @@ class APIClient {
             };
         }>("/assessment/submit", {
             method: "POST",
-            data: { answers },
+            data: { answers, questionIds },
         });
 
         if (!result?.data) {

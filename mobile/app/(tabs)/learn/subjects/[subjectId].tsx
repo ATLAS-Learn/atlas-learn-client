@@ -126,21 +126,16 @@ export default function SubjectDetailScreen() {
         const cacheKey = `cache:subject:${targetSubjectId}`;
         const chaptersCacheKey = `cache:subject-chapters:${targetSubjectId}`;
 
-        // Try cache first for instant display
+        // 1. Seed from cache for instant display
         const cachedSubject = getCacheSync<Subject>(cacheKey);
         const cachedChapters = getCacheSync<SubjectChapter[]>(chaptersCacheKey);
-        if (cachedSubject && cachedChapters && !force) {
-            setResolvedSubjectId(cachedSubject.id || targetSubjectId);
-            setSubject(cachedSubject);
-            setChapters(cachedChapters);
-            return;
-        }
         if (cachedSubject && cachedChapters) {
             setResolvedSubjectId(cachedSubject.id || targetSubjectId);
             setSubject(cachedSubject);
             setChapters(cachedChapters);
         }
 
+        // 2. Always fetch fresh from network
         let subjectResponse: Subject;
         if (targetSubjectCode) {
             subjectResponse = await apiClient.getSubjectByCode(targetSubjectCode, {
@@ -192,11 +187,6 @@ export default function SubjectDetailScreen() {
             setSubject(cachedSubject);
             setChapters(cachedChapters);
             setLoading(false);
-        }
-
-        // Skip network when valid cache exists and not forced
-        if (cachedSubject && cachedChapters && !force) {
-            return;
         }
 
         try {

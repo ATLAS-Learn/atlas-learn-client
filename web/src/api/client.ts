@@ -4,6 +4,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 class WebAPIClient {
   private axiosInstance;
+  private schoolsCache: any = null;
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -424,6 +425,13 @@ class WebAPIClient {
   // Set password (public - from invite link)
   async validateInviteToken(token: string) {
     const res = await this.request<any>(`/auth/invite/${token}`);
+    return res;
+  }
+
+  async getSchools() {
+    if (this.schoolsCache) return this.schoolsCache;
+    const res = await this.request<any>('/schools');
+    this.schoolsCache = res;
     return res;
   }
 

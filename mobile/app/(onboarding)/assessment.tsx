@@ -125,11 +125,10 @@ export default function AssessmentScreen() {
 
         setSubmitting(true);
         try {
-            // Submit answers as array of indices in question order
-            // API expects: { answers: [0, 1, 2, 0, 1] } - indices match question order
             const answerIndices = questions.map((q) => answers[q.id]);
+            const questionIds = questions.map((q) => q.id);
 
-            const result = await apiClient.submitAssessment(answerIndices);
+            const result = await apiClient.submitAssessment(answerIndices, questionIds);
 
             // Navigate to result screen with assessment results
             router.push({
@@ -403,7 +402,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
-        backgroundColor: "#F2B138",
+        backgroundColor: "#084A59",
         paddingVertical: 12,
         paddingHorizontal: 20,
         borderRadius: 25,

@@ -3,8 +3,18 @@ import { Link } from 'react-router-dom';
 const features = [
   {
     icon: (
-      <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5} d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' />
+      <svg
+        className='w-5 h-5'
+        fill='none'
+        viewBox='0 0 24 24'
+        stroke='currentColor'
+      >
+        <path
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth={1.5}
+          d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'
+        />
       </svg>
     ),
     title: 'Structured Subjects',
@@ -12,8 +22,18 @@ const features = [
   },
   {
     icon: (
-      <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5} d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' />
+      <svg
+        className='w-5 h-5'
+        fill='none'
+        viewBox='0 0 24 24'
+        stroke='currentColor'
+      >
+        <path
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth={1.5}
+          d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'
+        />
       </svg>
     ),
     title: 'Real Progress Tracking',
@@ -21,8 +41,18 @@ const features = [
   },
   {
     icon: (
-      <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5} d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' />
+      <svg
+        className='w-5 h-5'
+        fill='none'
+        viewBox='0 0 24 24'
+        stroke='currentColor'
+      >
+        <path
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth={1.5}
+          d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
+        />
       </svg>
     ),
     title: 'Smart Unlocking',
@@ -30,8 +60,18 @@ const features = [
   },
   {
     icon: (
-      <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5} d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' />
+      <svg
+        className='w-5 h-5'
+        fill='none'
+        viewBox='0 0 24 24'
+        stroke='currentColor'
+      >
+        <path
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth={1.5}
+          d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+        />
       </svg>
     ),
     title: 'Instant Feedback',
@@ -39,8 +79,18 @@ const features = [
   },
   {
     icon: (
-      <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5} d='M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' />
+      <svg
+        className='w-5 h-5'
+        fill='none'
+        viewBox='0 0 24 24'
+        stroke='currentColor'
+      >
+        <path
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth={1.5}
+          d='M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'
+        />
       </svg>
     ),
     title: 'Video Lessons',
@@ -48,8 +98,18 @@ const features = [
   },
   {
     icon: (
-      <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5} d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' />
+      <svg
+        className='w-5 h-5'
+        fill='none'
+        viewBox='0 0 24 24'
+        stroke='currentColor'
+      >
+        <path
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth={1.5}
+          d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
+        />
       </svg>
     ),
     title: 'Learning Streaks',
@@ -73,7 +133,11 @@ export default function Landing() {
     <div className='min-h-screen bg-[#011C26] overflow-x-hidden'>
       {/* Navbar */}
       <nav className='flex items-center justify-between px-6 md:px-12 py-4 sticky top-0 z-50 bg-[#011C26]/80 backdrop-blur-xl border-b border-white/5'>
-        <Link to='/' style={{ textDecoration: 'none' }} className='flex items-center gap-2'>
+        <Link
+          to='/'
+          style={{ textDecoration: 'none' }}
+          className='flex items-center gap-2'
+        >
           <img src='/logo-landing.png' alt='Apex Learn' className='h-9' />
         </Link>
         <button
@@ -87,7 +151,7 @@ export default function Landing() {
       {/* Hero */}
       <section className='relative px-6 md:px-12 pt-20 pb-28 md:pt-32 md:pb-40 max-w-6xl mx-auto text-center'>
         {/* Glow effects */}
-        <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#084A59]/30 rounded-full blur-[120px] pointer-events-none' />
+        <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-[#084A59]/30 rounded-full blur-[120px] pointer-events-none' />
         <div className='absolute top-20 right-10 w-72 h-72 bg-[#F2B138]/10 rounded-full blur-[100px] pointer-events-none' />
 
         <div className='relative z-10'>
@@ -134,7 +198,7 @@ export default function Landing() {
 
       {/* Features */}
       <section className='relative px-6 md:px-12 py-24 bg-[#084A59]'>
-        <div className='absolute inset-0 bg-gradient-to-b from-[#011C26] to-transparent opacity-50 pointer-events-none' />
+        <div className='absolute inset-0 bg-linear-to-b from-[#011C26] to-transparent opacity-50 pointer-events-none' />
         <div className='max-w-6xl mx-auto relative z-10'>
           <div className='text-center mb-16'>
             <p className='text-xs font-semibold tracking-widest text-[#F2B138] uppercase mb-4'>
@@ -195,7 +259,10 @@ export default function Landing() {
                 desc: 'Pass chapter quizzes to unlock the next topic.',
               },
             ].map((s, i) => (
-              <div key={i} className='relative p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/5 hover:border-[#084A59]/50 transition-all duration-300 group'>
+              <div
+                key={i}
+                className='relative p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/5 hover:border-[#084A59]/50 transition-all duration-300 group'
+              >
                 <div className='text-5xl font-extrabold text-[#F2B138]/80 mb-4 group-hover:text-[#F2B138] transition-all duration-300'>
                   {s.step}
                 </div>
@@ -212,7 +279,10 @@ export default function Landing() {
       </section>
 
       {/* Download CTA */}
-      <section id='download' className='relative px-6 md:px-12 py-24 overflow-hidden'>
+      <section
+        id='download'
+        className='relative px-6 md:px-12 py-24 overflow-hidden'
+      >
         <div className='absolute inset-0 bg-gradient-to-br from-[#084A59] via-[#084A59] to-[#011C26]' />
         <div className='absolute top-0 right-0 w-96 h-96 bg-[#F2B138]/10 rounded-full blur-[120px] pointer-events-none' />
         <div className='absolute bottom-0 left-0 w-72 h-72 bg-[#12A67C]/10 rounded-full blur-[100px] pointer-events-none' />
@@ -251,7 +321,11 @@ export default function Landing() {
           <div className='grid grid-cols-1 md:grid-cols-4 gap-10 mb-12'>
             {/* Brand */}
             <div className='md:col-span-1'>
-              <img src='/logo-landing.png' alt='Apex Learn' className='h-8 mb-4' />
+              <img
+                src='/logo-landing.png'
+                alt='Apex Learn'
+                className='h-8 mb-4'
+              />
               <p className='text-sm text-gray-500 leading-relaxed'>
                 Structured learning for GCE A Level students in Cameroon.
               </p>
@@ -259,30 +333,64 @@ export default function Landing() {
 
             {/* Quick Links */}
             <div>
-              <h4 className='text-sm font-bold text-white mb-4 uppercase tracking-wider'>Product</h4>
+              <h4 className='text-sm font-bold text-white mb-4 uppercase tracking-wider'>
+                Product
+              </h4>
               <ul className='space-y-2.5'>
-                <li><a href='#download' className='text-sm text-gray-400 hover:text-[#F2B138] transition-colors'>Download App</a></li>
-                <li><span className='text-sm text-gray-400'>Features</span></li>
-                <li><span className='text-sm text-gray-400'>Pricing</span></li>
+                <li>
+                  <a
+                    href='#download'
+                    className='text-sm text-gray-400 hover:text-[#F2B138] transition-colors'
+                  >
+                    Download App
+                  </a>
+                </li>
+                <li>
+                  <span className='text-sm text-gray-400'>Features</span>
+                </li>
+                <li>
+                  <span className='text-sm text-gray-400'>Pricing</span>
+                </li>
               </ul>
             </div>
 
             {/* Support */}
             <div>
-              <h4 className='text-sm font-bold text-white mb-4 uppercase tracking-wider'>Support</h4>
+              <h4 className='text-sm font-bold text-white mb-4 uppercase tracking-wider'>
+                Support
+              </h4>
               <ul className='space-y-2.5'>
-                <li><a href='mailto:support@apexlearn.app' className='text-sm text-gray-400 hover:text-[#F2B138] transition-colors'>support@apexlearn.app</a></li>
-                <li><span className='text-sm text-gray-400'>Help Center</span></li>
-                <li><span className='text-sm text-gray-400'>Report a Bug</span></li>
+                <li>
+                  <a
+                    href='mailto:support@apexlearn.app'
+                    className='text-sm text-gray-400 hover:text-[#F2B138] transition-colors'
+                  >
+                    support@apexlearn.app
+                  </a>
+                </li>
+                <li>
+                  <span className='text-sm text-gray-400'>Help Center</span>
+                </li>
+                <li>
+                  <span className='text-sm text-gray-400'>Report a Bug</span>
+                </li>
               </ul>
             </div>
 
             {/* Legal */}
             <div>
-              <h4 className='text-sm font-bold text-white mb-4 uppercase tracking-wider'>Legal</h4>
+              <h4 className='text-sm font-bold text-white mb-4 uppercase tracking-wider'>
+                Legal
+              </h4>
               <ul className='space-y-2.5'>
-                <li><span className='text-sm text-gray-400'>Privacy Policy</span></li>
-                <li><span className='text-sm text-gray-400'>Terms of Service</span></li>
+                <li>
+                  <span className='text-sm text-gray-400'>Privacy Policy</span>
+                </li>
+                <li>
+                  <span className='text-sm text-gray-400'>
+                    Terms of Service
+                  </span>
+                </li>
               </ul>
             </div>
           </div>
@@ -293,18 +401,49 @@ export default function Landing() {
               &copy; {new Date().getFullYear()} Apex Learn. All rights reserved.
             </p>
             <div className='flex items-center gap-4'>
-              <a href='mailto:support@apexlearn.app' className='text-gray-500 hover:text-[#F2B138] transition-colors'>
-                <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5} d='M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' />
+              <a
+                href='mailto:support@apexlearn.app'
+                className='text-gray-500 hover:text-[#F2B138] transition-colors'
+              >
+                <svg
+                  className='w-4 h-4'
+                  fill='none'
+                  viewBox='0 0 24 24'
+                  stroke='currentColor'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={1.5}
+                    d='M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
+                  />
                 </svg>
               </a>
-              <a href='https://twitter.com/apexlearn' target='_blank' rel='noreferrer' className='text-gray-500 hover:text-[#F2B138] transition-colors'>
-                <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 24 24'>
+              <a
+                href='https://twitter.com/apexlearn'
+                target='_blank'
+                rel='noreferrer'
+                className='text-gray-500 hover:text-[#F2B138] transition-colors'
+              >
+                <svg
+                  className='w-4 h-4'
+                  fill='currentColor'
+                  viewBox='0 0 24 24'
+                >
                   <path d='M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' />
                 </svg>
               </a>
-              <a href='https://wa.me/237000000000' target='_blank' rel='noreferrer' className='text-gray-500 hover:text-[#F2B138] transition-colors'>
-                <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 24 24'>
+              <a
+                href='https://wa.me/237000000000'
+                target='_blank'
+                rel='noreferrer'
+                className='text-gray-500 hover:text-[#F2B138] transition-colors'
+              >
+                <svg
+                  className='w-4 h-4'
+                  fill='currentColor'
+                  viewBox='0 0 24 24'
+                >
                   <path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z' />
                 </svg>
               </a>

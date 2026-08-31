@@ -62,17 +62,14 @@ export default function ExamListScreen() {
 
     const loadExams = useCallback(async (force = false) => {
         try {
+            // 1. Seed from cache for instant display
             const cached = getCacheSync<ExamItem[]>(EXAM_LIST_CACHE_KEY);
-            if (cached && !force) {
-                setSections(buildSections(cached));
-                setLoading(false);
-                return;
-            }
             if (cached) {
                 setSections(buildSections(cached));
                 setLoading(false);
             }
 
+            // 2. Always fetch fresh from network
             const data: ExamItem[] = await apiClient.getExams();
             setSections(buildSections(data));
             setCache(EXAM_LIST_CACHE_KEY, data, DISK_TTL.DYNAMIC).catch(() => {});

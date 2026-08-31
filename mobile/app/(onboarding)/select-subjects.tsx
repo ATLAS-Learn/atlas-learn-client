@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     },
     selectedCount: { fontSize: 13, color: "#666", fontWeight: "600", marginBottom: 10, textAlign: "center" },
     continueButton: {
-        backgroundColor: "#F2B138",
+        backgroundColor: "#084A59",
         paddingVertical: 16,
         borderRadius: 25,
         flexDirection: "row",

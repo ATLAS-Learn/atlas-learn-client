@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiClient } from "@/lib/api";
 import { useUserStore } from "@/lib/store/user";
 import { API_BASE_URL } from "@/lib/constants/api";
@@ -45,6 +46,7 @@ const PODIUM_COLORS = [GOLD, "#C0C0C0", "#CD7F32"];
 const PODIUM_BG = ["#FFF8E1", "#F5F5F5", "#FFF3E0"];
 
 export default function LeaderboardScreen() {
+    const insets = useSafeAreaInsets();
     const { user } = useUserStore();
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -217,7 +219,7 @@ export default function LeaderboardScreen() {
             <StatusBar barStyle="light-content" backgroundColor={DARK_TEAL} />
 
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
                 <Text style={styles.headerTitle}>Leaderboard</Text>
                 <Text style={styles.headerSubtitle}>Top learners this week</Text>
             </View>
@@ -265,8 +267,9 @@ const styles = StyleSheet.create({
     header: {
         backgroundColor: DARK_TEAL,
         paddingHorizontal: 20,
-        paddingTop: 16,
         paddingBottom: 24,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
     },
     headerTitle: {
         fontSize: 28,

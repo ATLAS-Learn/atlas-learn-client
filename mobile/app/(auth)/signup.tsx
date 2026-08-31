@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import {
   Keyboard,
   ActivityIndicator,
   Alert,
-  useWindowDimensions,
+  Modal,
+  FlatList,
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,7 +23,6 @@ import { apiClient } from "@/lib/api";
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const { width, height } = useWindowDimensions();
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
@@ -30,6 +30,14 @@ export default function SignUpScreen() {
   const [examYear, setExamYear] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
+  const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
+  const [showSchoolPicker, setShowSchoolPicker] = useState(false);
+  const [showYearPicker, setShowYearPicker] = useState(false);
+  const [schoolSearch, setSchoolSearch] = useState("");
+
+  useEffect(() => {
+    apiClient.getSchools().then(setSchools).catch(() => {});
+  }, []);
 
   const handleSignUp = async () => {
     const newErrors: ValidationErrors = validateFields({
@@ -73,31 +81,24 @@ export default function SignUpScreen() {
 
 
   return (
+    <>
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-
         <ScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              paddingTop: Math.max(88, Math.floor(height * 0.11)),
-              paddingHorizontal: width < 390 ? 16 : 24,
-            },
-          ]}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.logoContainer, { marginTop: width < 390 ? 32 : 52 }]}>
+          <TouchableOpacity style={styles.backArrow} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <View style={styles.logoContainer}>
             <Image
               source={require("@/assets/images/icon-yellow-transparent.png")}
-              style={[styles.logo, { height: width < 390 ? 130 : 170, width: width < 390 ? 130 : 170 }]}
+              style={styles.logo}
             />
           </View>
 
@@ -148,27 +149,20 @@ export default function SignUpScreen() {
               autoCapitalize="none"
             />
           </View>
-          <View style={styles.inputContainer}>
+          <TouchableOpacity style={styles.inputContainer} onPress={() => { Keyboard.dismiss(); setShowSchoolPicker(true) }}>
             <Ionicons name="school-outline" size={24} color="#B3B3B3" style={styles.icon} />
-            <TextInput
-              placeholder="School"
-              placeholderTextColor="#B3B3B3"
-              value={school}
-              onChangeText={setSchool}
-              style={styles.input}
-            />
-          </View>
-          <View style={styles.inputContainer}>
+            <Text style={[styles.inputText, !school && { color: "#B3B3B3" }]} numberOfLines={1} ellipsizeMode="tail">
+              {school || "Select School"}
+            </Text>
+            <Ionicons name="chevron-down" size={20} color="#B3B3B3" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.inputContainer} onPress={() => { Keyboard.dismiss(); setShowYearPicker(true) }}>
             <Ionicons name="calendar-outline" size={24} color="#B3B3B3" style={styles.icon} />
-            <TextInput
-              placeholder="Exam Year (optional)"
-              placeholderTextColor="#B3B3B3"
-              value={examYear}
-              onChangeText={setExamYear}
-              style={styles.input}
-              keyboardType="number-pad"
-            />
-          </View>
+            <Text style={[styles.inputText, !examYear && { color: "#B3B3B3" }]} numberOfLines={1}>
+              {examYear || "Exam Year (optional)"}
+            </Text>
+            <Ionicons name="chevron-down" size={20} color="#B3B3B3" />
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
             onPress={handleSignUp}
@@ -191,6 +185,71 @@ export default function SignUpScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
+
+    {/* School Picker Modal */}
+    <Modal visible={showSchoolPicker} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select School</Text>
+            <TouchableOpacity onPress={() => setShowSchoolPicker(false)}>
+              <Ionicons name="close" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            style={styles.modalSearch}
+            placeholder="Search schools..."
+            placeholderTextColor="#999"
+            value={schoolSearch}
+            onChangeText={setSchoolSearch}
+            autoCapitalize="none"
+          />
+          <FlatList
+            data={schools.filter((s) => !schoolSearch || s.name.toLowerCase().includes(schoolSearch.toLowerCase()))}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.modalItem, school === item.name && styles.modalItemActive]}
+                onPress={() => { setSchool(item.name); setShowSchoolPicker(false); setSchoolSearch("") }}
+              >
+                <Text style={[styles.modalItemText, school === item.name && styles.modalItemTextActive]}>
+                  {item.name}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </View>
+    </Modal>
+
+    {/* Year Picker Modal */}
+    <Modal visible={showYearPicker} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Exam Year</Text>
+            <TouchableOpacity onPress={() => setShowYearPicker(false)}>
+              <Ionicons name="close" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={Array.from({ length: 10 }, (_, i) => String(new Date().getFullYear() + i))}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.modalItem, examYear === item && styles.modalItemActive]}
+                onPress={() => { setExamYear(item); setShowYearPicker(false) }}
+              >
+                <Text style={[styles.modalItemText, examYear === item && styles.modalItemTextActive]}>
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -202,23 +261,20 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 100,
-    paddingBottom: 100, // Increased bottom padding for keyboard
+    paddingTop: 0,
+    paddingBottom: 20,
   },
   backArrow: {
-    position: "absolute",
-    top: 60,
-    left: 25,
-    zIndex: 10,
+    alignSelf: "flex-start",
+    marginBottom: 10,
   },
   logoContainer: {
     alignItems: "center",
-    marginTop: 52,
+    marginTop: 0,
     marginBottom: 10,
 
   },
   logo: {
-    fontWeight: "bold",
     height: 170,
     width: 170,
   },
@@ -248,37 +304,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
-  countryCode: {
+  inputText: {
+    flex: 1,
+    height: 64,
     fontSize: 16,
     color: "#333",
-    marginRight: 8,
-  },
-  termsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 25,
-  },
-  checkbox: {
-    height: 20,
-    width: 20,
-    borderColor: "#F2B138",
-    borderWidth: 3,
-    borderRadius: 5,
-    marginRight: 10,
-  },
-  termsText: {
-    flex: 1,
-    color: "#0F172A",
-    fontSize: 14,
-    fontWeight: "600",
-    flexWrap: "wrap",
-  },
-  link: {
-    color: "#F2B138",
-    fontWeight: "700",
+    textAlignVertical: "center",
   },
   signUpButton: {
-    backgroundColor: "#F2B138",
+    backgroundColor: "#084A59",
     paddingVertical: 15,
     borderRadius: 25,
     alignItems: "center",
@@ -301,5 +335,57 @@ const styles = StyleSheet.create({
   },
   signUpButtonDisabled: {
     opacity: 0.6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "70%",
+    paddingBottom: 30,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#282F2E",
+  },
+  modalSearch: {
+    margin: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    fontSize: 15,
+    color: "#333",
+    backgroundColor: "#F9FBFB",
+  },
+  modalItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#f0f0f0",
+  },
+  modalItemActive: {
+    backgroundColor: "#084A5910",
+  },
+  modalItemText: {
+    fontSize: 15,
+    color: "#333",
+  },
+  modalItemTextActive: {
+    color: "#084A59",
+    fontWeight: "600",
   },
 });

@@ -144,13 +144,14 @@ export default function ChapterScreen() {
         setLessonsLoading(true);
         const cacheKey = `cache:lessons:${chapterId}`;
         try {
-            // Fetch-once: use cache and skip network when valid cache exists
+            // 1. Seed from cache for instant display
             const cached = getCacheSync<LessonWithProgress[]>(cacheKey);
-            if (cached && !force) {
+            if (cached) {
                 setLessons(cached);
-                return;
+                setLessonsLoading(false);
             }
 
+            // 2. Always fetch fresh from network
             let subjectIdForRequest =
                 resolvedSubjectId || subjectKey || getSubjectIdFromChapter(chapter);
             if (!subjectIdForRequest) {
@@ -172,6 +173,7 @@ export default function ChapterScreen() {
                 prefetchUpcomingLessons(subjectIdForRequest, chapterId, firstIncomplete?.id).catch(() => {});
             }
         } catch (error: any) {
+            // Keep cached data if available; only show error if no cache
             const cached = getCacheSync<LessonWithProgress[]>(cacheKey);
             if (!cached) {
                 Alert.alert("Error", error.message || "Failed to fetch chapter lessons.");

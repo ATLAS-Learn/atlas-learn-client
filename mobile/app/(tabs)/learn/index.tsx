@@ -74,19 +74,25 @@ export default function LearnScreen() {
     const [preferredIds, setPreferredIds] = useState<string[] | null>(null);
 
     useEffect(() => {
-        // Always fetch fresh — cache is only a fallback
+        let cancelled = false;
+        // 1. Seed from cache for instant display
         const cached = getCacheSync<string[]>(PREFERRED_SUBJECTS_CACHE_KEY);
-        if (cached && cached.length > 0) {
+        if (cached) {
             setPreferredIds(cached);
         }
+        // 2. Always fetch fresh from network
         apiClient.getPreferredSubjects()
             .then((ids) => {
+                if (cancelled) return;
                 setPreferredIds(ids);
                 setCache(PREFERRED_SUBJECTS_CACHE_KEY, ids, PREFERRED_SUBJECTS_TTL).catch(() => {});
             })
             .catch(() => {
-                if (!cached || cached.length === 0) setPreferredIds([]);
+                if (cancelled) return;
+                // If cache didn't have it, set empty array so UI doesn't hang on null
+                if (!cached) setPreferredIds([]);
             });
+        return () => { cancelled = true; };
     }, []);
 
     const subjects = useMemo(() => {

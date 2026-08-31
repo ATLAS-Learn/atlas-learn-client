@@ -30,15 +30,16 @@ export default function BrowseSubjectsScreen() {
 
     const loadSubjects = useCallback(async (force = false) => {
         try {
-            // Fetch-once: skip network when valid cache exists
+            // 1. Seed from cache for instant display
             const cachedSubjects = getCacheSync<Subject[]>(SUBJECTS_CACHE_KEY);
             const cachedPreferred = getCacheSync<string[]>(PREFERRED_CACHE_KEY);
-            if (cachedSubjects && cachedPreferred && !force) {
+            if (cachedSubjects) {
                 setSubjects(cachedSubjects);
-                setPreferredIds(new Set(cachedPreferred));
+                setPreferredIds(new Set(cachedPreferred || []));
                 setLoading(false);
-                return;
             }
+
+            // 2. Always fetch fresh from network
             const [allSubjects, preferred] = await Promise.all([
                 apiClient.getSubjects(),
                 apiClient.getPreferredSubjects(),
@@ -48,7 +49,10 @@ export default function BrowseSubjectsScreen() {
             setCache(SUBJECTS_CACHE_KEY, allSubjects, SUBJECTS_CACHE_TTL).catch(() => {});
             setCache(PREFERRED_CACHE_KEY, Array.from(new Set(preferred)), PREFERRED_CACHE_TTL).catch(() => {});
         } catch {
-            Alert.alert("Error", "Failed to load subjects. Please try again.");
+            const cached = getCacheSync<Subject[]>(SUBJECTS_CACHE_KEY);
+            if (!cached) {
+                Alert.alert("Error", "Failed to load subjects. Please try again.");
+            }
         } finally {
             setLoading(false);
         }
