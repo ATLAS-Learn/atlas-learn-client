@@ -9,7 +9,7 @@ import {
     RefreshControl,
     Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import ScreenHeader from "@/components/ui/screen-header";
@@ -21,8 +21,7 @@ interface NotificationItem {
     type: string;
     isRead: boolean;
     createdAt: string;
-    relatedExamId?: string;
-    relatedQuizId?: string;
+    targetId?: string;
 }
 
 export default function NotificationsScreen() {
@@ -46,6 +45,15 @@ export default function NotificationsScreen() {
     useEffect(() => {
         loadNotifications();
     }, [loadNotifications]);
+
+    // Poll every 30s while screen is focused
+    useFocusEffect(
+        useCallback(() => {
+            loadNotifications(true);
+            const interval = setInterval(() => loadNotifications(true), 30000);
+            return () => clearInterval(interval);
+        }, [loadNotifications])
+    );
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
@@ -71,10 +79,12 @@ export default function NotificationsScreen() {
             } catch { }
         }
 
-        if (notification.relatedExamId) {
-            router.push({ pathname: "/(tabs)/exams/[id]" as any, params: { id: notification.relatedExamId } });
-        } else if (notification.relatedQuizId) {
-            router.push({ pathname: "/(tabs)/exams/[id]" as any, params: { id: notification.relatedQuizId } });
+        if (notification.targetId) {
+            if (notification.type === "EXAM_PUBLISHED" || notification.type === "EXAM_CORRECTED") {
+                router.push({ pathname: "/(tabs)/exams/[id]" as any, params: { id: notification.targetId } });
+            } else {
+                router.push({ pathname: "/(tabs)/exams/[id]" as any, params: { id: notification.targetId } });
+            }
         }
     };
 

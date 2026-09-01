@@ -410,6 +410,7 @@ export interface QuizQuestion {
     explanation?: string;
     points: number;
     quizId: string;
+    questionType?: "MCQ" | "STRUCTURAL";
 }
 
 export interface Quiz {
@@ -423,7 +424,7 @@ export interface Quiz {
 }
 
 export interface QuizSubmission {
-    answers: number[];
+    answers: (number | string)[];
     timeSpent?: number;
 }
 
@@ -435,6 +436,8 @@ export interface QuizResult {
     earnedPoints: number;
     totalPoints: number;
     passed: boolean;
+    hasStructural?: boolean;
+    isCorrected?: boolean;
     unlockedNextChapter: {
         id: string;
         title: string;

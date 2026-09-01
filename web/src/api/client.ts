@@ -319,6 +319,23 @@ class WebAPIClient {
     return res;
   }
 
+  async getPendingQuizCorrections(quizId: string) {
+    const res = await this.request<any>(`/quizzes/${quizId}/pending-corrections`);
+    return this.unwrap(res);
+  }
+
+  async correctQuizAttempt(quizId: string, data: {
+    attemptId: string;
+    corrections: { questionId: string; points: number; comment?: string }[];
+    overallComment?: string;
+  }) {
+    const res = await this.request<any>(`/quizzes/${quizId}/correct`, {
+      method: 'POST',
+      data,
+    });
+    return this.unwrap(res);
+  }
+
   async getSingleQuizStats(quizId: string) {
     const res = await this.request<any>(`/quizzes/${quizId}/stats`);
     return this.unwrap(res);

@@ -27,7 +27,7 @@ export default function QuizScreen() {
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [chapter, setChapter] = useState<Chapter | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [answers, setAnswers] = useState<Record<string, number>>({});
+    const [answers, setAnswers] = useState<Record<string, number | string>>({});
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
@@ -67,6 +67,15 @@ export default function QuizScreen() {
         }));
     };
 
+    const handleEssayChange = (text: string) => {
+        if (!quiz?.questions) return;
+        const currentQuestion = quiz.questions[currentQuestionIndex];
+        setAnswers((prev) => ({
+            ...prev,
+            [currentQuestion.id]: text,
+        }));
+    };
+
     const handleNext = () => {
         if (!quiz?.questions) return;
         if (currentQuestionIndex < quiz.questions.length - 1) {
@@ -89,9 +98,14 @@ export default function QuizScreen() {
             return;
         }
 
-        const unansweredQuestions = quiz.questions.filter(
-            (q) => answers[q.id] === undefined
-        );
+        const unansweredQuestions = quiz.questions.filter((q) => {
+            const answer = answers[q.id];
+            if (answer === undefined) return true;
+            if (q.questionType === "STRUCTURAL") {
+                return typeof answer !== "string" || answer.trim().length === 0;
+            }
+            return typeof answer !== "number";
+        });
 
         if (unansweredQuestions.length > 0) {
             Alert.alert(
@@ -104,7 +118,13 @@ export default function QuizScreen() {
         setSubmitting(true);
 
         const submission: QuizSubmission = {
-            answers: quiz.questions.map((q) => answers[q.id] as number),
+            answers: quiz.questions.map((q) => {
+                const answer = answers[q.id];
+                if (q.questionType === "STRUCTURAL") {
+                    return (typeof answer === "string" ? answer : "") as string;
+                }
+                return (typeof answer === "number" ? answer : -1) as number;
+            }),
         };
 
         try {
@@ -146,6 +166,8 @@ export default function QuizScreen() {
                     nextChapterTitle: result.unlockedNextChapter?.title || "",
                     nextChapterId: result.unlockedNextChapter?.id || "",
                     attemptId: result.attemptId,
+                    hasStructural: result.hasStructural ? "true" : "false",
+                    isCorrected: result.isCorrected ? "true" : "false",
                 },
             } as any);
         } catch (err) {
@@ -159,9 +181,11 @@ export default function QuizScreen() {
             let totalPoints = 0;
             for (const q of quiz.questions) {
                 const ans = answers[q.id];
-                const correctIdx = q.correctAnswerIndex;
                 const points = typeof q.points === "number" ? q.points : 1;
                 totalPoints += points;
+                // Essay questions can't be scored locally
+                if (q.questionType === "STRUCTURAL") continue;
+                const correctIdx = q.correctAnswerIndex;
                 if (typeof correctIdx === "number" && typeof ans === "number" && ans === correctIdx) {
                     correct++;
                     earnedPoints += points;
@@ -220,7 +244,14 @@ export default function QuizScreen() {
 
     const currentQuestion = quiz.questions[currentQuestionIndex];
     const isLastQuestion = currentQuestionIndex === quiz.questions.length - 1;
-    const isAnswered = answers[currentQuestion.id] !== undefined;
+    const isAnswered = (() => {
+        const answer = answers[currentQuestion.id];
+        if (answer === undefined) return false;
+        if (currentQuestion.questionType === "STRUCTURAL") {
+            return typeof answer === "string" && answer.trim().length > 0;
+        }
+        return typeof answer === "number";
+    })();
 
     return (
         <View style={styles.container}>
@@ -234,8 +265,10 @@ export default function QuizScreen() {
 
                 <QuestionCard
                     question={currentQuestion}
-                    selectedAnswer={answers[currentQuestion.id] ?? null}
+                    selectedAnswer={typeof answers[currentQuestion.id] === "number" ? (answers[currentQuestion.id] as number) : null}
                     onSelectAnswer={handleSelectAnswer}
+                    essayValue={typeof answers[currentQuestion.id] === "string" ? (answers[currentQuestion.id] as string) : ""}
+                    onEssayChange={handleEssayChange}
                 />
             </ScrollView>
 

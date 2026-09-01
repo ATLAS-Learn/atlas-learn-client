@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     Alert,
     RefreshControl,
+    Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +21,34 @@ const SUBJECTS_CACHE_KEY = "cache:subjects:list";
 const PREFERRED_CACHE_KEY = "cache:preferred-subjects-ids";
 const SUBJECTS_CACHE_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
 const PREFERRED_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
+
+function SkeletonCard() {
+    const shimmer = React.useRef(new Animated.Value(0)).current;
+
+    React.useEffect(() => {
+        const loop = Animated.loop(
+            Animated.sequence([
+                Animated.timing(shimmer, { toValue: 1, duration: 800, useNativeDriver: true }),
+                Animated.timing(shimmer, { toValue: 0, duration: 800, useNativeDriver: true }),
+            ]),
+        );
+        loop.start();
+        return () => loop.stop();
+    }, [shimmer]);
+
+    const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
+
+    return (
+        <Animated.View style={[styles.subjectCard, { opacity, borderColor: "#E0E0E0", backgroundColor: "#F0F0F0" }]}>
+            <View style={styles.subjectInfo}>
+                <View style={{ height: 16, width: "60%", backgroundColor: "#D0D0D0", borderRadius: 6 }} />
+                <View style={{ height: 12, width: "30%", backgroundColor: "#E0E0E0", borderRadius: 4, marginTop: 6 }} />
+                <View style={{ height: 12, width: "80%", backgroundColor: "#E8E8E8", borderRadius: 4, marginTop: 6 }} />
+            </View>
+            <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: "#D0D0D0" }} />
+        </Animated.View>
+    );
+}
 
 export default function BrowseSubjectsScreen() {
     const router = useRouter();
@@ -107,10 +136,13 @@ export default function BrowseSubjectsScreen() {
             <ScreenHeader title="All Subjects" />
 
             {loading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#F2B138" />
-                    <Text style={styles.loadingText}>Loading subjects...</Text>
-                </View>
+                <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                </ScrollView>
             ) : (
                 <ScrollView
                     style={styles.scrollView}

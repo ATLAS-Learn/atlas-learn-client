@@ -13,6 +13,7 @@ export default function ExamList() {
     title: '',
     description: '',
     timeLimit: 60,
+    deadline: '',
     subjectId: '',
   })
   const [creating, setCreating] = useState(false)
@@ -45,11 +46,12 @@ export default function ExamList() {
         title: createForm.title,
         description: createForm.description || undefined,
         timeLimit: createForm.timeLimit ? createForm.timeLimit * 60 : undefined,
+        deadline: createForm.deadline ? new Date(createForm.deadline).toISOString() : undefined,
         subjectId: createForm.subjectId,
         questions: [],
       })
       setShowCreateModal(false)
-      setCreateForm({ title: '', description: '', timeLimit: 60, subjectId: '' })
+      setCreateForm({ title: '', description: '', timeLimit: 60, deadline: '', subjectId: '' })
       if (res?.data?.id) {
         navigate(`/teacher/exams/${res.data.id}`)
       }
@@ -133,7 +135,7 @@ export default function ExamList() {
                   <div>
                     <h3 className='font-bold text-[#084A59] text-lg'>{exam.title}</h3>
                     <p className='text-sm text-gray-400'>
-                      {exam.subject?.name || 'Unknown Subject'} · {exam._count?.questions ?? 0} questions · {exam.timeLimit ? `${Math.round(exam.timeLimit / 60)} min` : 'No time limit'}
+                      {exam.subject?.name || 'Unknown Subject'} · {exam._count?.questions ?? 0} questions · {exam.timeLimit ? `${Math.round(exam.timeLimit / 60)} min` : 'No time limit'}{exam.deadline ? ` · Due ${new Date(exam.deadline).toLocaleDateString()}` : ''}
                     </p>
                   </div>
                 </div>
@@ -153,22 +155,22 @@ export default function ExamList() {
                 >
                   View Details
                 </button>
-                <button
-                  onClick={() => handleTogglePublish(exam.id)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
-                    exam.isPublished
-                      ? 'text-amber-600 border-amber-200 hover:bg-amber-50'
-                      : 'text-green-600 border-green-200 hover:bg-green-50'
-                  }`}
-                >
-                  {exam.isPublished ? 'Unpublish' : 'Publish'}
-                </button>
-                <button
-                  onClick={() => handleDelete(exam.id)}
-                  className='px-3 py-1.5 text-xs font-semibold text-slate-400 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors'
-                >
-                  Delete
-                </button>
+                {!exam.isPublished && (
+                  <>
+                    <button
+                      onClick={() => handleTogglePublish(exam.id)}
+                      className='px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors text-green-600 border-green-200 hover:bg-green-50'
+                    >
+                      Publish
+                    </button>
+                    <button
+                      onClick={() => handleDelete(exam.id)}
+                      className='px-3 py-1.5 text-xs font-semibold text-slate-400 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors'
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -177,7 +179,7 @@ export default function ExamList() {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4' onClick={() => setShowCreateModal(false)}>
+        <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => setShowCreateModal(false)}>
           <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <h3 className='text-lg font-bold text-[#084A59]'>New Exam</h3>
@@ -228,6 +230,16 @@ export default function ExamList() {
                   min={1}
                   className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F2B138]/20 focus:border-[#F2B138] transition-all'
                 />
+              </div>
+              <div>
+                <label className='block text-sm font-semibold text-gray-700 mb-1.5'>Deadline (optional)</label>
+                <input
+                  type='datetime-local'
+                  value={createForm.deadline}
+                  onChange={e => setCreateForm({ ...createForm, deadline: e.target.value })}
+                  className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F2B138]/20 focus:border-[#F2B138] transition-all'
+                />
+                <p className='text-xs text-gray-400 mt-1'>Students cannot take the exam after this date</p>
               </div>
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => setShowCreateModal(false)} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors'>Cancel</button>

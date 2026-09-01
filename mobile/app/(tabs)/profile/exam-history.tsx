@@ -58,13 +58,15 @@ export default function ExamHistoryScreen() {
 
     const stats = useMemo(() => {
         if (history.length === 0) return null;
-        const scores = history.map((h) => h.score ?? 0);
-        const total = scores.length;
-        const avg = Math.round(scores.reduce((a, b) => a + b, 0) / total);
+        const graded = history.filter((h) => h.isCorrected !== false);
+        const scores = graded.map((h) => h.score ?? 0);
+        const total = history.length;
+        const gradedCount = graded.length;
+        const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
         const passed = scores.filter((s) => s >= 70).length;
-        const passRate = Math.round((passed / total) * 100);
-        const best = Math.max(...scores);
-        return { total, avg, passRate, best };
+        const passRate = scores.length > 0 ? Math.round((passed / scores.length) * 100) : 0;
+        const best = scores.length > 0 ? Math.max(...scores) : 0;
+        return { total, gradedCount, avg, passRate, best };
     }, [history]);
 
     const chartData = useMemo(() => {
@@ -166,7 +168,8 @@ export default function ExamHistoryScreen() {
     );
 
     const renderItem = ({ item }: { item: any }) => {
-        const passed = item.score >= 70;
+        const isCorrected = item.isCorrected !== false;
+        const passed = isCorrected && item.score >= 70;
         const date = item.completedAt ? new Date(item.completedAt).toLocaleDateString() : "";
         return (
             <TouchableOpacity
@@ -180,11 +183,15 @@ export default function ExamHistoryScreen() {
                 activeOpacity={0.7}
             >
                 <View style={styles.cardLeft}>
-                    <Ionicons
-                        name={passed ? "checkmark-circle" : "close-circle"}
-                        size={20}
-                        color={passed ? "#16A34A" : "#DC2626"}
-                    />
+                    {isCorrected ? (
+                        <Ionicons
+                            name={passed ? "checkmark-circle" : "close-circle"}
+                            size={20}
+                            color={passed ? "#16A34A" : "#DC2626"}
+                        />
+                    ) : (
+                        <Ionicons name="time-outline" size={20} color="#D97706" />
+                    )}
                 </View>
                 <View style={styles.cardInfo}>
                     <Text style={styles.cardTitle}>{item.exam?.title || "Exam"}</Text>
@@ -192,8 +199,8 @@ export default function ExamHistoryScreen() {
                         {item.exam?.subject?.name || "General"} · {date}
                     </Text>
                 </View>
-                <Text style={[styles.cardScore, { color: passed ? "#16A34A" : "#DC2626" }]}>
-                    {item.score}%
+                <Text style={[styles.cardScore, { color: isCorrected ? (passed ? "#16A34A" : "#DC2626") : "#D97706" }]}>
+                    {isCorrected ? `${item.score}%` : "Pending"}
                 </Text>
             </TouchableOpacity>
         );

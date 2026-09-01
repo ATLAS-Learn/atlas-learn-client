@@ -1028,6 +1028,29 @@ class APIClient {
         return this.request<QuizStats>(`/quizzes/${quizId}/stats`);
     }
 
+    async getPendingQuizCorrections(quizId: string): Promise<any[]> {
+        const response = await this.request<{ success: boolean; count: number; data: any[] }>(
+            `/quizzes/${quizId}/pending-corrections`
+        );
+        return response?.data || [];
+    }
+
+    async correctQuizAttempt(
+        quizId: string,
+        attemptId: string,
+        corrections: { questionId: string; points: number; comment?: string }[],
+        overallComment?: string
+    ): Promise<any> {
+        const response = await this.request<{ success: boolean; data: any }>(
+            `/quizzes/${quizId}/correct`,
+            {
+                method: "POST",
+                data: { attemptId, corrections, overallComment },
+            }
+        );
+        return response?.data;
+    }
+
     // Feedback
     async submitFeedback(data: { category: string; subject: string; message: string; rating?: number }): Promise<{ id: string }> {
         const response = await this.request<{ success: boolean; data: { id: string } }>("/feedback", {
@@ -1107,7 +1130,7 @@ class APIClient {
 
     async getUnreadNotificationCount(): Promise<number> {
         const res = await this.axiosInstance.get("/notifications/unread-count");
-        return res.data?.data?.count ?? 0;
+        return res.data?.count ?? 0;
     }
 
     async markNotificationRead(notificationId: string): Promise<void> {

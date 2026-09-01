@@ -366,7 +366,7 @@ export default function AdminFeedback() {
       {/* Reply Modal */}
       {replyModal.open && replyModal.feedback && (
         <div
-          className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'
+          className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm'
           onClick={() => setReplyModal({ open: false, feedback: null })}
         >
           <div

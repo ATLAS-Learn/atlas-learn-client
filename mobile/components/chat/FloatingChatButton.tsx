@@ -55,8 +55,10 @@ export default function FloatingChatButton({
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
     // Position state
-    const posX = useRef(new Animated.Value(SCREEN_WIDTH - FAB_SIZE - 20)).current;
-    const posY = useRef(new Animated.Value(SCREEN_HEIGHT - 200)).current;
+    const pan = useRef(new Animated.ValueXY({
+        x: SCREEN_WIDTH - FAB_SIZE - 20,
+        y: SCREEN_HEIGHT - 200,
+    })).current;
     const isDragging = useRef(false);
     const touchStart = useRef({ x: 0, y: 0 });
 
@@ -77,33 +79,32 @@ export default function FloatingChatButton({
             onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dx) > 5 || Math.abs(gs.dy) > 5,
             onPanResponderGrant: () => {
                 isDragging.current = false;
-                touchStart.current = { x: (posX as any)._value, y: (posY as any)._value };
+                touchStart.current = { x: (pan.x as any)._value, y: (pan.y as any)._value };
             },
             onPanResponderMove: (_, gs) => {
-                if (Math.abs(gs.dx) > 3 || Math.abs(gs.dy) > 3) {
+                if (Math.abs(gs.dx) > 5 || Math.abs(gs.dy) > 5) {
                     isDragging.current = true;
                 }
                 let newX = touchStart.current.x + gs.dx;
                 let newY = touchStart.current.y + gs.dy;
                 newX = Math.max(0, Math.min(newX, SCREEN_WIDTH - FAB_SIZE));
                 newY = Math.max(insets.top, Math.min(newY, SCREEN_HEIGHT - FAB_SIZE - insets.bottom));
-                posX.setValue(newX);
-                posY.setValue(newY);
+                pan.setValue({ x: newX, y: newY });
             },
             onPanResponderRelease: () => {
-                const finalX = (posX as any)._value;
-                const finalY = (posY as any)._value;
+                if (!isDragging.current) {
+                    setVisible(true);
+                    return;
+                }
+                const finalX = (pan.x as any)._value;
+                const finalY = (pan.y as any)._value;
                 const snapX = finalX < SCREEN_WIDTH / 2 ? 20 : SCREEN_WIDTH - FAB_SIZE - 20;
                 const clampedY = Math.max(insets.top, Math.min(finalY, SCREEN_HEIGHT - FAB_SIZE - insets.bottom));
-                Animated.spring(posX, { toValue: snapX, useNativeDriver: false, tension: 120, friction: 12 }).start();
-                Animated.spring(posY, { toValue: clampedY, useNativeDriver: false, tension: 120, friction: 12 }).start();
+                Animated.spring(pan.x, { toValue: snapX, useNativeDriver: false, tension: 120, friction: 12 }).start();
+                Animated.spring(pan.y, { toValue: clampedY, useNativeDriver: false, tension: 120, friction: 12 }).start();
             },
         })
     ).current;
-
-    const handlePress = () => {
-        if (!isDragging.current) setVisible(true);
-    };
 
     const sendMessage = async () => {
         const text = input.trim();
@@ -133,7 +134,7 @@ export default function FloatingChatButton({
                     </View>
                 )}
                 <View style={[styles.msgBubble, isUser ? styles.msgBubbleUser : styles.msgBubbleAI]}>
-                    <Text style={[styles.msgText, isUser ? styles.msgTextUser : styles.msgTextAI]}>{item.content}</Text>
+                    <Text selectable style={[styles.msgText, isUser ? styles.msgTextUser : styles.msgTextAI]}>{item.content}</Text>
                 </View>
             </View>
         );
@@ -143,17 +144,25 @@ export default function FloatingChatButton({
         <>
             {/* Draggable FAB */}
             <Animated.View
-                style={[styles.fabWrap, { left: posX, top: posY, transform: [{ scale: pulseAnim }] }]}
+                style={[
+                    styles.fabWrap,
+                    pan.getLayout(),
+                    { transform: [{ scale: pulseAnim }] },
+                ]}
                 {...panResponder.panHandlers}
             >
-                <TouchableOpacity style={styles.fab} onPress={handlePress} activeOpacity={0.8}>
+                <View style={styles.fab}>
                     <Ionicons name="chatbubble-ellipses" size={26} color="#FFF" />
-                </TouchableOpacity>
+                </View>
             </Animated.View>
 
             {/* Chat Modal */}
             <Modal visible={visible} animationType="slide" onRequestClose={() => setVisible(false)}>
-                <KeyboardAvoidingView style={styles.modal} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+                <KeyboardAvoidingView
+                    style={styles.modal}
+                    behavior="padding"
+                    keyboardVerticalOffset={0}
+                >
                     <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
                         <View style={styles.headerLeft}>
                             <View style={styles.headerIcon}>
@@ -169,26 +178,28 @@ export default function FloatingChatButton({
                         </TouchableOpacity>
                     </View>
 
-                    <FlatList
-                        ref={flatListRef}
-                        data={messages}
-                        renderItem={renderMessage}
-                        keyExtractor={(item) => item.id}
-                        contentContainerStyle={styles.msgList}
-                        showsVerticalScrollIndicator={false}
-                        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-                    />
+                    <View style={styles.messagesContainer}>
+                        <FlatList
+                            ref={flatListRef}
+                            data={messages}
+                            renderItem={renderMessage}
+                            keyExtractor={(item) => item.id}
+                            contentContainerStyle={styles.msgList}
+                            showsVerticalScrollIndicator={false}
+                            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                        />
 
-                    {loading && (
-                        <View style={styles.typingRow}>
-                            <View style={styles.msgAvatar}>
-                                <Ionicons name="sparkles" size={14} color={GOLD} />
+                        {loading && (
+                            <View style={styles.typingRow}>
+                                <View style={styles.msgAvatar}>
+                                    <Ionicons name="sparkles" size={14} color={GOLD} />
+                                </View>
+                                <View style={[styles.msgBubble, styles.msgBubbleAI, { paddingVertical: 12 }]}>
+                                    <ActivityIndicator size="small" color={TEAL} />
+                                </View>
                             </View>
-                            <View style={[styles.msgBubble, styles.msgBubbleAI, { paddingVertical: 12 }]}>
-                                <ActivityIndicator size="small" color={TEAL} />
-                            </View>
-                        </View>
-                    )}
+                        )}
+                    </View>
 
                     <View style={[styles.inputBar, { paddingBottom: insets.bottom + 10 }]}>
                         <TextInput
@@ -233,6 +244,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     modal: { flex: 1, backgroundColor: "#F7F8FA" },
+    messagesContainer: { flex: 1 },
     header: {
         flexDirection: "row", alignItems: "center", justifyContent: "space-between",
         backgroundColor: TEAL, paddingHorizontal: 16, paddingBottom: 14,

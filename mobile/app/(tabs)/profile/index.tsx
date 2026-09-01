@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions, Image, Linking, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -48,6 +48,7 @@ export default function ProfileScreen() {
     const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
     const [savingProfile, setSavingProfile] = useState(false);
     const [editName, setEditName] = useState("");
+    const [unreadCount, setUnreadCount] = useState(0);
     const [editUsername, setEditUsername] = useState("");
     const [editImage, setEditImage] = useState("");
     const [editBio, setEditBio] = useState("");
@@ -62,6 +63,11 @@ export default function ProfileScreen() {
     const [feedbackMessage, setFeedbackMessage] = useState("");
     const [feedbackRating, setFeedbackRating] = useState<number>(0);
     const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+
+    // Fetch unread notification count
+    useEffect(() => {
+        apiClient.getUnreadNotificationCount().then(setUnreadCount).catch(() => {});
+    }, []);
 
     // User data comes from the persisted store (single /auth/me fetch at startup).
     // Profile edits below update the store directly after saving.
@@ -397,9 +403,14 @@ export default function ProfileScreen() {
                     <Text style={styles.menuText}>Send Feedback</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/(tabs)/profile/notifications" as any)}>
+                <TouchableOpacity style={styles.menuItem} onPress={() => { setUnreadCount(0); router.push("/(tabs)/profile/notifications" as any); }}>
                     <Ionicons name="notifications-outline" size={24} color="#666" />
                     <Text style={styles.menuText}>Notifications</Text>
+                    {unreadCount > 0 && (
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+                        </View>
+                    )}
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.menuItem} onPress={handleOpenSessions}>
@@ -870,6 +881,20 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: "#1F2524",
         fontWeight: "600",
+    },
+    badge: {
+        backgroundColor: "#DC2626",
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 6,
+    },
+    badgeText: {
+        color: "#FFF",
+        fontSize: 11,
+        fontWeight: "700",
     },
 
     // Logout
