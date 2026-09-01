@@ -126,9 +126,7 @@ export default function SetPassword() {
     <div className='min-h-screen flex items-center justify-center bg-gray-50 px-4'>
       <div className='w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-8'>
         <div className='text-center mb-6'>
-          <div className='w-14 h-14 bg-[#F2B138]/20 rounded-2xl flex items-center justify-center mx-auto mb-4'>
-            <img src='/icon.png' alt='Apex Learn' className='w-8 h-8' />
-          </div>
+          <img src='/logo-console.png' alt='Apex Learn' className='h-24 mx-auto mb-4' />
           <h1 className='text-2xl font-bold text-gray-900'>
             {success
               ? 'All Set!'

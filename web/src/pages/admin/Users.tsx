@@ -11,7 +11,6 @@ export default function AdminUsers() {
   const limit = 20
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteName, setInviteName] = useState('')
   const [inviteRole, setInviteRole] = useState('teacher')
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteError, setInviteError] = useState('')
@@ -47,10 +46,9 @@ export default function AdminUsers() {
     setInviteSuccess('')
     setInviteLoading(true)
     try {
-      await api.adminCreateUser({ email: inviteEmail, name: inviteName, role: inviteRole })
+      await api.adminCreateUser({ email: inviteEmail, role: inviteRole })
       setInviteSuccess(`Invite sent to ${inviteEmail}`)
       setInviteEmail('')
-      setInviteName('')
       setShowInviteModal(false)
       loadPendingInvites()
     } catch (err: any) {
@@ -305,17 +303,6 @@ export default function AdminUsers() {
                 <div className='bg-slate-50 border border-slate-200 text-slate-600 px-4 py-3 rounded-xl mb-4 text-sm font-medium'>{inviteSuccess}</div>
               )}
               <form onSubmit={handleInvite} className='space-y-4'>
-                <div>
-                  <label className='block text-sm font-semibold text-gray-700 mb-1.5'>Full Name</label>
-                  <input
-                    type='text'
-                    value={inviteName}
-                    onChange={(e) => setInviteName(e.target.value)}
-                    required
-                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F2B138]/20 focus:border-[#F2B138] transition-all'
-                    placeholder='e.g. Jane Smith'
-                  />
-                </div>
                 <div>
                   <label className='block text-sm font-semibold text-gray-700 mb-1.5'>Email Address</label>
                   <input
