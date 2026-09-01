@@ -18,7 +18,7 @@ import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import Markdown from "react-native-markdown-display";
-import RenderHtml from "react-native-render-html";
+import RenderHtml, { defaultSystemFonts } from "react-native-render-html";
 import { useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiClient } from "@/lib/api";
@@ -31,6 +31,89 @@ import { useProgressionPrefetch } from "@/hooks/useProgressionPrefetch";
 
 const LESSON_CACHE_PREFIX = "cache:lesson:";
 const LESSON_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+const tableStyles = StyleSheet.create({
+  tableWrapper: {
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  scrollContainer: {
+    overflow: 'scroll',
+  },
+  row: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerRow: {
+    backgroundColor: '#084A59',
+  },
+  cell: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRightWidth: 1,
+    borderRightColor: '#E5E7EB',
+    minWidth: 100,
+  },
+  headerCell: {
+    backgroundColor: '#084A59',
+  },
+  cellText: {
+    fontSize: 13,
+    color: '#374151',
+    lineHeight: 18,
+  },
+  headerText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+});
+
+const TableRenderer = ({ TDefaultRenderer, ...props }: any) => {
+  const { THead, TBody,TFoot, Tr, Th, Td } = props.reportedNativeMethods || {};
+  return <View style={tableStyles.tableWrapper}>{props.children}</View>;
+};
+
+const TrRenderer = ({ DefaultRenderer, ...props }: any) => {
+  const isHeader = props.node.parent?.tagName === 'thead';
+  return (
+    <View style={[tableStyles.row, isHeader && tableStyles.headerRow]}>
+      {props.children}
+    </View>
+  );
+};
+
+const ThRenderer = ({ DefaultRenderer, ...props }: any) => {
+  return (
+    <View style={[tableStyles.cell, tableStyles.headerCell]}>
+      <Text style={tableStyles.headerText}>{props.children}</Text>
+    </View>
+  );
+};
+
+const TdRenderer = ({ DefaultRenderer, ...props }: any) => {
+  return (
+    <View style={tableStyles.cell}>
+      <Text style={tableStyles.cellText}>{props.children}</Text>
+    </View>
+  );
+};
+
+const htmlRenderers = {
+  table: TableRenderer,
+  thead: ({ children }: any) => <>{children}</>,
+  tbody: ({ children }: any) => <>{children}</>,
+  tfoot: ({ children }: any) => <>{children}</>,
+  tr: TrRenderer,
+  th: ThRenderer,
+  td: TdRenderer,
+};
 
 const safeNumber = (value: string): number | undefined => {
     const trimmed = value.trim();
@@ -399,14 +482,23 @@ export default function LessonDetailScreen() {
                             <RenderHtml
                                 contentWidth={width - 32}
                                 source={{ html: lesson.content }}
+                                renderers={htmlRenderers}
                                 tagsStyles={{
                                     body: { color: '#374151', fontSize: 15, lineHeight: 24 },
                                     h1: { fontSize: 22, fontWeight: '700', color: '#111827', marginVertical: 12 },
                                     h2: { fontSize: 19, fontWeight: '700', color: '#111827', marginVertical: 10 },
                                     h3: { fontSize: 17, fontWeight: '600', color: '#111827', marginVertical: 8 },
+                                    h4: { fontSize: 15, fontWeight: '600', color: '#111827', marginVertical: 6 },
                                     p: { marginVertical: 6 },
+                                    strong: { fontWeight: 'bold' },
+                                    b: { fontWeight: 'bold' },
+                                    em: { fontStyle: 'italic' },
+                                    i: { fontStyle: 'italic' },
+                                    u: { textDecorationLine: 'underline' },
                                     a: { color: '#084A59', textDecorationLine: 'underline' },
                                     li: { marginVertical: 2 },
+                                    ol: { marginVertical: 6, paddingLeft: 20 },
+                                    ul: { marginVertical: 6, paddingLeft: 20 },
                                     blockquote: { borderLeftWidth: 3, borderLeftColor: '#084A59', paddingLeft: 12, marginVertical: 8, backgroundColor: '#F3F4F6', paddingVertical: 8, borderRadius: 4 },
                                     pre: { backgroundColor: '#1F2937', color: '#E5E7EB', padding: 12, borderRadius: 8, marginVertical: 8 },
                                     code: { backgroundColor: '#F3F4F6', paddingHorizontal: 4, borderRadius: 3 },
