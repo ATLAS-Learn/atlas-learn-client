@@ -183,7 +183,7 @@ class WebAPIClient {
   // Subjects
   async getSubjects(params?: any) {
     const res = await this.request<any>('/subjects', {
-      params: { ...params, includeChapters: true },
+      params,
     });
     return this.unwrap(res);
   }

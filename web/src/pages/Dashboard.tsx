@@ -148,7 +148,7 @@ export default function Dashboard() {
             <span className='text-[#F2B138]'>that actually works.</span>
           </h2>
 
-          <p className='text-gray-400 text-lg leading-relaxed mb-10'>
+          <p className='text-gray-300 text-lg leading-relaxed mb-10'>
             Track student progress across subjects, create quizzes, and unlock
             insights — all from one dashboard built for educators who care about
             results.
@@ -161,7 +161,7 @@ export default function Dashboard() {
               'Content management across all subjects',
             ].map((item, i) => (
               <div key={i} className='flex items-center gap-3'>
-                <div className='w-6 h-6 rounded-full bg-[#F2B138]/20 flex items-center justify-center shrink-0'>
+                <div className='w-6 h-6 rounded-full bg-[#F2B138] flex items-center justify-center shrink-0'>
                   <svg
                     className='w-3.5 h-3.5 text-[#084A59]'
                     fill='none'

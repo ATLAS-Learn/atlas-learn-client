@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 
@@ -10,6 +10,7 @@ export default function SetPassword() {
   const [schools, setSchools] = useState<any[]>([]);
   const [schoolSearch, setSchoolSearch] = useState('');
   const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
+  const [schoolsLoading, setSchoolsLoading] = useState(true);
   const [step, setStep] = useState(1);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,6 +22,7 @@ export default function SetPassword() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const schoolRef = useRef<HTMLDivElement>(null);
 
   const isTeacher = userInfo?.role === 'teacher';
   const totalSteps = isTeacher ? 3 : 2;
@@ -53,7 +55,7 @@ export default function SetPassword() {
       api
         .getSubjects()
         .then((res) => {
-          setSubjects(res?.data ?? []);
+          setSubjects(Array.isArray(res) ? res : (res?.data ?? []));
         })
         .catch(() => {});
     }
@@ -61,14 +63,28 @@ export default function SetPassword() {
 
   useEffect(() => {
     if (schools.length === 0) {
+      setSchoolsLoading(true);
       api
         .getSchools()
         .then((res) => {
           setSchools(res?.data ?? []);
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.error('Failed to load schools:', err);
+        })
+        .finally(() => setSchoolsLoading(false));
     }
   }, [schools.length]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (schoolRef.current && !schoolRef.current.contains(e.target as Node)) {
+        setShowSchoolDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +134,7 @@ export default function SetPassword() {
 
   const toggleSubject = (id: string) => {
     setSelectedSubjects((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+      prev.includes(id) ? prev.filter((s) => s !== id) : prev.length >= 2 ? prev : [...prev, id],
     );
   };
 
@@ -309,10 +325,7 @@ export default function SetPassword() {
 
           {/* Step 2: Profile */}
           {step === 2 && (
-            <form
-              onSubmit={handleProfileSubmit}
-              onClick={() => setShowSchoolDropdown(false)}
-            >
+            <form onSubmit={handleProfileSubmit}>
               <div className='mb-5'>
                 <label className='block text-sm font-medium text-gray-600 mb-2'>
                   Full Name
@@ -326,9 +339,9 @@ export default function SetPassword() {
                   placeholder='e.g. Jane Smith'
                 />
               </div>
-              <div className='mb-7 relative'>
+              <div className='mb-7 relative' ref={schoolRef}>
                 <label className='block text-sm font-medium text-gray-600 mb-2'>
-                  School <span className='text-gray-400'>(optional)</span>
+                  School
                 </label>
                 <input
                   type='text'
@@ -346,7 +359,7 @@ export default function SetPassword() {
                   placeholder='Search for your school...'
                 />
                 {showSchoolDropdown && schools.length > 0 && (
-                  <div className='absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto'>
+                  <div className='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto'>
                     {schools
                       .filter(
                         (s) =>
@@ -360,6 +373,7 @@ export default function SetPassword() {
                         <button
                           key={s.id}
                           type='button'
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={() => {
                             setSchool(s.name);
                             setSchoolSearch('');
@@ -400,7 +414,7 @@ export default function SetPassword() {
                 <button
                   type='button'
                   onClick={() => setStep(1)}
-                  className='flex-1 py-3.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors'
+                  className='flex-1 py-3.5 border-2 border-gray-300 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors'
                 >
                   Back
                 </button>
@@ -423,6 +437,10 @@ export default function SetPassword() {
                   <p className='text-sm text-gray-400'>Loading subjects...</p>
                 </div>
               ) : (
+                <>
+                {selectedSubjects.length >= 2 && (
+                  <p className='text-xs text-amber-600 mb-2 font-medium'>Maximum 2 subjects selected. Deselect one to change.</p>
+                )}
                 <div className='max-h-64 overflow-y-auto space-y-2 mb-6'>
                   {subjects.map((subj) => (
                     <button
@@ -469,12 +487,13 @@ export default function SetPassword() {
                     </button>
                   ))}
                 </div>
+                </>
               )}
               <div className='flex gap-3'>
                 <button
                   type='button'
                   onClick={() => setStep(2)}
-                  className='flex-1 py-3.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors'
+                  className='flex-1 py-3.5 border-2 border-gray-300 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors'
                 >
                   Back
                 </button>
@@ -502,7 +521,7 @@ export default function SetPassword() {
             Welcome to<br />
             <span className='text-[#F2B138]'>Apex Learn</span>
           </h2>
-          <p className='text-gray-400 text-lg leading-relaxed mb-10'>
+          <p className='text-gray-300 text-lg leading-relaxed mb-10'>
             Your journey to better learning starts here. Set up your account and start exploring courses today.
           </p>
           <div className='space-y-4'>
@@ -512,7 +531,7 @@ export default function SetPassword() {
               'Learn at your own pace, anywhere',
             ].map((item, i) => (
               <div key={i} className='flex items-center gap-3'>
-                <div className='w-6 h-6 rounded-full bg-[#F2B138]/20 flex items-center justify-center shrink-0'>
+                <div className='w-6 h-6 rounded-full bg-[#F2B138] flex items-center justify-center shrink-0'>
                   <svg
                     className='w-3.5 h-3.5 text-[#084A59]'
                     fill='none'
