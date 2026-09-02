@@ -56,7 +56,7 @@ export default function ContentList() {
         </div>
         <button
           onClick={() => { setEditSubject(null); setSubjectForm({ name: '', code: '', description: '' }); setShowSubjectForm(true) }}
-          className='px-5 py-2.5 bg-[#F2B138] text-white font-bold text-sm rounded-xl hover:bg-[#011C26] transition-colors'
+          className='px-5 py-2.5 bg-[#084A59] text-white font-bold text-sm rounded-xl hover:bg-[#011C26] transition-colors'
         >
           + New Subject
         </button>
@@ -115,7 +115,7 @@ export default function ContentList() {
       )}
 
       {showSubjectForm && (
-        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4' onClick={() => setShowSubjectForm(false)}>
+        <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => setShowSubjectForm(false)}>
           <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <h3 className='text-lg font-bold text-[#084A59]'>{editSubject ? 'Edit Subject' : 'New Subject'}</h3>
@@ -155,7 +155,7 @@ export default function ContentList() {
               </div>
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => setShowSubjectForm(false)} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50'>Cancel</button>
-                <button type='submit' className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editSubject ? 'Update' : 'Create'}</button>
+                <button type='submit' className='flex-1 py-2.5 bg-[#084A59] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editSubject ? 'Update' : 'Create'}</button>
               </div>
             </form>
           </div>

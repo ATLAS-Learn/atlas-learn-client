@@ -19,7 +19,7 @@ function setCache(key: string, data: any) {
 
 function StatCard({ label, value, sub, icon, color = 'bg-white' }: { label: string; value: any; sub?: string; icon?: React.ReactNode; color?: string }) {
   return (
-    <div className={`${color} rounded-2xl p-5 flex flex-col gap-2`}>
+    <div className={`${color} rounded-3xl p-7 flex flex-col gap-2 hover:shadow-lg transition-all duration-200`}>
       <div className='flex items-center justify-between'>
         <p className='text-sm font-medium text-gray-500'>{label}</p>
         {icon && <div className='text-gray-400'>{icon}</div>}
@@ -153,9 +153,9 @@ export default function AdminDashboard() {
   const signupMax = Math.max(...signupData.map((d: any) => (d.students || 0) + (d.teachers || 0)), 1)
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       {/* Hero Stats */}
-      <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4'>
+      <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6'>
         <StatCard label='Total Users' value={users.total ?? '—'} sub={`${users.students ?? 0} students`} />
         <StatCard label='Active (Weekly)' value={active.weekly ?? '—'} sub={`${active.monthly ?? 0} monthly`} />
         <StatCard label='Subjects' value={content.subjects ?? '—'} sub={`${content.chapters ?? 0} chapters`} />
@@ -178,10 +178,10 @@ export default function AdminDashboard() {
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         {/* WAU Trend */}
         {wau && (
-          <div className='bg-white rounded-2xl p-6'>
+          <div className='bg-white rounded-3xl p-6 hover:shadow-lg transition-all duration-200'>
             <div className='flex items-center justify-between mb-5'>
               <div>
-                <h3 className='text-base font-bold text-[#084A59]'>Weekly Active Users</h3>
+                <h3 className='text-lg font-bold text-[#084A59]'>Weekly Active Users</h3>
                 <p className='text-sm text-gray-400 mt-0.5'>Last 12 weeks</p>
               </div>
               <div className='text-right'>
@@ -198,7 +198,7 @@ export default function AdminDashboard() {
             />
             <div className='flex justify-between mt-2'>
               {wauTrend.slice(-12).filter((_: any, i: number) => i % 3 === 0).map((w: any, i: number) => (
-                <span key={i} className='text-[10px] text-gray-400'>
+                <span key={i} className='text-xs text-gray-400'>
                   {w.weekStart?.slice(5) || ''}
                 </span>
               ))}
@@ -208,10 +208,10 @@ export default function AdminDashboard() {
 
         {/* Signup Trend */}
         {signupTrend && (
-          <div className='bg-white rounded-2xl p-6'>
+          <div className='bg-white rounded-3xl p-6 hover:shadow-lg transition-all duration-200'>
             <div className='flex items-center justify-between mb-5'>
               <div>
-                <h3 className='text-base font-bold text-[#084A59]'>New Signups</h3>
+                <h3 className='text-lg font-bold text-[#084A59]'>New Signups</h3>
                 <p className='text-sm text-gray-400 mt-0.5'>Last 30 days — {signupTrend.totalNewUsers ?? 0} total</p>
               </div>
               <div className='flex items-center gap-3 text-xs'>
@@ -233,8 +233,8 @@ export default function AdminDashboard() {
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
         {/* Chapter Completion */}
         {chapterCompletion?.primaryMetric && (
-          <div className='bg-white rounded-2xl p-6'>
-            <h3 className='text-base font-bold text-[#084A59] mb-4'>Chapter 1 Funnel</h3>
+          <div className='bg-white rounded-3xl p-6 hover:shadow-lg transition-all duration-200'>
+            <h3 className='text-lg font-bold text-[#084A59] mb-4'>Chapter 1 Funnel</h3>
             <p className='text-xs text-gray-400 mb-5'>Student progression through first chapter</p>
             <div className='space-y-4'>
               {[
@@ -263,8 +263,8 @@ export default function AdminDashboard() {
 
         {/* Quiz Stats */}
         {quizStats?.summary && (
-          <div className='bg-white rounded-2xl p-6'>
-            <h3 className='text-base font-bold text-[#084A59] mb-4'>Quiz Performance</h3>
+          <div className='bg-white rounded-3xl p-6 hover:shadow-lg transition-all duration-200'>
+            <h3 className='text-lg font-bold text-[#084A59] mb-4'>Quiz Performance</h3>
             <p className='text-xs text-gray-400 mb-5'>Overall quiz metrics</p>
             <div className='grid grid-cols-2 gap-4'>
               {[
@@ -283,8 +283,8 @@ export default function AdminDashboard() {
         )}
 
         {/* Platform Breakdown */}
-        <div className='bg-white rounded-2xl p-6'>
-          <h3 className='text-base font-bold text-[#084A59] mb-4'>User Breakdown</h3>
+        <div className='bg-white rounded-3xl p-6 hover:shadow-lg transition-all duration-200'>
+          <h3 className='text-lg font-bold text-[#084A59] mb-4'>User Breakdown</h3>
           <p className='text-xs text-gray-400 mb-5'>Platform user composition</p>
           <div className='space-y-3'>
             {[
@@ -319,7 +319,7 @@ export default function AdminDashboard() {
               ].map((s, i) => (
                 <div key={i} className='text-center'>
                   <p className='text-xl font-bold text-[#084A59]'>{s.value}</p>
-                  <p className='text-[11px] text-gray-400 font-medium'>{s.label}</p>
+                  <p className='text-xs text-gray-400 font-medium'>{s.label}</p>
                 </div>
               ))}
             </div>

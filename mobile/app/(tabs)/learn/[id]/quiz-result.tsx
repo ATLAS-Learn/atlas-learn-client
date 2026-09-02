@@ -12,7 +12,7 @@ import ScreenHeader from "@/components/ui/screen-header";
 
 export default function QuizResultScreen() {
     const router = useRouter();
-    const params = useLocalSearchParams<{ id: string; score: string; correctAnswers: string; totalQuestions: string; passed: string; unlockedNextChapter: string; nextChapterTitle?: string; nextChapterId?: string; quizId?: string; subjectId?: string; attemptId?: string }>();
+    const params = useLocalSearchParams<{ id: string; score: string; correctAnswers: string; totalQuestions: string; passed: string; unlockedNextChapter: string; nextChapterTitle?: string; nextChapterId?: string; quizId?: string; subjectId?: string; attemptId?: string; hasStructural?: string; isCorrected?: string }>();
 
     const score = parseInt(params.score as string) || 0;
     const correctAnswers = parseInt(params.correctAnswers as string) || 0;
@@ -25,6 +25,9 @@ export default function QuizResultScreen() {
     const subjectId = params.subjectId as string | undefined;
     const attemptId = params.attemptId as string | undefined;
     const quizId = params.quizId as string | undefined;
+    const hasStructural = params.hasStructural === "true";
+    const isCorrected = params.isCorrected === "true";
+    const isPending = hasStructural && !isCorrected;
 
     const handleContinue = () => {
         if (unlockedNextChapter && nextChapterId) {
@@ -71,6 +74,74 @@ export default function QuizResultScreen() {
             } as any);
         }
     };
+
+    // Pending review state
+    if (isPending) {
+        return (
+            <View style={styles.container}>
+                <ScreenHeader title="Quiz Results" />
+                <ScrollView contentContainerStyle={styles.content}>
+                    <View style={styles.pendingContainer}>
+                        <View style={styles.iconContainer}>
+                            <View style={styles.pendingIconCircle}>
+                                <Ionicons name="time-outline" size={60} color="#F2B138" />
+                            </View>
+                        </View>
+
+                        <Text style={styles.pendingTitle}>Awaiting Review</Text>
+
+                        <Text style={styles.pendingSubtitle}>
+                            Your quiz contains essay questions that need to be reviewed by your teacher.
+                        </Text>
+
+                        <View style={styles.pendingInfoCard}>
+                            <View style={styles.pendingInfoRow}>
+                                <Ionicons name="chatbubble-outline" size={20} color="#084A59" />
+                                <Text style={styles.pendingInfoText}>
+                                    Essay questions are pending teacher correction
+                                </Text>
+                            </View>
+                            <View style={styles.pendingInfoRow}>
+                                <Ionicons name="time-outline" size={20} color="#084A59" />
+                                <Text style={styles.pendingInfoText}>
+                                    You&apos;ll be notified once your quiz is graded
+                                </Text>
+                            </View>
+                            <View style={styles.pendingInfoRow}>
+                                <Ionicons name="lock-closed-outline" size={20} color="#084A59" />
+                                <Text style={styles.pendingInfoText}>
+                                    You cannot retake this quiz until it&apos;s graded
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.pendingScoreContainer}>
+                            <Text style={styles.pendingScoreLabel}>MCQ Score (so far)</Text>
+                            <Text style={styles.pendingScoreValue}>{score}%</Text>
+                            <Text style={styles.pendingScoreNote}>
+                                Final score will be updated after teacher review
+                            </Text>
+                        </View>
+
+                        <View style={styles.actionsContainer}>
+                            <TouchableOpacity
+                                style={styles.reviewButton}
+                                onPress={handleReviewChapter}
+                            >
+                                <Ionicons name="book-outline" size={20} color="#F2B138" />
+                                <Text style={styles.reviewButtonText}>Review Chapter</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+                                <Text style={styles.continueButtonText}>Back to Dashboard</Text>
+                                <Ionicons name="arrow-forward" size={20} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </ScrollView>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -280,5 +351,79 @@ const styles = StyleSheet.create({
         color: "#F2B138",
         fontSize: 16,
         fontWeight: "700",
+    },
+    pendingContainer: {
+        alignItems: "center",
+        padding: 24,
+    },
+    pendingIconCircle: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: "#FFF8E1",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    pendingTitle: {
+        fontSize: 28,
+        fontWeight: "800",
+        color: "#282F2E",
+        marginBottom: 12,
+        textAlign: "center",
+    },
+    pendingSubtitle: {
+        fontSize: 16,
+        color: "#666",
+        textAlign: "center",
+        lineHeight: 24,
+        marginBottom: 24,
+        paddingHorizontal: 16,
+    },
+    pendingInfoCard: {
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 20,
+        width: "100%",
+        gap: 16,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+    },
+    pendingInfoRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    pendingInfoText: {
+        flex: 1,
+        fontSize: 14,
+        color: "#444",
+        lineHeight: 20,
+    },
+    pendingScoreContainer: {
+        backgroundColor: "#F9FBFB",
+        borderRadius: 16,
+        padding: 24,
+        width: "100%",
+        alignItems: "center",
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+    },
+    pendingScoreLabel: {
+        fontSize: 14,
+        color: "#666",
+        marginBottom: 8,
+    },
+    pendingScoreValue: {
+        fontSize: 48,
+        fontWeight: "800",
+        color: "#F2B138",
+    },
+    pendingScoreNote: {
+        fontSize: 12,
+        color: "#999",
+        marginTop: 8,
+        textAlign: "center",
     },
 });

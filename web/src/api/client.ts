@@ -4,6 +4,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 class WebAPIClient {
   private axiosInstance;
+  private schoolsCache: any = null;
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -182,7 +183,7 @@ class WebAPIClient {
   // Subjects
   async getSubjects(params?: any) {
     const res = await this.request<any>('/subjects', {
-      params: { ...params, includeChapters: true },
+      params,
     });
     return this.unwrap(res);
   }
@@ -318,6 +319,23 @@ class WebAPIClient {
     return res;
   }
 
+  async getPendingQuizCorrections(quizId: string) {
+    const res = await this.request<any>(`/quizzes/${quizId}/pending-corrections`);
+    return this.unwrap(res);
+  }
+
+  async correctQuizAttempt(quizId: string, data: {
+    attemptId: string;
+    corrections: { questionId: string; points: number; comment?: string }[];
+    overallComment?: string;
+  }) {
+    const res = await this.request<any>(`/quizzes/${quizId}/correct`, {
+      method: 'POST',
+      data,
+    });
+    return this.unwrap(res);
+  }
+
   async getSingleQuizStats(quizId: string) {
     const res = await this.request<any>(`/quizzes/${quizId}/stats`);
     return this.unwrap(res);
@@ -414,16 +432,30 @@ class WebAPIClient {
     });
   }
 
+  async cancelInvite(userId: string) {
+    return this.request<any>('/auth/admin/cancel-invite', {
+      method: 'POST',
+      data: { userId },
+    });
+  }
+
   // Set password (public - from invite link)
   async validateInviteToken(token: string) {
     const res = await this.request<any>(`/auth/invite/${token}`);
     return res;
   }
 
-  async setPassword(token: string, password: string) {
+  async getSchools() {
+    if (this.schoolsCache) return this.schoolsCache;
+    const res = await this.request<any>('/schools');
+    this.schoolsCache = res;
+    return res;
+  }
+
+  async setPassword(token: string, password: string, profile?: { name?: string; school?: string; teacherSubjects?: string[] }) {
     return this.request<any>('/auth/set-password', {
       method: 'POST',
-      data: { token, password },
+      data: { token, password, ...profile },
     });
   }
 

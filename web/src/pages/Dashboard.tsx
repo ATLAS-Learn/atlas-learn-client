@@ -136,7 +136,7 @@ export default function Dashboard() {
       </div>
 
       {/* Right: Branding Panel */}
-      <div className='hidden lg:flex w-1/2 bg-[#084A59] relative overflow-hidden flex-col justify-center items-start'>
+      <div className='hidden lg:flex w-1/2 bg-[#084A59]/80 backdrop-blur-md relative overflow-hidden flex-col justify-center items-start'>
         {/* Decorative circles */}
         <div className='absolute top-20 right-20 w-72 h-72 bg-[#F2B138]/10 rounded-full blur-3xl' />
         <div className='absolute bottom-32 left-16 w-48 h-48 bg-[#F2B138]/5 rounded-full blur-2xl' />
@@ -148,7 +148,7 @@ export default function Dashboard() {
             <span className='text-[#F2B138]'>that actually works.</span>
           </h2>
 
-          <p className='text-gray-400 text-lg leading-relaxed mb-10'>
+          <p className='text-gray-300 text-lg leading-relaxed mb-10'>
             Track student progress across subjects, create quizzes, and unlock
             insights — all from one dashboard built for educators who care about
             results.
@@ -161,7 +161,7 @@ export default function Dashboard() {
               'Content management across all subjects',
             ].map((item, i) => (
               <div key={i} className='flex items-center gap-3'>
-                <div className='w-6 h-6 rounded-full bg-[#F2B138]/20 flex items-center justify-center shrink-0'>
+                <div className='w-6 h-6 rounded-full bg-[#F2B138] flex items-center justify-center shrink-0'>
                   <svg
                     className='w-3.5 h-3.5 text-[#084A59]'
                     fill='none'

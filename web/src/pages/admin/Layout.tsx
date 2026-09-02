@@ -120,12 +120,12 @@ export default function AdminLayout() {
     <div className='h-screen bg-[#F0F0F0] flex overflow-hidden'>
       {/* Sidebar */}
       <aside
-        className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-64 bg-[#084A59] flex flex-col transition-transform lg:translate-x-0 lg:static lg:shrink-0`}
+        className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-72 bg-[#084A59] flex flex-col transition-transform lg:translate-x-0 lg:static lg:shrink-0 shadow-xl`}
       >
         {/* Logo */}
-        <div className='px-6 py-6 flex flex-col items-center'>
-          <img src='/logo-console.png' alt='Apex' className='h-20 w-auto' />
-          <p className='text-gray-300 text-sm font-medium mt-2'>Admin Console</p>
+        <div className='px-6 py-8 flex flex-col items-center border-b border-white/10'>
+          <img src='/logo-admin.png' alt='Apex' className='h-20 w-auto' />
+          <p className='text-gray-300 text-sm font-medium mt-3'>Admin Console</p>
         </div>
 
         {/* Nav */}
@@ -140,10 +140,10 @@ export default function AdminLayout() {
                 to={item.to}
                 onClick={() => setSidebarOpen(false)}
                 style={{ textDecoration: 'none' }}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium no-underline transition-all ${
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium no-underline transition-all duration-200 ${
                   active
-                    ? 'bg-white/10 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-white/15 text-white shadow-sm'
+                    : 'text-gray-300 hover:text-white hover:bg-white/10'
                 }`}
               >
                 {item.icon}
@@ -157,7 +157,7 @@ export default function AdminLayout() {
         <div className='px-3 py-4 border-t border-white/10'>
           <button
             onClick={handleLogout}
-            className='w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all'
+            className='w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-all'
           >
             <svg
               className='w-5 h-5'
@@ -180,7 +180,7 @@ export default function AdminLayout() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className='fixed inset-0 bg-black/50 z-40 lg:hidden'
+          className='fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden'
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -188,7 +188,7 @@ export default function AdminLayout() {
       {/* Main */}
       <div className='flex-1 flex flex-col min-w-0 overflow-y-auto'>
         {/* Header */}
-        <header className='sticky top-0 z-30 bg-white border-b border-gray-200 px-6 lg:px-8 py-4 flex items-center gap-4'>
+        <header className='sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm px-6 lg:px-8 py-4 flex items-center gap-4'>
           <button
             onClick={() => setSidebarOpen(true)}
             className='lg:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100'
@@ -215,7 +215,7 @@ export default function AdminLayout() {
         </header>
 
         {/* Content */}
-        <main className='flex-1 p-6 lg:p-8'>
+        <main className='flex-1 p-8 lg:p-10'>
           <Outlet />
         </main>
       </div>

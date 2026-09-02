@@ -33,7 +33,7 @@ export default function ScreenHeader({
             <View style={styles.leftRow}>
                 {showBack && (
                     <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#000" />
+                        <Ionicons name="arrow-back" size={24} color="#FFF" />
                     </TouchableOpacity>
                 )}
                 <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
@@ -51,10 +51,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: 16,
-        paddingBottom: 12,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
+        paddingBottom: 14,
+        backgroundColor: "#084A59",
     },
     leftRow: {
         flexDirection: "row",
@@ -70,8 +68,8 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
+        fontWeight: "800",
+        color: "#FFF",
         flex: 1,
     },
     rightAction: {

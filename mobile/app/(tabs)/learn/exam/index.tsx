@@ -84,9 +84,16 @@ export default function ExamListScreen() {
                 </View>
             )}
             <View style={styles.examFooter}>
-                <Text style={styles.attemptsText}>
-                    {item._count?.attempts ?? 0} attempts
-                </Text>
+                <View style={styles.examFooterLeft}>
+                    {item.createdAt && (
+                        <Text style={styles.dateText}>
+                            {new Date(item.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </Text>
+                    )}
+                    <Text style={styles.attemptsText}>
+                        {item._count?.attempts ?? 0} attempts
+                    </Text>
+                </View>
                 <View style={styles.startButton}>
                     <Text style={styles.startButtonText}>
                         {item.userAttempt ? "View Result" : "Start Exam"}
@@ -186,6 +193,15 @@ const styles = StyleSheet.create({
         paddingTop: 12,
         borderTopWidth: 1,
         borderTopColor: "#F5F5F5",
+    },
+    examFooterLeft: {
+        flex: 1,
+    },
+    dateText: {
+        fontSize: 11,
+        color: "#084A59",
+        fontWeight: "600",
+        marginBottom: 2,
     },
     attemptsText: {
         fontSize: 12,

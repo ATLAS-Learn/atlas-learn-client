@@ -12,7 +12,6 @@ import {
     Keyboard,
     Alert,
     ScrollView,
-    useWindowDimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,7 +22,6 @@ import { getItem, setItem } from "@/lib/utils/storage";
 
 export default function VerifyOTPScreen() {
     const router = useRouter();
-    const { width, height } = useWindowDimensions();
     const params = useLocalSearchParams<{ email?: string; mode?: string; fullName?: string }>();
     const { setAuth, setCookieAuth } = useAuthStore();
     const { setUser } = useUserStore();
@@ -181,28 +179,21 @@ export default function VerifyOTPScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <KeyboardAvoidingView
                 style={styles.container}
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
             >
                 <ScrollView
-                    contentContainerStyle={[
-                        styles.scrollContent,
-                        {
-                            paddingTop: Math.max(64, Math.floor(height * 0.08)),
-                            paddingHorizontal: width < 390 ? 16 : 24,
-                        },
-                    ]}
+                    contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
                     <TouchableOpacity
-                        style={[styles.backArrow, { top: Math.max(32, Math.floor(height * 0.06)) }]}
+                        style={styles.backArrow}
                         onPress={() => router.back()}
                     >
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
 
-                    <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
+                    <View style={styles.logoContainer}>
                         <Ionicons name="keypad-outline" size={80} color="#F2B138" />
                     </View>
 
@@ -293,17 +284,20 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         justifyContent: "center",
-        paddingBottom: 40,
+        paddingHorizontal: 24,
+        paddingTop: 0,
+        paddingBottom: 20,
     },
     backArrow: {
         position: "absolute",
+        top: 50,
         left: 24,
         zIndex: 10,
     },
     logoContainer: {
         alignItems: "center",
         marginBottom: 30,
-        marginTop: 32,
+        marginTop: 0,
     },
     title: {
         fontSize: 32,
@@ -352,14 +346,6 @@ const styles = StyleSheet.create({
         width: 1,
         height: 1,
     },
-    input: {
-        flex: 1,
-        fontSize: 18,
-        color: "#333",
-        fontWeight: "600",
-        letterSpacing: 4,
-        textAlign: "center",
-    },
     errorText: {
         color: "#E57373",
         marginBottom: 10,
@@ -367,7 +353,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     submitButton: {
-        backgroundColor: "#F2B138",
+        backgroundColor: "#084A59",
         paddingVertical: 16,
         borderRadius: 25,
         alignItems: "center",

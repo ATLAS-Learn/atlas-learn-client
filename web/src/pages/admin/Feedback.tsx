@@ -366,7 +366,7 @@ export default function AdminFeedback() {
       {/* Reply Modal */}
       {replyModal.open && replyModal.feedback && (
         <div
-          className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'
+          className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm'
           onClick={() => setReplyModal({ open: false, feedback: null })}
         >
           <div
@@ -405,7 +405,7 @@ export default function AdminFeedback() {
               <button
                 onClick={handleSendReply}
                 disabled={!replyText.trim() || updateMutation.isPending}
-                className='px-4 py-2 text-sm font-medium text-white bg-[#F2B138] hover:bg-[#084A59] rounded-lg transition-colors disabled:opacity-50'
+                className='px-4 py-2 text-sm font-medium text-white bg-[#084A59] hover:bg-[#011C26] rounded-lg transition-colors disabled:opacity-50'
               >
                 {updateMutation.isPending ? 'Sending...' : 'Send Reply'}
               </button>

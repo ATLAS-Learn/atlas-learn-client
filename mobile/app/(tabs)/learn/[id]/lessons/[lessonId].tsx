@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Animated,
     Keyboard,
     KeyboardAvoidingView,
     Linking,
@@ -13,21 +14,106 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import Markdown from "react-native-markdown-display";
-import RenderHtml from "react-native-render-html";
+import RenderHtml, { defaultSystemFonts } from "react-native-render-html";
 import { useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiClient } from "@/lib/api";
 import { Lesson, LessonWithProgress } from "@/lib/types";
 import ScreenHeader from "@/components/ui/screen-header";
+import FloatingChatButton from "@/components/chat/FloatingChatButton";
 import { getCacheSync, setCache } from "@/lib/utils/cache";
 import { DISK_TTL } from "@/lib/config/cachePolicy";
 import { useProgressionPrefetch } from "@/hooks/useProgressionPrefetch";
 
 const LESSON_CACHE_PREFIX = "cache:lesson:";
 const LESSON_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+const tableStyles = StyleSheet.create({
+  tableWrapper: {
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  scrollContainer: {
+    overflow: 'scroll',
+  },
+  row: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerRow: {
+    backgroundColor: '#084A59',
+  },
+  cell: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRightWidth: 1,
+    borderRightColor: '#E5E7EB',
+    minWidth: 100,
+  },
+  headerCell: {
+    backgroundColor: '#084A59',
+  },
+  cellText: {
+    fontSize: 13,
+    color: '#374151',
+    lineHeight: 18,
+  },
+  headerText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+});
+
+const TableRenderer = ({ TDefaultRenderer, ...props }: any) => {
+  const { THead, TBody,TFoot, Tr, Th, Td } = props.reportedNativeMethods || {};
+  return <View style={tableStyles.tableWrapper}>{props.children}</View>;
+};
+
+const TrRenderer = ({ DefaultRenderer, ...props }: any) => {
+  const isHeader = props.node.parent?.tagName === 'thead';
+  return (
+    <View style={[tableStyles.row, isHeader && tableStyles.headerRow]}>
+      {props.children}
+    </View>
+  );
+};
+
+const ThRenderer = ({ DefaultRenderer, ...props }: any) => {
+  return (
+    <View style={[tableStyles.cell, tableStyles.headerCell]}>
+      <Text style={tableStyles.headerText}>{props.children}</Text>
+    </View>
+  );
+};
+
+const TdRenderer = ({ DefaultRenderer, ...props }: any) => {
+  return (
+    <View style={tableStyles.cell}>
+      <Text style={tableStyles.cellText}>{props.children}</Text>
+    </View>
+  );
+};
+
+const htmlRenderers = {
+  table: TableRenderer,
+  thead: ({ children }: any) => <>{children}</>,
+  tbody: ({ children }: any) => <>{children}</>,
+  tfoot: ({ children }: any) => <>{children}</>,
+  tr: TrRenderer,
+  th: ThRenderer,
+  td: TdRenderer,
+};
 
 const safeNumber = (value: string): number | undefined => {
     const trimmed = value.trim();
@@ -57,6 +143,7 @@ const isHtmlContent = (content: string): boolean => {
 
 export default function LessonDetailScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
     const queryClient = useQueryClient();
     const { width } = useWindowDimensions();
     const { id, lessonId, subjectId } = useLocalSearchParams<{
@@ -64,6 +151,39 @@ export default function LessonDetailScreen() {
         lessonId: string;
         subjectId?: string;
     }>();
+
+    // Scroll-based header/tabbar hide
+    const insets = useSafeAreaInsets();
+    const scrollY = useRef(new Animated.Value(0)).current;
+    const lastScrollY = useRef(0);
+    const headerHidden = useRef(false);
+    const [headerVisible, setHeaderVisible] = useState(true);
+
+    const HEADER_HEIGHT = insets.top + 50; // safe area + header content
+
+    useEffect(() => {
+        const listenerId = scrollY.addListener(({ value }) => {
+            const diff = value - lastScrollY.current;
+            if (diff > 10 && !headerHidden.current && value > 30) {
+                headerHidden.current = true;
+                setHeaderVisible(false);
+            } else if (diff < -10 && headerHidden.current) {
+                headerHidden.current = false;
+                setHeaderVisible(true);
+            }
+            lastScrollY.current = value;
+        });
+        return () => scrollY.removeListener(listenerId);
+    }, [scrollY]);
+
+    // Hide/show tab bar based on scroll direction
+    useEffect(() => {
+        navigation.setOptions({
+            tabBarStyle: headerVisible
+                ? { backgroundColor: "#fff", borderTopColor: "#F0F0F0", borderTopWidth: 1, height: 60, paddingBottom: 8, paddingTop: 6 }
+                : { height: 0, overflow: "hidden", borderTopWidth: 0 },
+        });
+    }, [headerVisible, navigation]);
     const chapterId = Array.isArray(id) ? id[0] : id;
     const lessonKey = Array.isArray(lessonId) ? lessonId[0] : lessonId;
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
@@ -77,6 +197,9 @@ export default function LessonDetailScreen() {
     const watchTimePresets = [300, 600, 1200, 1800];
     const { prefetchNextLesson } = useProgressionPrefetch();
 
+    // Navigation state
+    const [siblingLessons, setSiblingLessons] = useState<LessonWithProgress[]>([]);
+
     // Set default watch time from lesson's estimated duration
     useEffect(() => {
         if (lesson?.durationMinutes && !watchTime) {
@@ -89,6 +212,16 @@ export default function LessonDetailScreen() {
 
     const examples = useMemo(() => normalizeStringArray(lesson?.examples), [lesson]);
     const keyPoints = useMemo(() => normalizeStringArray(lesson?.keyPoints), [lesson]);
+
+    // Navigation indices
+    const currentLessonIndex = useMemo(
+        () => siblingLessons.findIndex((l) => l.id === lessonKey),
+        [siblingLessons, lessonKey]
+    );
+    const prevLesson = currentLessonIndex > 0 ? siblingLessons[currentLessonIndex - 1] : null;
+    const nextLesson = currentLessonIndex >= 0 && currentLessonIndex < siblingLessons.length - 1
+        ? siblingLessons[currentLessonIndex + 1]
+        : null;
 
     const loadLesson = useCallback(async () => {
         if (!chapterId || !lessonKey || !subjectKey) {
@@ -126,6 +259,20 @@ export default function LessonDetailScreen() {
     useEffect(() => {
         loadLesson();
     }, [loadLesson]);
+
+    // Fetch sibling lessons for navigation
+    useEffect(() => {
+        if (!chapterId || !subjectKey) return;
+        const fetchNav = async () => {
+            try {
+                const lessons = await apiClient.getSubjectChapterLessons(subjectKey, chapterId, true);
+                setSiblingLessons(lessons || []);
+            } catch {
+                // Navigation is best-effort
+            }
+        };
+        fetchNav();
+    }, [chapterId, subjectKey]);
 
     const handleOpenLink = async (url: string, label: string) => {
         try {
@@ -291,12 +438,38 @@ export default function LessonDetailScreen() {
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
             >
-                <ScreenHeader title="Lesson" />
+                {/* Animated Header */}
+                <Animated.View
+                    style={[
+                        styles.animatedHeader,
+                        {
+                            transform: [{
+                                translateY: scrollY.interpolate({
+                                    inputRange: [0, 60],
+                                    outputRange: [0, -HEADER_HEIGHT],
+                                    extrapolate: "clamp",
+                                }),
+                            }],
+                            opacity: scrollY.interpolate({
+                                inputRange: [0, 50],
+                                outputRange: [1, 0],
+                                extrapolate: "clamp",
+                            }),
+                        },
+                    ]}
+                >
+                    <ScreenHeader title="Lesson" />
+                </Animated.View>
 
-                <ScrollView
+                <Animated.ScrollView
                     style={styles.scrollView}
-                    contentContainerStyle={styles.content}
+                    contentContainerStyle={[styles.content, { paddingTop: HEADER_HEIGHT + 24 }]}
                     keyboardShouldPersistTaps="handled"
+                    onScroll={Animated.event(
+                        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                        { useNativeDriver: true }
+                    )}
+                    scrollEventThrottle={16}
                 >
                 <Text style={styles.lessonTitle}>{lesson.title || "Untitled lesson"}</Text>
                 {lesson.durationMinutes ? (
@@ -309,14 +482,23 @@ export default function LessonDetailScreen() {
                             <RenderHtml
                                 contentWidth={width - 32}
                                 source={{ html: lesson.content }}
+                                renderers={htmlRenderers}
                                 tagsStyles={{
                                     body: { color: '#374151', fontSize: 15, lineHeight: 24 },
                                     h1: { fontSize: 22, fontWeight: '700', color: '#111827', marginVertical: 12 },
                                     h2: { fontSize: 19, fontWeight: '700', color: '#111827', marginVertical: 10 },
                                     h3: { fontSize: 17, fontWeight: '600', color: '#111827', marginVertical: 8 },
+                                    h4: { fontSize: 15, fontWeight: '600', color: '#111827', marginVertical: 6 },
                                     p: { marginVertical: 6 },
+                                    strong: { fontWeight: 'bold' },
+                                    b: { fontWeight: 'bold' },
+                                    em: { fontStyle: 'italic' },
+                                    i: { fontStyle: 'italic' },
+                                    u: { textDecorationLine: 'underline' },
                                     a: { color: '#084A59', textDecorationLine: 'underline' },
                                     li: { marginVertical: 2 },
+                                    ol: { marginVertical: 6, paddingLeft: 20 },
+                                    ul: { marginVertical: 6, paddingLeft: 20 },
                                     blockquote: { borderLeftWidth: 3, borderLeftColor: '#084A59', paddingLeft: 12, marginVertical: 8, backgroundColor: '#F3F4F6', paddingVertical: 8, borderRadius: 4 },
                                     pre: { backgroundColor: '#1F2937', color: '#E5E7EB', padding: 12, borderRadius: 8, marginVertical: 8 },
                                     code: { backgroundColor: '#F3F4F6', paddingHorizontal: 4, borderRadius: 3 },
@@ -442,7 +624,72 @@ export default function LessonDetailScreen() {
                     )}
                     {statusMessage ? <Text style={styles.statusMessage}>{statusMessage}</Text> : null}
                 </View>
-            </ScrollView>
+
+                {/* Navigation: Lessons within chapter */}
+                {(prevLesson || nextLesson) && (
+                    <View style={styles.navSection}>
+                        <Text style={styles.navSectionTitle}>Navigate Lessons</Text>
+                        <View style={styles.navRow}>
+                            {prevLesson ? (
+                                <TouchableOpacity
+                                    style={[styles.navButton, styles.navButtonPrev]}
+                                    onPress={() =>
+                                        router.replace({
+                                            pathname: "/(tabs)/learn/[id]/lessons/[lessonId]" as any,
+                                            params: {
+                                                id: chapterId,
+                                                lessonId: prevLesson.id,
+                                                subjectId: subjectKey || "",
+                                            },
+                                        })
+                                    }
+                                >
+                                    <Ionicons name="chevron-back" size={18} color="#084A59" />
+                                    <View style={styles.navButtonContent}>
+                                        <Text style={styles.navButtonLabel}>Previous</Text>
+                                        <Text style={styles.navButtonTitle} numberOfLines={1}>
+                                            {prevLesson.title}
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
+                            ) : (
+                                <View style={[styles.navButton, styles.navButtonDisabled]} />
+                            )}
+                            {nextLesson ? (
+                                <TouchableOpacity
+                                    style={[styles.navButton, styles.navButtonNext]}
+                                    onPress={() =>
+                                        router.replace({
+                                            pathname: "/(tabs)/learn/[id]/lessons/[lessonId]" as any,
+                                            params: {
+                                                id: chapterId,
+                                                lessonId: nextLesson.id,
+                                                subjectId: subjectKey || "",
+                                            },
+                                        })
+                                    }
+                                >
+                                    <View style={[styles.navButtonContent, { alignItems: "flex-end" }]}>
+                                        <Text style={styles.navButtonLabel}>Next</Text>
+                                        <Text style={styles.navButtonTitle} numberOfLines={1}>
+                                            {nextLesson.title}
+                                        </Text>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={18} color="#084A59" />
+                                </TouchableOpacity>
+                            ) : (
+                                <View style={[styles.navButton, styles.navButtonDisabled]} />
+                            )}
+                        </View>
+                    </View>
+                )}
+
+            </Animated.ScrollView>
+            <FloatingChatButton
+                subjectName={undefined}
+                chapterName={undefined}
+                lessonName={lesson?.title}
+            />
             </KeyboardAvoidingView>
     );
 }
@@ -452,11 +699,19 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#FAFAFA",
     },
+    animatedHeader: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+    },
     scrollView: {
         flex: 1,
     },
     content: {
         padding: 24,
+        paddingTop: 120,
     },
     lessonTitle: {
         fontSize: 24,
@@ -633,6 +888,60 @@ const styles = StyleSheet.create({
     },
     markdownContainer: {
         marginBottom: 20,
+    },
+    navSection: {
+        marginTop: 8,
+        marginBottom: 16,
+    },
+    navSectionTitle: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#282F2E",
+        marginBottom: 10,
+    },
+    navRow: {
+        flexDirection: "row",
+        gap: 10,
+    },
+    navButton: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        backgroundColor: "#FFF",
+        borderRadius: 12,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        minHeight: 56,
+    },
+    navButtonPrev: {
+        borderColor: "#084A59",
+        borderWidth: 1.5,
+    },
+    navButtonNext: {
+        borderColor: "#084A59",
+        borderWidth: 1.5,
+    },
+    navButtonDisabled: {
+        opacity: 0,
+        borderWidth: 0,
+    },
+    navButtonContent: {
+        flex: 1,
+    },
+    navButtonLabel: {
+        fontSize: 10,
+        fontWeight: "700",
+        color: "#084A59",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+    },
+    navButtonTitle: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#1F2524",
+        marginTop: 1,
     },
 });
 

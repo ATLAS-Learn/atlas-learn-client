@@ -71,8 +71,8 @@ export default function ExamDetail() {
     if (!examId) return
     setCorrectionsLoading(true)
     try {
-      const data = await api.getPendingCorrections(examId)
-      setCorrections(data || [])
+      const res = await api.getExamAttempts(examId)
+      setCorrections(res?.data || [])
     } catch {} finally { setCorrectionsLoading(false) }
   }
 
@@ -132,6 +132,7 @@ export default function ExamDetail() {
           options: q.options,
           correctAnswerIndex: q.correctAnswerIndex,
           points: q.points,
+          questionType: q.questionType || 'MCQ',
         })),
       })
       loadExam()
@@ -195,7 +196,12 @@ export default function ExamDetail() {
   const handleGradeQuestion = (questionId: string, field: 'points' | 'comment', value: number | string) => {
     setCorrectionGrades(prev => ({
       ...prev,
-      [questionId]: { ...prev[questionId], [field]: value, points: prev[questionId]?.points ?? 0, comment: prev[questionId]?.comment ?? '' },
+      [questionId]: {
+        ...prev[questionId],
+        points: prev[questionId]?.points ?? 0,
+        comment: prev[questionId]?.comment ?? '',
+        [field]: value,
+      },
     }))
   }
 
@@ -246,24 +252,28 @@ export default function ExamDetail() {
           </button>
           <h2 className='text-2xl font-bold text-[#084A59]'>{exam.title}</h2>
           <p className='text-sm text-gray-400 mt-1'>
-            {exam.subject?.name} · {totalQuestions} question{totalQuestions !== 1 ? 's' : ''} · {exam.timeLimit ? `${Math.round(exam.timeLimit / 60)} min` : 'No time limit'}
+            {exam.subject?.name} · {totalQuestions} question{totalQuestions !== 1 ? 's' : ''} · {exam.timeLimit ? `${Math.round(exam.timeLimit / 60)} min` : 'No time limit'}{exam.deadline ? ` · Due ${new Date(exam.deadline).toLocaleString()}` : ''}
           </p>
         </div>
         <div className='flex items-center gap-2'>
           <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${exam.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
             {exam.isPublished ? 'Published' : 'Draft'}
           </span>
-          <button onClick={handleTogglePublish} className={`px-4 py-2 text-sm font-semibold rounded-xl border transition-colors ${exam.isPublished ? 'text-amber-600 border-amber-200 hover:bg-amber-50' : 'text-green-600 border-green-200 hover:bg-green-50'}`}>
-            {exam.isPublished ? 'Unpublish' : 'Publish'}
-          </button>
-          <button onClick={handleDelete} className='px-4 py-2 text-sm font-semibold text-slate-400 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors'>
-            Delete
-          </button>
+          {!exam.isPublished && (
+            <>
+              <button onClick={handleTogglePublish} className='px-4 py-2 text-sm font-semibold rounded-xl border transition-colors text-green-600 border-green-200 hover:bg-green-50'>
+                Publish
+              </button>
+              <button onClick={handleDelete} className='px-4 py-2 text-sm font-semibold text-slate-400 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors'>
+                Delete
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Draft save bar */}
-      {draftQuestions.length > 0 && (
+      {draftQuestions.length > 0 && !exam.isPublished && (
         <div className='bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-center justify-between'>
           <div>
             <p className='text-sm font-bold text-amber-700'>{draftQuestions.length} draft question{draftQuestions.length !== 1 ? 's' : ''} unsaved</p>
@@ -296,15 +306,17 @@ export default function ExamDetail() {
       {/* Questions Tab */}
       {tab === 'questions' && (
         <div className='space-y-3'>
-          <div className='flex justify-end gap-2'>
-            <button onClick={() => setShowAIGenerator(true)} className='px-4 py-2 bg-[#F2B138] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors flex items-center gap-2'>
-              <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z' /></svg>
-              Generate with AI
-            </button>
-            <button onClick={() => setShowAddQuestion(true)} className='px-4 py-2 bg-[#F2B138] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors'>
-              + Add Question
-            </button>
-          </div>
+          {!exam.isPublished && (
+            <div className='flex justify-end gap-2'>
+              <button onClick={() => setShowAIGenerator(true)} className='px-4 py-2 bg-[#084A59] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors flex items-center gap-2'>
+                <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z' /></svg>
+                Generate with AI
+              </button>
+              <button onClick={() => setShowAddQuestion(true)} className='px-4 py-2 bg-[#084A59] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors'>
+                + Add Question
+              </button>
+            </div>
+          )}
 
           {/* Saved questions */}
           {(exam.questions ?? []).map((q: any, idx: number) => (
@@ -328,9 +340,11 @@ export default function ExamDetail() {
                     <p className='text-xs text-gray-400 mt-2 italic'>Explanation: {q.explanation}</p>
                   )}
                 </div>
-                <button onClick={() => handleDeleteQuestion(idx)} className='p-2 text-slate-400 hover:text-red-500 transition-colors'>
-                  <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0' /></svg>
-                </button>
+                {!exam.isPublished && (
+                  <button onClick={() => handleDeleteQuestion(idx)} className='p-2 text-slate-400 hover:text-red-500 transition-colors'>
+                    <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0' /></svg>
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -338,16 +352,16 @@ export default function ExamDetail() {
           {/* Draft questions */}
           {draftQuestions.map((q, idx) => (
             <div key={`draft-${idx}`} className='bg-white rounded-2xl border-2 border-dashed border-amber-300 p-5 relative'>
-              <div className='absolute -top-2.5 left-4 bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200'>
+              <div className='absolute -top-2.5 left-4 bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full border border-amber-200'>
                 DRAFT
               </div>
               {editingDraftIdx === idx && editDraftForm ? (
                 <div className='space-y-3 mt-1'>
                   <div className='flex items-center gap-2'>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${editDraftForm.questionType === 'MCQ' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${editDraftForm.questionType === 'MCQ' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
                       {editDraftForm.questionType}
                     </span>
-                    <span className='text-[10px] font-bold text-gray-400'>Editing Draft Q{idx + 1}</span>
+                    <span className='text-xs font-bold text-gray-400'>Editing Draft Q{idx + 1}</span>
                   </div>
                   <textarea
                     value={editDraftForm.questionText}
@@ -408,7 +422,7 @@ export default function ExamDetail() {
               ) : (
                 <div className='flex items-start justify-between mt-1'>
                   <div className='flex-1'>
-                    <p className='text-xs font-bold text-amber-500 mb-1'>Draft Q{(exam.questions?.length ?? 0) + idx + 1} · {q.points} pt{q.points !== 1 ? 's' : ''}</p>
+                    <p className='text-xs font-bold text-[#BF522A] mb-1'>Draft Q{(exam.questions?.length ?? 0) + idx + 1} · {q.points} pt{q.points !== 1 ? 's' : ''}</p>
                     <p className='text-sm font-semibold text-[#084A59]'>{q.questionText}</p>
                     {q.questionType === 'MCQ' ? (
                       <div className='mt-2 space-y-1'>
@@ -474,6 +488,7 @@ export default function ExamDetail() {
                   <tr className='border-b border-gray-100 bg-slate-50/80'>
                     <th className='text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase'>Student</th>
                     <th className='text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase'>Score</th>
+                    <th className='text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase'>Status</th>
                     <th className='text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase'>Time</th>
                     <th className='text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase'>Completed</th>
                   </tr>
@@ -487,8 +502,15 @@ export default function ExamDetail() {
                       </td>
                       <td className='px-5 py-3'>
                         <span className={`text-sm font-bold ${a.score >= 70 ? 'text-green-600' : 'text-red-500'}`}>
-                          {a.score}%
+                          {a.isCorrected ? `${a.score}%` : `~${a.score}%`}
                         </span>
+                      </td>
+                      <td className='px-5 py-3'>
+                        {a.isCorrected ? (
+                          <span className='inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700'>Graded</span>
+                        ) : (
+                          <span className='inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700'>Pending</span>
+                        )}
                       </td>
                       <td className='px-5 py-3 text-sm text-gray-500'>
                         {a.timeSpent ? `${Math.round(a.timeSpent / 60)}m ${a.timeSpent % 60}s` : '-'}
@@ -514,86 +536,68 @@ export default function ExamDetail() {
             </div>
           ) : corrections.length === 0 ? (
             <div className='bg-white rounded-2xl border border-gray-200 p-12 text-center'>
-              <p className='text-gray-500 font-semibold'>No pending corrections</p>
-              <p className='text-gray-400 text-sm mt-1'>Student submissions with structural questions will appear here</p>
+              <p className='text-gray-500 font-semibold'>No submissions yet</p>
+              <p className='text-gray-400 text-sm mt-1'>Student submissions will appear here</p>
             </div>
           ) : (
-            corrections.map((attempt: any) => (
-              <div key={attempt.id} className='bg-white rounded-2xl border border-gray-200 overflow-hidden'>
-                <div className='px-5 py-4 bg-slate-50/80 border-b border-gray-100 flex items-center justify-between'>
-                  <div>
-                    <p className='text-sm font-bold text-[#084A59]'>{attempt.user?.name || 'Unknown Student'}</p>
-                    <p className='text-xs text-gray-400'>{attempt.user?.email}</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setCorrectingAttempt(correctingAttempt?.id === attempt.id ? null : attempt)
-                      if (attempt.id !== correctingAttempt?.id) {
-                        const grades: Record<string, { points: number; comment: string }> = {}
-                        attempt.answers?.forEach((a: any) => {
-                          if (a.questionType === 'STRUCTURAL' || a.isCorrected === false) {
-                            grades[a.questionId] = { points: 0, comment: '' }
-                          }
-                        })
-                        setCorrectionGrades(grades)
-                      }
-                    }}
-                    className='px-4 py-2 bg-[#F2B138] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'
-                  >
-                    {correctingAttempt?.id === attempt.id ? 'Cancel' : 'Grade'}
-                  </button>
-                </div>
-
-                {correctingAttempt?.id === attempt.id && (
-                  <div className='px-5 py-4 space-y-4'>
-                    <p className='text-xs font-bold text-gray-400 uppercase'>Structural Answers</p>
-                    {attempt.answers?.filter((a: any) => a.questionType === 'STRUCTURAL' || a.isCorrected === false).map((a: any) => (
-                      <div key={a.questionId} className='border border-gray-200 rounded-xl p-4 space-y-3'>
-                        <p className='text-sm font-semibold text-[#084A59]'>{a.questionText || 'Question'}</p>
-                        <div className='bg-gray-50 rounded-lg px-4 py-3 text-sm text-gray-600 whitespace-pre-wrap'>{a.answer || '(No answer provided)'}</div>
-                        {a.sampleAnswer && <p className='text-xs text-gray-400 italic'>Sample: {a.sampleAnswer}</p>}
-                        <div className='grid grid-cols-2 gap-3'>
-                          <div>
-                            <label className='text-xs font-semibold text-gray-500'>Points</label>
-                            <input
-                              type='number'
-                              value={correctionGrades[a.questionId]?.points ?? 0}
-                              onChange={e => handleGradeQuestion(a.questionId, 'points', Number(e.target.value))}
-                              min={0}
-                              max={a.maxPoints || 10}
-                              className='w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20'
-                            />
-                          </div>
-                          <div>
-                            <label className='text-xs font-semibold text-gray-500'>Comment</label>
-                            <input
-                              value={correctionGrades[a.questionId]?.comment ?? ''}
-                              onChange={e => handleGradeQuestion(a.questionId, 'comment', e.target.value)}
-                              placeholder='Feedback...'
-                              className='w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20'
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    <button
-                      onClick={() => handleSubmitCorrection(attempt.id)}
-                      disabled={correctionSaving}
-                      className='px-6 py-2.5 bg-[#084A59] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors disabled:opacity-50'
-                    >
-                      {correctionSaving ? 'Saving...' : 'Submit Corrections'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))
+            <div className='bg-white rounded-2xl border border-gray-200 overflow-hidden'>
+              <table className='w-full'>
+                <thead>
+                  <tr className='border-b border-gray-100 bg-slate-50/80'>
+                    <th className='text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase'>Student</th>
+                    <th className='text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase'>Score</th>
+                    <th className='text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase'>Status</th>
+                    <th className='text-left px-5 py-3 text-xs font-bold text-gray-400 uppercase'>Submitted</th>
+                    <th className='text-right px-5 py-3 text-xs font-bold text-gray-400 uppercase'>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {corrections.map((attempt: any) => (
+                    <tr key={attempt.id} className='border-b border-gray-50 hover:bg-slate-50/50 transition-colors'>
+                      <td className='px-5 py-3'>
+                        <p className='text-sm font-semibold text-[#084A59]'>{attempt.user?.name || 'Unknown'}</p>
+                        <p className='text-xs text-gray-400'>{attempt.user?.email}</p>
+                      </td>
+                      <td className='px-5 py-3'>
+                        <span className='text-sm font-bold text-gray-500'>~{attempt.score}%</span>
+                      </td>
+                      <td className='px-5 py-3'>
+                        {attempt.isCorrected ? (
+                          <span className='inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700'>Graded</span>
+                        ) : (
+                          <span className='inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700'>Pending</span>
+                        )}
+                      </td>
+                      <td className='px-5 py-3 text-sm text-gray-500'>
+                        {new Date(attempt.completedAt).toLocaleDateString()}
+                      </td>
+                      <td className='px-5 py-3 text-right'>
+                        <button
+                          onClick={() => {
+                            setCorrectingAttempt(attempt)
+                            const grades: Record<string, { points: number; comment: string }> = {}
+                            attempt.structuralAnswers?.forEach((a: any) => {
+                              grades[a.questionId] = { points: 0, comment: '' }
+                            })
+                            setCorrectionGrades(grades)
+                          }}
+                          className='px-4 py-1.5 bg-[#084A59] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'
+                        >
+                          {attempt.isCorrected ? 'View' : 'Grade'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
 
       {/* Add Question Modal */}
       {showAddQuestion && (
-        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4' onClick={() => setShowAddQuestion(false)}>
+        <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => setShowAddQuestion(false)}>
           <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <h3 className='text-lg font-bold text-[#084A59]'>Add Question</h3>
@@ -650,7 +654,7 @@ export default function ExamDetail() {
                     </div>
                   ))}
                 </div>
-                <p className='text-[11px] text-gray-400 mt-1'>Select the correct answer</p>
+                <p className='text-xs text-gray-400 mt-1'>Select the correct answer</p>
               </div>
               ) : (
               <div>
@@ -662,7 +666,7 @@ export default function ExamDetail() {
                   placeholder='Provide a model answer for reference...'
                   className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F2B138]/20 focus:border-[#F2B138] resize-none'
                 />
-                <p className='text-[11px] text-gray-400 mt-1'>This will be used as a reference when grading</p>
+                <p className='text-xs text-gray-400 mt-1'>This will be used as a reference when grading</p>
               </div>
               )}
               <div className='grid grid-cols-2 gap-4'>
@@ -705,6 +709,89 @@ export default function ExamDetail() {
           onAccept={handleAIAccept}
           onClose={() => setShowAIGenerator(false)}
         />
+      )}
+
+      {/* Grading Modal */}
+      {correctingAttempt && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4'>
+          <div className='bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col'>
+            {/* Modal Header */}
+            <div className='px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0'>
+              <div>
+                <h3 className='text-lg font-bold text-[#084A59]'>Grade: {correctingAttempt.user?.name}</h3>
+                <p className='text-xs text-gray-400'>{correctingAttempt.user?.email} · Submitted {new Date(correctingAttempt.completedAt).toLocaleString()}</p>
+              </div>
+              <button
+                onClick={() => setCorrectingAttempt(null)}
+                className='p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors'
+              >
+                <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className='px-6 py-4 space-y-4 overflow-y-auto flex-1'>
+              {correctingAttempt.structuralAnswers?.length > 0 ? correctingAttempt.structuralAnswers.map((a: any) => (
+                <div key={a.questionId} className='border border-gray-200 rounded-xl p-4 space-y-3'>
+                  <div className='flex items-start justify-between'>
+                    <p className='text-sm font-semibold text-[#084A59] flex-1'>Q{a.orderIndex + 1}. {a.questionText}</p>
+                    <span className='text-xs font-bold text-gray-400 ml-2 shrink-0'>{a.points} pts</span>
+                  </div>
+                  <div className='bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap'>
+                    <p className='text-xs font-bold text-blue-400 mb-1'>Student Answer:</p>
+                    {a.textAnswer || '(No answer provided)'}
+                  </div>
+
+                  {!correctingAttempt.isCorrected && (
+                    <div className='grid grid-cols-2 gap-3'>
+                      <div>
+                        <label className='text-xs font-semibold text-gray-500'>Points Awarded</label>
+                        <input
+                          type='number'
+                          value={correctionGrades[a.questionId]?.points ?? 0}
+                          onChange={e => handleGradeQuestion(a.questionId, 'points', Number(e.target.value))}
+                          min={0}
+                          max={a.points}
+                          className='w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20'
+                        />
+                      </div>
+                      <div>
+                        <label className='text-xs font-semibold text-gray-500'>Feedback</label>
+                        <input
+                          value={correctionGrades[a.questionId]?.comment ?? ''}
+                          onChange={e => handleGradeQuestion(a.questionId, 'comment', e.target.value)}
+                          placeholder='Feedback...'
+                          className='w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#084A59]/20'
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )) : (
+                <p className='text-sm text-gray-400 text-center py-8'>No essay questions in this exam</p>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            {!correctingAttempt.isCorrected && (
+              <div className='px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0'>
+                <button
+                  onClick={() => setCorrectingAttempt(null)}
+                  className='px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50'
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleSubmitCorrection(correctingAttempt.id)}
+                  disabled={correctionSaving}
+                  className='px-6 py-2.5 bg-[#084A59] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors disabled:opacity-50'
+                >
+                  {correctionSaving ? 'Saving...' : 'Submit Corrections'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )

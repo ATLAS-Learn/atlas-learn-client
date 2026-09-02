@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
     View,
     Text,
@@ -6,11 +6,15 @@ import {
     StyleSheet,
     ScrollView,
     ActivityIndicator,
+    RefreshControl,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
 import ScreenHeader from "@/components/ui/screen-header";
+
+const RESULT_CACHE_TTL = 30 * 1000;
 
 export default function ExamResultScreen() {
     const router = useRouter();
@@ -19,19 +23,44 @@ export default function ExamResultScreen() {
 
     const [result, setResult] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     const loadResult = useCallback(async () => {
         if (!examId) return;
-        try {
-            const data = await apiClient.getExamResult(examId);
-            setResult(data);
-        } catch {
-        } finally {
+        const cacheKey = `cache:exam-result:${examId}`;
+
+        const cached = getCacheSync<any>(cacheKey);
+        if (cached) {
+            setResult(cached);
             setLoading(false);
+        }
+
+        try {
+            const fresh = await apiClient.getExamResult(examId);
+            if (fresh) {
+                setCache(cacheKey, fresh, RESULT_CACHE_TTL).catch(() => {});
+                setResult(fresh);
+            }
+        } catch {} finally {
+            setLoading(false);
+            setRefreshing(false);
         }
     }, [examId]);
 
-    useEffect(() => {
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            const fresh = await apiClient.getExamResult(examId);
+            if (fresh) {
+                setCache(`cache:exam-result:${examId}`, fresh, RESULT_CACHE_TTL).catch(() => {});
+                setResult(fresh);
+            }
+        } catch {} finally {
+            setRefreshing(false);
+        }
+    }, [examId]);
+
+    React.useEffect(() => {
         loadResult();
     }, [loadResult]);
 
@@ -63,15 +92,41 @@ export default function ExamResultScreen() {
         );
     }
 
-    const passed = result.score >= 70;
-    const correctCount = result.corrections?.filter((c: any) => c.isCorrect).length ?? 0;
+    const resultIsCorrected = result.isCorrected !== false;
+    const passed = resultIsCorrected && result.score >= 70;
+    const correctCount = result.corrections?.filter((c: any) => c.isCorrect === true).length ?? 0;
     const totalQuestions = result.corrections?.length ?? 0;
+    const structuralCount = result.corrections?.filter((c: any) => c.questionType === "STRUCTURAL").length ?? 0;
+    const mcqCorrect = result.corrections?.filter((c: any) => c.questionType === "MCQ" && c.isCorrect === true).length ?? 0;
+    const mcqTotal = result.corrections?.filter((c: any) => c.questionType === "MCQ").length ?? 0;
 
     return (
         <View style={styles.container}>
             <ScreenHeader title="Exam Result" onBack={() => router.back()} />
 
-            <ScrollView contentContainerStyle={styles.content}>
+            <ScrollView
+                contentContainerStyle={styles.content}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B138" />}
+            >
+                {!resultIsCorrected ? (
+                    <View style={[styles.scoreCard, styles.scoreCardPending]}>
+                        <Ionicons name="time-outline" size={48} color="#F2B138" />
+                        <Text style={[styles.scoreLabel, { color: "#F2B138" }]}>
+                            Awaiting Review
+                        </Text>
+                        <Text style={{ fontSize: 14, color: "#666", marginTop: 4, textAlign: "center" }}>
+                            Your exam has {structuralCount} essay question{structuralCount > 1 ? "s" : ""} that need teacher grading.
+                        </Text>
+                        {mcqTotal > 0 && (
+                            <Text style={{ fontSize: 13, color: "#999", marginTop: 8 }}>
+                                MCQ score so far: {mcqCorrect}/{mcqTotal} correct
+                            </Text>
+                        )}
+                        <Text style={{ fontSize: 12, color: "#999", marginTop: 12, fontStyle: "italic" }}>
+                            You will be notified once graded.
+                        </Text>
+                    </View>
+                ) : (
                 <View style={[styles.scoreCard, passed ? styles.scoreCardPass : styles.scoreCardFail]}>
                     <Ionicons
                         name={passed ? "checkmark-circle" : "close-circle"}
@@ -82,6 +137,11 @@ export default function ExamResultScreen() {
                         {passed ? "Passed!" : "Not Passed"}
                     </Text>
                     <Text style={styles.scoreValue}>{result.score}%</Text>
+                    {result.totalPoints > 0 && (
+                        <Text style={styles.scoreDetail}>
+                            {result.earnedPoints}/{result.totalPoints} points
+                        </Text>
+                    )}
                     <Text style={styles.scoreDetail}>
                         {correctCount} / {totalQuestions} correct
                     </Text>
@@ -90,7 +150,13 @@ export default function ExamResultScreen() {
                             Time: {Math.round(result.timeSpent / 60)}m {result.timeSpent % 60}s
                         </Text>
                     )}
+                    {result.teacherComment && (
+                        <Text style={[styles.teacherComment, { marginTop: 10, textAlign: "center" }]}>
+                            Teacher: {result.teacherComment}
+                        </Text>
+                    )}
                 </View>
+                )}
 
                 <View style={styles.infoCard}>
                     <Text style={styles.infoTitle}>{result.exam?.title}</Text>
@@ -101,10 +167,10 @@ export default function ExamResultScreen() {
                 {result.corrections?.map((c: any, idx: number) => (
                     <View key={idx} style={styles.correctionCard}>
                         <View style={styles.correctionHeader}>
-                            <Text style={styles.correctionLabel}>Q{idx + 1}</Text>
-                            <View style={[styles.correctBadge, c.isCorrect ? styles.correctBadgePass : styles.correctBadgeFail]}>
-                                <Text style={[styles.correctBadgeText, c.isCorrect ? styles.correctBadgeTextPass : styles.correctBadgeTextFail]}>
-                                    {c.isCorrect ? "Correct" : "Incorrect"}
+                            <Text style={styles.correctionLabel}>Q{idx + 1} · {c.points}pts</Text>
+                            <View style={[styles.correctBadge, c.isCorrect === true ? styles.correctBadgePass : c.isCorrect === false ? styles.correctBadgeFail : styles.correctBadgePending]}>
+                                <Text style={[styles.correctBadgeText, c.isCorrect === true ? styles.correctBadgeTextPass : c.isCorrect === false ? styles.correctBadgeTextFail : styles.correctBadgeTextPending]}>
+                                    {c.isCorrect === true ? "Correct" : c.isCorrect === false ? "Incorrect" : "Pending"}
                                 </Text>
                             </View>
                         </View>
@@ -150,15 +216,6 @@ export default function ExamResultScreen() {
                     </View>
                 ))}
             </ScrollView>
-
-            <View style={styles.bottomBar}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.replace("/(tabs)/exams" as any)}
-                >
-                    <Text style={styles.backButtonText}>Back to Exams</Text>
-                </TouchableOpacity>
-            </View>
         </View>
     );
 }
@@ -182,6 +239,11 @@ const styles = StyleSheet.create({
         padding: 24,
         alignItems: "center",
         marginBottom: 16,
+    },
+    scoreCardPending: {
+        backgroundColor: "#FFFBEB",
+        borderWidth: 1,
+        borderColor: "#FDE68A",
     },
     scoreCardPass: {
         backgroundColor: "#F0FDF4",
@@ -269,6 +331,9 @@ const styles = StyleSheet.create({
     correctBadgeFail: {
         backgroundColor: "#FEE2E2",
     },
+    correctBadgePending: {
+        backgroundColor: "#FEF3C7",
+    },
     correctBadgeText: {
         fontSize: 11,
         fontWeight: "700",
@@ -278,6 +343,9 @@ const styles = StyleSheet.create({
     },
     correctBadgeTextFail: {
         color: "#DC2626",
+    },
+    correctBadgeTextPending: {
+        color: "#D97706",
     },
     correctionQuestion: {
         fontSize: 14,

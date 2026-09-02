@@ -55,7 +55,7 @@ export default function SubjectList() {
           <h2 className='text-2xl font-bold text-[#084A59]'>Subjects</h2>
           <p className='text-sm text-gray-400 mt-0.5'>{subjects.length} subject{subjects.length !== 1 ? 's' : ''} &middot; Subjects → Chapters → Lessons → Quizzes</p>
         </div>
-        <button onClick={() => { setShowForm(true); setEditingId(null); setForm({ name: '', code: '', description: '' }) }} className='px-5 py-2.5 bg-[#F2B138] text-white font-bold text-sm rounded-xl hover:bg-[#011C26] transition-colors'>+ New Subject</button>
+        <button onClick={() => { setShowForm(true); setEditingId(null); setForm({ name: '', code: '', description: '' }) }} className='px-5 py-2.5 bg-[#084A59] text-white font-bold text-sm rounded-xl hover:bg-[#011C26] transition-colors'>+ New Subject</button>
       </div>
 
       {loading ? (
@@ -118,7 +118,7 @@ export default function SubjectList() {
 
       {/* Subject Modal */}
       {showForm && (
-        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4' onClick={() => setShowForm(false)}>
+        <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => setShowForm(false)}>
           <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <h3 className='text-lg font-bold text-[#084A59]'>{editingId ? 'Edit Subject' : 'New Subject'}</h3>
@@ -158,7 +158,7 @@ export default function SubjectList() {
               </div>
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => setShowForm(false)} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50'>Cancel</button>
-                <button type='submit' className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editingId ? 'Update' : 'Create'}</button>
+                <button type='submit' className='flex-1 py-2.5 bg-[#084A59] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editingId ? 'Update' : 'Create'}</button>
               </div>
             </form>
           </div>

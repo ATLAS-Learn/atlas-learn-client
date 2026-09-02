@@ -132,8 +132,8 @@ export default function TeacherChapterDetail() {
       {/* Lessons Section */}
       <div>
         <div className='flex items-center justify-between mb-3'>
-          <span className='text-[11px] font-bold text-gray-400 uppercase tracking-wider'>Lessons</span>
-          <button onClick={() => openLessonForm()} className='px-4 py-2 bg-[#F2B138] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'>+ Lesson</button>
+          <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>Lessons</span>
+          <button onClick={() => openLessonForm()} className='px-4 py-2 bg-[#084A59] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'>+ Lesson</button>
         </div>
         {sortedLessons.length === 0 ? (
           <div className='bg-white rounded-2xl border border-gray-200 p-12 text-center'>
@@ -150,18 +150,18 @@ export default function TeacherChapterDetail() {
                       <h4 className='font-bold text-[#084A59] text-sm'>{lesson.title}</h4>
                       {lesson.content && <p className='text-xs text-gray-400 mt-1 line-clamp-2'>{lesson.content}</p>}
                       <div className='flex flex-wrap gap-2 mt-2'>
-                        {lesson.durationMinutes && <span className='text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded'>{lesson.durationMinutes} min</span>}
-                        {lesson.isFree && <span className='text-[10px] text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Free</span>}
-                        {lesson.videoUrl && <span className='text-[10px] text-[#084A59] bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Has Video</span>}
-                        {lesson.pdfUrl && <span className='text-[10px] text-[#084A59] bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Has PDF</span>}
-                        {lesson.externalLinks && <span className='text-[10px] text-[#084A59] bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Has Links</span>}
+                        {lesson.durationMinutes && <span className='text-xs text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded'>{lesson.durationMinutes} min</span>}
+                        {lesson.isFree && <span className='text-xs text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Free</span>}
+                        {lesson.videoUrl && <span className='text-xs text-[#084A59] bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Has Video</span>}
+                        {lesson.pdfUrl && <span className='text-xs text-[#084A59] bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Has PDF</span>}
+                        {lesson.externalLinks && <span className='text-xs text-[#084A59] bg-slate-50 px-1.5 py-0.5 rounded font-semibold'>Has Links</span>}
                       </div>
                       {lesson.keyPoints && lesson.keyPoints.length > 0 && (
                         <div className='mt-2 flex flex-wrap gap-1'>
                           {lesson.keyPoints.slice(0, 3).map((kp: string, ki: number) => (
-                            <span key={ki} className='text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded'>{kp}</span>
+                            <span key={ki} className='text-xs text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded'>{kp}</span>
                           ))}
-                          {lesson.keyPoints.length > 3 && <span className='text-[10px] text-gray-400'>+{lesson.keyPoints.length - 3} more</span>}
+                          {lesson.keyPoints.length > 3 && <span className='text-xs text-gray-400'>+{lesson.keyPoints.length - 3} more</span>}
                         </div>
                       )}
                     </div>
@@ -180,7 +180,7 @@ export default function TeacherChapterDetail() {
       {/* Quizzes Section */}
       <div>
         <div className='flex items-center justify-between mb-3'>
-          <span className='text-[11px] font-bold text-gray-400 uppercase tracking-wider'>Quizzes</span>
+          <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>Quizzes</span>
         </div>
         {quizzes.length === 0 ? (
           <div className='bg-white rounded-2xl border border-gray-200 p-12 text-center'>
@@ -205,12 +205,12 @@ export default function TeacherChapterDetail() {
                           {q.options && (
                             <div className='flex flex-wrap gap-x-3 gap-y-0.5 mt-1 ml-4'>
                               {q.options.map((opt: string, oi: number) => (
-                                <span key={oi} className={`text-[11px] ${oi === q.correctAnswer ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>{String.fromCharCode(65 + oi)}. {opt}</span>
+                                <span key={oi} className={`text-xs ${oi === q.correctAnswer ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>{String.fromCharCode(65 + oi)}. {opt}</span>
                               ))}
                             </div>
                           )}
-                          {q.explanation && <p className='text-[10px] text-gray-400 mt-1 ml-4 italic'>Explanation: {q.explanation}</p>}
-                          {q.points && <span className='text-[9px] font-semibold text-[#084A59] ml-4'>{q.points} pt{q.points !== 1 ? 's' : ''}</span>}
+                          {q.explanation && <p className='text-xs text-gray-400 mt-1 ml-4 italic'>Explanation: {q.explanation}</p>}
+                          {q.points && <span className='text-xs font-semibold text-[#084A59] ml-4'>{q.points} pt{q.points !== 1 ? 's' : ''}</span>}
                         </div>
                       </div>
                     ))}
@@ -224,7 +224,7 @@ export default function TeacherChapterDetail() {
 
       {/* Lesson Modal */}
       {showLessonForm && (
-        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4' onClick={() => { setShowLessonForm(false); setEditingLesson(null) }}>
+        <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => { setShowLessonForm(false); setEditingLesson(null) }}>
           <div className='bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10'>
               <h3 className='text-lg font-bold text-[#084A59]'>{editingLesson ? 'Edit Lesson' : 'New Lesson'}</h3>
@@ -262,7 +262,7 @@ export default function TeacherChapterDetail() {
               </div>
               <div className='flex gap-3 pt-2'>
                 <button type='button' onClick={() => { setShowLessonForm(false); setEditingLesson(null) }} className='flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50'>Cancel</button>
-                <button type='submit' className='flex-1 py-2.5 bg-[#F2B138] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editingLesson ? 'Update Lesson' : 'Create Lesson'}</button>
+                <button type='submit' className='flex-1 py-2.5 bg-[#084A59] text-white font-bold rounded-xl hover:bg-[#011C26] transition-colors text-sm'>{editingLesson ? 'Update Lesson' : 'Create Lesson'}</button>
               </div>
             </form>
           </div>

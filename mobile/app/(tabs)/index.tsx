@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image, Animated as RNAnimated, Easing, StatusBar } from "react-native";
 import { Svg, Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useUserStore } from "@/lib/store/user";
 import { useOverallProgress, useStreak, useUserQuizAttempts, useLearningPath } from "@/lib/hooks/api";
 import { API_BASE_URL } from "@/lib/constants/api";
@@ -13,14 +13,84 @@ const BLACK = "#011C26";
 const CIRCUMFERENCE = 2 * Math.PI * 34;
 const AnimatedCircle = RNAnimated.createAnimatedComponent(Circle);
 
+function useAnimatedNumber(target: number, duration = 1200, delay = 200, focusKey = 0) {
+    const anim = useRef(new RNAnimated.Value(0)).current;
+    const [display, setDisplay] = useState(0);
+
+    useEffect(() => {
+        anim.setValue(0);
+        setDisplay(0);
+        const timer = setTimeout(() => {
+            RNAnimated.timing(anim, {
+                toValue: target,
+                duration,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: false,
+            }).start();
+        }, delay);
+        return () => clearTimeout(timer);
+    }, [target, focusKey]);
+
+    useEffect(() => {
+        const listener = anim.addListener(({ value }) => {
+            setDisplay(Math.round(value));
+        });
+        return () => anim.removeListener(listener);
+    }, []);
+
+    return display;
+}
+
+function useAnimatedTime(seconds: number, duration = 1200, delay = 200, focusKey = 0) {
+    const anim = useRef(new RNAnimated.Value(0)).current;
+    const [display, setDisplay] = useState("0s");
+
+    useEffect(() => {
+        anim.setValue(0);
+        setDisplay("0s");
+        const timer = setTimeout(() => {
+            RNAnimated.timing(anim, {
+                toValue: seconds,
+                duration,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: false,
+            }).start();
+        }, delay);
+        return () => clearTimeout(timer);
+    }, [seconds, focusKey]);
+
+    useEffect(() => {
+        const listener = anim.addListener(({ value }) => {
+            const s = Math.round(value);
+            if (s < 60) setDisplay(`${s}s`);
+            else if (s < 3600) setDisplay(`${Math.round(s / 60)}m`);
+            else {
+                const h = Math.floor(s / 3600);
+                const m = Math.round((s % 3600) / 60);
+                setDisplay(m > 0 ? `${h}h ${m}m` : `${h}h`);
+            }
+        });
+        return () => anim.removeListener(listener);
+    }, []);
+
+    return display;
+}
+
 export default function HomeTab() {
     const router = useRouter();
     const { user } = useUserStore();
     const [refreshing, setRefreshing] = useState(false);
+    const [focusKey, setFocusKey] = useState(0);
     const { data: overallProgress, refetch: refetchProgress } = useOverallProgress();
     const { data: streakData, refetch: refetchStreak } = useStreak();
     const { data: quizAttempts = [], refetch: refetchAttempts } = useUserQuizAttempts(user?.id);
     const { data: learningPath, refetch: refetchLearningPath } = useLearningPath();
+
+    useFocusEffect(
+        useCallback(() => {
+            setFocusKey((k) => k + 1);
+        }, [])
+    );
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -43,33 +113,31 @@ export default function HomeTab() {
     const totalTimeSpent = overallProgress?.overall?.totalTimeSpent ?? 0;
     const streak = streakData?.streak ?? 0;
 
-    const animatedCompletion = useRef(new RNAnimated.Value(0)).current;
-    useEffect(() => {
-        animatedCompletion.setValue(0);
-        const timer = setTimeout(() => {
-            RNAnimated.timing(animatedCompletion, {
-                toValue: completion,
-                duration: 1200,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: false,
-            }).start();
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [completion]);
-
     const averageScore = useMemo(() => {
         if (!Array.isArray(quizAttempts) || quizAttempts.length === 0) return 0;
         const total = quizAttempts.reduce((sum, a) => sum + (a.score ?? 0), 0);
         return Math.round(total / quizAttempts.length);
     }, [quizAttempts]);
 
-    const formatTimeSpent = (seconds: number): string => {
-        if (seconds < 60) return `${seconds}s`;
-        if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
-        const hours = Math.floor(seconds / 3600);
-        const mins = Math.round((seconds % 3600) / 60);
-        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-    };
+    const animatedCompletion = useRef(new RNAnimated.Value(0)).current;
+    useEffect(() => {
+        animatedCompletion.setValue(0);
+        const timer = setTimeout(() => {
+            RNAnimated.timing(animatedCompletion, {
+                toValue: completion,
+                duration: 1400,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: false,
+            }).start();
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [completion, focusKey]);
+
+    const animCompletion = useAnimatedNumber(completion, 1400, 300, focusKey);
+    const animLessonsDone = useAnimatedNumber(lessonsDone, 1000, 400, focusKey);
+    const animQuizzesPassed = useAnimatedNumber(quizzesPassed, 1000, 500, focusKey);
+    const animTimeSpent = useAnimatedTime(totalTimeSpent, 1000, 600, focusKey);
+    const animAvgScore = useAnimatedNumber(averageScore, 1000, 700, focusKey);
 
     return (
         <View style={styles.root}>
@@ -142,20 +210,20 @@ export default function HomeTab() {
                             />
                         </Svg>
                         <View style={styles.progressTextContainer}>
-                            <Text style={styles.progressPercent}>{completion}%</Text>
+                            <Text style={styles.progressPercent}>{animCompletion}%</Text>
                             <Text style={styles.progressLabel}>complete</Text>
                         </View>
                     </View>
                     <View style={styles.progressStats}>
                         <View style={styles.progressStat}>
                             <Ionicons name="book-outline" size={16} color={DARK_TEAL} />
-                            <Text style={styles.progressStatValue}>{lessonsDone}/{lessonsTotal}</Text>
+                            <Text style={styles.progressStatValue}>{animLessonsDone}/{lessonsTotal}</Text>
                             <Text style={styles.progressStatLabel}>Lessons</Text>
                         </View>
                         <View style={styles.progressStatDivider} />
                         <View style={styles.progressStat}>
                             <Ionicons name="checkmark-circle-outline" size={16} color={DARK_TEAL} />
-                            <Text style={styles.progressStatValue}>{quizzesPassed}/{quizzesTotal}</Text>
+                            <Text style={styles.progressStatValue}>{animQuizzesPassed}/{quizzesTotal}</Text>
                             <Text style={styles.progressStatLabel}>Quizzes</Text>
                         </View>
                     </View>
@@ -167,21 +235,21 @@ export default function HomeTab() {
                         <View style={[styles.statIconWrap, { backgroundColor: "#084A5912" }]}>
                             <Ionicons name="time-outline" size={16} color={DARK_TEAL} />
                         </View>
-                        <Text style={styles.statValue}>{formatTimeSpent(totalTimeSpent)}</Text>
+                        <Text style={styles.statValue}>{animTimeSpent}</Text>
                         <Text style={styles.statLabel}>Time Spent</Text>
                     </View>
                     <View style={styles.statCard}>
                         <View style={[styles.statIconWrap, { backgroundColor: "#F2B13818" }]}>
                             <Ionicons name="trophy-outline" size={16} color={GOLD} />
                         </View>
-                        <Text style={styles.statValue}>{averageScore}%</Text>
+                        <Text style={styles.statValue}>{animAvgScore}%</Text>
                         <Text style={styles.statLabel}>Avg Score</Text>
                     </View>
                     <View style={styles.statCard}>
                         <View style={[styles.statIconWrap, { backgroundColor: "#12A67C12" }]}>
                             <Ionicons name="ribbon-outline" size={16} color="#12A67C" />
                         </View>
-                        <Text style={styles.statValue}>{quizzesPassed}</Text>
+                        <Text style={styles.statValue}>{animQuizzesPassed}</Text>
                         <Text style={styles.statLabel}>Passed</Text>
                     </View>
                 </View>

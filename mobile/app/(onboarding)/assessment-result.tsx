@@ -109,9 +109,9 @@ export default function AssessmentResultScreen() {
                     {subjectBreakdown.map((subject) => (
                         <View key={subject.subjectId} style={styles.breakdownCard}>
                             <View style={styles.breakdownHeader}>
-                                <Text style={styles.breakdownSubject}>{subject.subjectName}</Text>
-                                <Text style={[styles.breakdownScore, { color: getScoreColor(subject.score) }]}>
-                                    {subject.correct}/{subject.total} ({subject.score}%)
+                                <Text style={styles.breakdownSubject} numberOfLines={1} ellipsizeMode="tail">{subject.subjectName}</Text>
+                                <Text style={[styles.breakdownScore, { color: getScoreColor(subject.score) }]} numberOfLines={1} ellipsizeMode="tail">
+                                    {subject.score}%
                                 </Text>
                             </View>
                             <View style={styles.breakdownBarBg}>
@@ -271,6 +271,7 @@ const styles = StyleSheet.create({
         color: "#282F2E",
         marginBottom: 12,
         textAlign: "center",
+        width: "100%",
     },
     breakdownCard: {
         backgroundColor: "#fff",
@@ -279,21 +280,25 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         borderWidth: 1,
         borderColor: "#EAEAEA",
+        overflow: "hidden",
     },
     breakdownHeader: {
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
         marginBottom: 8,
+        gap: 8,
     },
     breakdownSubject: {
         fontSize: 15,
         fontWeight: "700",
         color: "#1F2524",
+        flex: 1,
+        minWidth: 0,
     },
     breakdownScore: {
         fontSize: 14,
         fontWeight: "700",
+        flexShrink: 0,
     },
     breakdownBarBg: {
         height: 6,
@@ -350,7 +355,7 @@ const styles = StyleSheet.create({
     },
     // Start Learning Button
     startButton: {
-        backgroundColor: "#4CAF50",
+        backgroundColor: "#084A59",
         paddingVertical: 16,
         paddingHorizontal: 32,
         borderRadius: 25,
@@ -367,7 +372,7 @@ const styles = StyleSheet.create({
         fontWeight: "700",
     },
     continueButton: {
-        backgroundColor: "#F2B138",
+        backgroundColor: "#084A59",
         paddingVertical: 16,
         paddingHorizontal: 32,
         borderRadius: 25,

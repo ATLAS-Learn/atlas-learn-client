@@ -13,7 +13,6 @@ import {
   Keyboard,
   Alert,
   ScrollView,
-  useWindowDimensions,
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,7 +21,6 @@ import { apiClient } from "@/lib/api";
 
 export default function SignIn() {
   const router = useRouter();
-  const { width, height } = useWindowDimensions();
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -72,23 +70,16 @@ export default function SignIn() {
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <ScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              paddingTop: Math.max(64, Math.floor(height * 0.08)),
-              paddingHorizontal: width < 390 ? 16 : 24,
-            },
-          ]}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
+          <View style={styles.logoContainer}>
             <Image
-              source={require("@/assets/images/icon.png")}
-              style={[styles.logo, { height: width < 390 ? 130 : 170, width: width < 390 ? 130 : 170 }]}
+              source={require("@/assets/images/icon-yellow-transparent.png")}
+              style={styles.logo}
             />
           </View>
 
@@ -145,15 +136,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingBottom: 100, // Increased bottom padding for keyboard
+    paddingHorizontal: 24,
+    paddingTop: 0,
+    paddingBottom: 20,
   },
   logoContainer: {
     alignItems: "center",
     marginBottom: 10,
-    marginTop: 32,
+    marginTop: 0,
   },
   logo: {
-    fontWeight: "bold",
     height: 170,
     width: 170,
   },
@@ -191,7 +183,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   loginButton: {
-    backgroundColor: "#F2B138",
+    backgroundColor: "#084A59",
     paddingVertical: 15,
     borderRadius: 25,
     alignItems: "center",

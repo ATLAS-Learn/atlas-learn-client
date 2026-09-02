@@ -11,7 +11,6 @@ export default function AdminUsers() {
   const limit = 20
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteName, setInviteName] = useState('')
   const [inviteRole, setInviteRole] = useState('teacher')
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteError, setInviteError] = useState('')
@@ -47,10 +46,9 @@ export default function AdminUsers() {
     setInviteSuccess('')
     setInviteLoading(true)
     try {
-      await api.adminCreateUser({ email: inviteEmail, name: inviteName, role: inviteRole })
+      await api.adminCreateUser({ email: inviteEmail, role: inviteRole })
       setInviteSuccess(`Invite sent to ${inviteEmail}`)
       setInviteEmail('')
-      setInviteName('')
       setShowInviteModal(false)
       loadPendingInvites()
     } catch (err: any) {
@@ -70,6 +68,16 @@ export default function AdminUsers() {
   const handleResendInvite = async (userId: string) => {
     await api.resendInvite(userId)
     loadPendingInvites()
+  }
+
+  const handleCancelInvite = async (userId: string, email: string) => {
+    if (!confirm(`Cancel invite for ${email}? This will delete the pending invitation.`)) return
+    try {
+      await api.cancelInvite(userId)
+      loadPendingInvites()
+    } catch (err: any) {
+      alert(err.message || 'Failed to cancel invite')
+    }
   }
 
   useEffect(() => { loadPendingInvites() }, [])
@@ -100,7 +108,7 @@ export default function AdminUsers() {
             onClick={() => { setShowInvites(!showInvites); loadPendingInvites() }}
             className='px-4 py-2.5 text-sm font-semibold rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors'
           >
-            Invites {pendingInvites.length > 0 && <span className='ml-1.5 px-1.5 py-0.5 bg-[#F2B138] text-white text-xs rounded-md font-bold'>{pendingInvites.length}</span>}
+            Invites {pendingInvites.length > 0 && <span className='ml-1.5 px-1.5 py-0.5 bg-[#084A59] text-white text-xs rounded-md font-bold'>{pendingInvites.length}</span>}
           </button>
           <button
             onClick={() => { setShowInviteModal(true); setInviteError(''); setInviteSuccess('') }}
@@ -136,12 +144,15 @@ export default function AdminUsers() {
                       <p className='text-sm font-semibold text-[#084A59]'>{inv.user.name || 'Unnamed'}</p>
                       <p className='text-xs text-gray-400'>{inv.user.email}</p>
                     </div>
-                    <span className='px-2 py-0.5 bg-gray-100 rounded text-[10px] font-semibold text-gray-500 uppercase'>{inv.user.role}</span>
+                    <span className='px-2 py-0.5 bg-gray-100 rounded text-xs font-semibold text-gray-500 uppercase'>{inv.user.role}</span>
                   </div>
                   <div className='flex items-center gap-3'>
                     <span className='text-xs text-gray-400'>Expires {new Date(inv.expiresAt).toLocaleDateString()}</span>
                     <button onClick={() => handleResendInvite(inv.user.id)} className='text-xs font-semibold text-[#084A59] hover:text-[#011C26] transition-colors'>
                       Resend
+                    </button>
+                    <button onClick={() => handleCancelInvite(inv.user.id, inv.user.email)} className='text-xs font-semibold text-red-400 hover:text-red-600 transition-colors'>
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -273,7 +284,7 @@ export default function AdminUsers() {
 
       {/* Invite Modal */}
       {showInviteModal && (
-        <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4' onClick={() => setShowInviteModal(false)}>
+        <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4' onClick={() => setShowInviteModal(false)}>
           <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={(e) => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <div>
@@ -292,17 +303,6 @@ export default function AdminUsers() {
                 <div className='bg-slate-50 border border-slate-200 text-slate-600 px-4 py-3 rounded-xl mb-4 text-sm font-medium'>{inviteSuccess}</div>
               )}
               <form onSubmit={handleInvite} className='space-y-4'>
-                <div>
-                  <label className='block text-sm font-semibold text-gray-700 mb-1.5'>Full Name</label>
-                  <input
-                    type='text'
-                    value={inviteName}
-                    onChange={(e) => setInviteName(e.target.value)}
-                    required
-                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F2B138]/20 focus:border-[#F2B138] transition-all'
-                    placeholder='e.g. Jane Smith'
-                  />
-                </div>
                 <div>
                   <label className='block text-sm font-semibold text-gray-700 mb-1.5'>Email Address</label>
                   <input

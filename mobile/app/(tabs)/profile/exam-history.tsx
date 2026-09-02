@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
     View,
     Text,
@@ -7,9 +7,11 @@ import {
     FlatList,
     ActivityIndicator,
     RefreshControl,
+    Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { VictoryChart, VictoryLine, VictoryArea, VictoryScatter, VictoryAxis, VictoryTheme, VictoryLabel } from "victory-native";
 import { apiClient } from "@/lib/api";
 import ScreenHeader from "@/components/ui/screen-header";
 import { getCacheSync, setCache } from "@/lib/utils/cache";
@@ -25,17 +27,14 @@ export default function ExamHistoryScreen() {
 
     const loadHistory = useCallback(async (force = false) => {
         try {
+            // 1. Seed from cache for instant display
             const cached = getCacheSync<any[]>(EXAM_HISTORY_CACHE_KEY);
-            if (cached && !force) {
-                setHistory(cached);
-                setLoading(false);
-                return;
-            }
             if (cached) {
                 setHistory(cached);
                 setLoading(false);
             }
 
+            // 2. Always fetch fresh from network
             const data = await apiClient.getUserExamHistory();
             setHistory(data);
             setCache(EXAM_HISTORY_CACHE_KEY, data, DISK_TTL.DYNAMIC).catch(() => {});
@@ -57,8 +56,120 @@ export default function ExamHistoryScreen() {
         loadHistory(true);
     }, [loadHistory]);
 
+    const stats = useMemo(() => {
+        if (history.length === 0) return null;
+        const graded = history.filter((h) => h.isCorrected !== false);
+        const scores = graded.map((h) => h.score ?? 0);
+        const total = history.length;
+        const gradedCount = graded.length;
+        const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+        const passed = scores.filter((s) => s >= 70).length;
+        const passRate = scores.length > 0 ? Math.round((passed / scores.length) * 100) : 0;
+        const best = scores.length > 0 ? Math.max(...scores) : 0;
+        return { total, gradedCount, avg, passRate, best };
+    }, [history]);
+
+    const chartData = useMemo(() => {
+        if (history.length === 0) return [];
+        const sorted = [...history].sort(
+            (a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
+        );
+        return sorted.map((h, i) => ({
+            x: i + 1,
+            y: h.score ?? 0,
+        }));
+    }, [history]);
+
+    const screenWidth = Dimensions.get("window").width - 48;
+    const tickInterval = chartData.length <= 10 ? 1 : chartData.length <= 20 ? 2 : 5;
+
+    const renderHeader = () => (
+        <>
+            {stats && (
+                <View style={styles.statsRow}>
+                    <View style={styles.statCard}>
+                        <Text style={styles.statValue}>{stats.total}</Text>
+                        <Text style={styles.statLabel}>Total</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Text style={[styles.statValue, { color: stats.avg >= 70 ? "#16A34A" : "#DC2626" }]}>{stats.avg}%</Text>
+                        <Text style={styles.statLabel}>Average</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Text style={[styles.statValue, { color: stats.passRate >= 50 ? "#16A34A" : "#DC2626" }]}>{stats.passRate}%</Text>
+                        <Text style={styles.statLabel}>Pass Rate</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Text style={[styles.statValue, { color: "#F2B138" }]}>{stats.best}%</Text>
+                        <Text style={styles.statLabel}>Best</Text>
+                    </View>
+                </View>
+            )}
+
+            {chartData.length >= 2 && (
+                <View style={styles.chartContainer}>
+                    <Text style={styles.chartTitle}>Score Progress</Text>
+                    <VictoryChart
+                        width={screenWidth}
+                        height={200}
+                        theme={VictoryTheme.material}
+                        padding={{ left: 50, right: 20, top: 20, bottom: 40 }}
+                    >
+                        <VictoryAxis
+                            tickValues={chartData
+                                .filter((_, i) => i % tickInterval === 0)
+                                .map((d) => d.x)}
+                            style={{
+                                tickLabels: { fontSize: 10, fill: "#999" },
+                            }}
+                        />
+                        <VictoryAxis
+                            dependentAxis
+                            tickCount={5}
+                            style={{
+                                tickLabels: { fontSize: 10, fill: "#999" },
+                            }}
+                        />
+                        <VictoryArea
+                            data={chartData}
+                            style={{
+                                data: {
+                                    fill: "#084A59",
+                                    fillOpacity: 0.15,
+                                    stroke: "#084A59",
+                                    strokeWidth: 2,
+                                },
+                            }}
+                        />
+                        <VictoryLine
+                            data={chartData}
+                            style={{
+                                data: {
+                                    stroke: "#084A59",
+                                    strokeWidth: 2,
+                                },
+                            }}
+                        />
+                        <VictoryScatter
+                            data={chartData}
+                            size={chartData.length <= 15 ? 4 : 3}
+                            style={{
+                                data: {
+                                    fill: "#084A59",
+                                    stroke: "#fff",
+                                    strokeWidth: 1,
+                                },
+                            }}
+                        />
+                    </VictoryChart>
+                </View>
+            )}
+        </>
+    );
+
     const renderItem = ({ item }: { item: any }) => {
-        const passed = item.score >= 70;
+        const isCorrected = item.isCorrected !== false;
+        const passed = isCorrected && item.score >= 70;
         const date = item.completedAt ? new Date(item.completedAt).toLocaleDateString() : "";
         return (
             <TouchableOpacity
@@ -72,11 +183,15 @@ export default function ExamHistoryScreen() {
                 activeOpacity={0.7}
             >
                 <View style={styles.cardLeft}>
-                    <Ionicons
-                        name={passed ? "checkmark-circle" : "close-circle"}
-                        size={20}
-                        color={passed ? "#16A34A" : "#DC2626"}
-                    />
+                    {isCorrected ? (
+                        <Ionicons
+                            name={passed ? "checkmark-circle" : "close-circle"}
+                            size={20}
+                            color={passed ? "#16A34A" : "#DC2626"}
+                        />
+                    ) : (
+                        <Ionicons name="time-outline" size={20} color="#D97706" />
+                    )}
                 </View>
                 <View style={styles.cardInfo}>
                     <Text style={styles.cardTitle}>{item.exam?.title || "Exam"}</Text>
@@ -84,8 +199,8 @@ export default function ExamHistoryScreen() {
                         {item.exam?.subject?.name || "General"} · {date}
                     </Text>
                 </View>
-                <Text style={[styles.cardScore, { color: passed ? "#16A34A" : "#DC2626" }]}>
-                    {item.score}%
+                <Text style={[styles.cardScore, { color: isCorrected ? (passed ? "#16A34A" : "#DC2626") : "#D97706" }]}>
+                    {isCorrected ? `${item.score}%` : "Pending"}
                 </Text>
             </TouchableOpacity>
         );
@@ -111,6 +226,7 @@ export default function ExamHistoryScreen() {
                     data={history}
                     renderItem={renderItem}
                     keyExtractor={(item) => item.id}
+                    ListHeaderComponent={renderHeader}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
@@ -134,6 +250,45 @@ const styles = StyleSheet.create({
     },
     listContent: {
         padding: 16,
+    },
+    statsRow: {
+        flexDirection: "row",
+        gap: 8,
+        marginBottom: 16,
+    },
+    statCard: {
+        flex: 1,
+        backgroundColor: "#FFF",
+        borderRadius: 12,
+        padding: 12,
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#F0F0F0",
+    },
+    statValue: {
+        fontSize: 18,
+        fontWeight: "800",
+        color: "#1F2524",
+    },
+    statLabel: {
+        fontSize: 11,
+        color: "#999",
+        marginTop: 2,
+        fontWeight: "600",
+    },
+    chartContainer: {
+        backgroundColor: "#FFF",
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+    },
+    chartTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: "#1F2524",
+        marginBottom: 8,
     },
     card: {
         flexDirection: "row",

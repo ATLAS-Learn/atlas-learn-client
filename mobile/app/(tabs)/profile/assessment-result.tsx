@@ -25,31 +25,31 @@ export default function ProfileAssessmentResultScreen() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const loadResult = async (force = false) => {
+        let cancelled = false;
+        const loadResult = async () => {
             try {
-                // Fetch-once: skip network when valid cache exists
+                // 1. Seed from cache for instant display
                 const cached = getCacheSync<AssessmentResult>(ASSESSMENT_RESULT_CACHE_KEY);
-                if (cached && !force) {
-                    setResult(cached);
-                    setLoading(false);
-                    return;
-                }
                 if (cached) {
                     setResult(cached);
                     setLoading(false);
                 }
 
+                // 2. Always fetch fresh from network
                 const data = await apiClient.getAssessmentResult();
+                if (cancelled) return;
                 setResult(data);
-                setCache(ASSESSMENT_RESULT_CACHE_KEY, data, DISK_TTL.STATIC).catch(() => {});
+                setCache(ASSESSMENT_RESULT_CACHE_KEY, data, DISK_TTL.DYNAMIC).catch(() => {});
             } catch (err: any) {
+                if (cancelled) return;
                 const cached = getCacheSync<AssessmentResult>(ASSESSMENT_RESULT_CACHE_KEY);
                 if (!cached) setError(err.message || "Failed to load assessment result.");
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
         loadResult();
+        return () => { cancelled = true; };
     }, []);
 
     const getScoreColor = (score: number) => {
@@ -106,9 +106,9 @@ export default function ProfileAssessmentResultScreen() {
                         {result.subjectBreakdown.map((subject: SubjectBreakdown) => (
                             <View key={subject.subjectId} style={styles.breakdownCard}>
                                 <View style={styles.breakdownHeader}>
-                                    <Text style={styles.breakdownSubject}>{subject.subjectName}</Text>
-                                    <Text style={[styles.breakdownScore, { color: getScoreColor(subject.score) }]}>
-                                        {subject.correct}/{subject.total} ({subject.score}%)
+                                    <Text style={styles.breakdownSubject} numberOfLines={1} ellipsizeMode="tail">{subject.subjectName}</Text>
+                                    <Text style={[styles.breakdownScore, { color: getScoreColor(subject.score) }]} numberOfLines={1}>
+                                        {subject.score}%
                                     </Text>
                                 </View>
                                 <View style={styles.breakdownBarBg}>
@@ -240,21 +240,25 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         borderWidth: 1,
         borderColor: "#EAEAEA",
+        overflow: "hidden",
     },
     breakdownHeader: {
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
         marginBottom: 8,
+        gap: 8,
     },
     breakdownSubject: {
         fontSize: 15,
         fontWeight: "700",
         color: "#1F2524",
+        flex: 1,
+        minWidth: 0,
     },
     breakdownScore: {
         fontSize: 14,
         fontWeight: "700",
+        flexShrink: 0,
     },
     breakdownBarBg: {
         height: 6,
