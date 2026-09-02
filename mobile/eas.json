@@ -6,7 +6,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://atlas-learn-server-production.up.railway.app/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://apex-server-fj0e.onrender.com/api/v1"
       }
     },
     "preview": {
@@ -15,7 +15,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://atlas-learn-server-production.up.railway.app/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://apex-server-fj0e.onrender.com/api/v1"
       }
     }
   }
