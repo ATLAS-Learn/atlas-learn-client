@@ -1,139 +1,143 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUserStore } from "@/lib/store/user";
 import { getItem, setItem } from "@/lib/utils/storage";
 import { apiClient } from "@/lib/api";
+import { User } from "@/lib/types";
 
-const USER_CACHE_MAX_AGE_MS = 1000 * 60 * 30;
+// Module-level state: survives React remounts of RootLayout.
+// Restore runs at most once per token for the entire JS session.
+let restoreCache: { token: string | null; valid: boolean } | null = null;
+let inFlight: { token: string | null; promise: Promise<boolean> } | null = null;
 
-function isBackendUserId(userId: string | undefined | null): userId is string {
-  if (!userId) return false;
-  return /^c[a-z0-9]{8,}$/i.test(userId);
+// Minimum splash display time so the logo has a moment to show.
+const appStartTime = Date.now();
+const MIN_SPLASH_MS = 1200;
+
+function waitForMinSplash(): Promise<void> {
+  const remaining = MIN_SPLASH_MS - (Date.now() - appStartTime);
+  return remaining > 0 ? new Promise((resolve) => setTimeout(resolve, remaining)) : Promise.resolve();
+}
+
+function ensureSessionRestored(token: string | null): Promise<boolean> {
+  if (restoreCache && restoreCache.token === token) {
+    return Promise.resolve(restoreCache.valid);
+  }
+  if (inFlight && inFlight.token === token) {
+    return inFlight.promise;
+  }
+
+  const promise = (async (): Promise<boolean> => {
+    apiClient.setToken(token);
+
+    let freshUser: User | null = null;
+    try {
+      // Single call serves as BOTH session validation and identity refresh
+      freshUser = await apiClient.getCurrentUser();
+    } catch (error: any) {
+      const msg = String(error?.message ?? "");
+      if (msg.includes("401") || msg.includes("Unauthorized")) {
+        restoreCache = { token, valid: false };
+        return false;
+      }
+      // Network error — session stays valid locally (offline-first)
+      restoreCache = { token, valid: true };
+      return true;
+    }
+
+    // Populate identity if missing (first install / cleared storage)
+    const { user, setUser } = useUserStore.getState();
+    if ((!user?.id || !user?.email) && freshUser) {
+      setUser(freshUser, { markSynced: true });
+    }
+
+    // Resolve assessment status once if not cached locally
+    const assessment = await getItem("assessmentComplete");
+    if (assessment !== "true" && assessment !== "false") {
+      try {
+        const status = await apiClient.getAssessmentStatus();
+        const completed = Boolean(status?.completed);
+        await setItem("assessmentComplete", completed ? "true" : "false");
+      } catch {
+        // Offline — will resolve next launch
+      }
+    }
+
+    restoreCache = { token, valid: true };
+    return true;
+  })();
+
+  inFlight = { token, promise };
+  promise.finally(() => {
+    if (inFlight?.token === token) inFlight = null;
+  });
+  return promise;
 }
 
 export function useAppFlow() {
   const [assessmentComplete, setAssessmentComplete] = useState<boolean | null>(null);
-  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, token, logout, hasHydrated } = useAuthStore();
-  const { user, lastSyncedAt, setUser } = useUserStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const token = useAuthStore((s) => s.token);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const user = useUserStore((s) => s.user);
   const appState = useRef(AppState.currentState);
-  const sessionChecked = useRef(false);
-
-  const validateSession = useCallback(async (): Promise<boolean> => {
-    try {
-      await apiClient.getCurrentUser();
-      return true;
-    } catch (error: any) {
-      if (error?.message?.includes("401") || error?.message?.includes("Unauthorized") || error?.message?.includes("session")) {
-        return false;
-      }
-      return true;
-    }
-  }, []);
-
-  useEffect(() => {
-    async function loadOnboarding() {
-      const onboarding = await getItem("onboardingComplete");
-      setOnboardingComplete(onboarding === "true");
-    }
-    void loadOnboarding();
-  }, []);
 
   // Session restore - runs once when hydration completes
   useEffect(() => {
     if (!hasHydrated) return;
 
-    if (!isAuthenticated) {
-      setIsLoading(false);
-      return;
-    }
-
-    // Already checked this session
-    if (sessionChecked.current) {
-      setIsLoading(false);
-      return;
-    }
-
     let cancelled = false;
 
-    async function restoreSession() {
-      try {
-        apiClient.setToken(token || null);
+    if (!isAuthenticated) {
+      waitForMinSplash().then(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+      return () => { cancelled = true; };
+    }
 
-        const isValid = await validateSession();
+    ensureSessionRestored(token)
+      .then(async (valid) => {
+        await waitForMinSplash();
         if (cancelled) return;
-
-        if (!isValid) {
-          await logout();
+        if (!valid) {
+          await useAuthStore.getState().logout();
           setIsLoading(false);
           return;
         }
-
-        const hasUserIdentity = Boolean(
-          isBackendUserId(user?.id) && user?.email && user?.name?.trim()
-        );
-        const isFreshCache =
-          typeof lastSyncedAt === "number" &&
-          Date.now() - lastSyncedAt < USER_CACHE_MAX_AGE_MS;
-        const shouldRefreshUser = !hasUserIdentity || !isFreshCache;
-
-        if (shouldRefreshUser) {
-          try {
-            const freshUser = await apiClient.getCurrentUser();
-            if (!cancelled) setUser(freshUser, { markSynced: true });
-          } catch (error) {
-            if (!hasUserIdentity && !cancelled) throw error;
-          }
-        }
-
-        if (cancelled) return;
-
         const assessment = await getItem("assessmentComplete");
-        if (assessment === "true") {
-          setAssessmentComplete(true);
-        } else if (assessment === "false") {
-          setAssessmentComplete(false);
-        } else {
-          try {
-            const status = await apiClient.getAssessmentStatus();
-            if (!cancelled) {
-              const completed = Boolean(status?.completed);
-              setAssessmentComplete(completed);
-              await setItem("assessmentComplete", completed ? "true" : "false");
-            }
-          } catch {
-            if (!cancelled) setAssessmentComplete(false);
-          }
-        }
-
-        sessionChecked.current = true;
+        if (cancelled) return;
+        setAssessmentComplete(assessment === "true");
+        setIsLoading(false);
+      })
+      .catch(async () => {
+        await waitForMinSplash();
         if (!cancelled) setIsLoading(false);
-      } catch (error: any) {
-        console.error("Session restore failed:", error);
-        if (!cancelled) {
-          await logout();
-          setIsLoading(false);
-        }
-      }
-    }
+      });
 
-    restoreSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasHydrated, isAuthenticated, token]);
 
-    return () => { cancelled = true; };
-  }, [hasHydrated, isAuthenticated, token, user, lastSyncedAt, setUser, logout, validateSession]);
-
-  // Re-validate when app comes to foreground
+  // Re-validate session when app comes to foreground (auth check only)
   useEffect(() => {
     if (!isAuthenticated) return;
 
     const handleAppStateChange = async (nextState: AppStateStatus) => {
       if (appState.current.match(/inactive|background/) && nextState === "active") {
         apiClient.setToken(token || null);
-        const isValid = await validateSession();
-        if (!isValid) {
-          await logout();
+        // Invalidate cached restore so next cold start re-validates
+        try {
+          await apiClient.getCurrentUser();
+        } catch (error: any) {
+          const msg = String(error?.message ?? "");
+          if (msg.includes("401") || msg.includes("Unauthorized")) {
+            restoreCache = null;
+            await useAuthStore.getState().logout();
+          }
+          // Network errors are fine — session is still valid locally
         }
       }
       appState.current = nextState;
@@ -141,7 +145,7 @@ export function useAppFlow() {
 
     const subscription = AppState.addEventListener("change", handleAppStateChange);
     return () => subscription?.remove();
-  }, [isAuthenticated, token, logout, validateSession]);
+  }, [isAuthenticated, token]);
 
-  return { onboardingComplete, assessmentComplete, isAuthenticated, user, isLoading };
+  return { assessmentComplete, isAuthenticated, user, isLoading };
 }

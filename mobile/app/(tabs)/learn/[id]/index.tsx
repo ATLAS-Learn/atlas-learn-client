@@ -8,9 +8,9 @@ import {
     ActivityIndicator,
     Alert,
     Modal,
+    RefreshControl,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { Chapter, Lesson, LessonWithProgress } from "@/lib/types";
@@ -18,6 +18,7 @@ import ChapterHeader from "@/components/lessons/chapter-header";
 import ContentSection from "@/components/lessons/content-section";
 import ScreenHeader from "@/components/ui/screen-header";
 import { getCacheSync, setCache } from "@/lib/utils/cache";
+import { useProgressionPrefetch } from "@/hooks/useProgressionPrefetch";
 
 const CHAPTER_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -35,6 +36,8 @@ export default function ChapterScreen() {
     const [insightTitle, setInsightTitle] = useState("");
     const [insightBody, setInsightBody] = useState("");
     const [loadingInsight, setLoadingInsight] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const { prefetchUpcomingLessons } = useProgressionPrefetch();
 
     useEffect(() => {
         console.log("[ID_TRACE] ChapterScreen route params", {
@@ -45,13 +48,18 @@ export default function ChapterScreen() {
         });
     }, [chapterId, id, subjectId, subjectKey]);
 
-    const loadChapter = useCallback(async () => {
+    const loadChapter = useCallback(async (force = false) => {
         try {
             if (!chapterId) {
                 throw new Error("Missing chapter ID");
             }
-            // Try cache first for instant display
+            // Fetch-once: skip network when valid cache exists
             const cached = getCacheSync<Chapter>(`cache:chapter:${chapterId}`);
+            if (cached && !force) {
+                setChapter(cached);
+                setLoading(false);
+                return;
+            }
             if (cached) {
                 setChapter(cached);
                 setLoading(false);
@@ -130,15 +138,16 @@ export default function ChapterScreen() {
         return undefined;
     }, []);
 
-    const loadLessons = useCallback(async () => {
+    const loadLessons = useCallback(async (force = false) => {
         if (!chapterId) return;
         setLessonsLoading(true);
         const cacheKey = `cache:lessons:${chapterId}`;
         try {
-            // Try cache first
+            // Fetch-once: use cache and skip network when valid cache exists
             const cached = getCacheSync<LessonWithProgress[]>(cacheKey);
-            if (cached) {
+            if (cached && !force) {
                 setLessons(cached);
+                return;
             }
 
             let subjectIdForRequest =
@@ -149,18 +158,18 @@ export default function ChapterScreen() {
                     setResolvedSubjectId(subjectIdForRequest);
                 }
             }
-            console.log("[ID_TRACE] ChapterScreen loadLessons resolved IDs", {
-                chapterId,
-                subjectKey,
-                chapterSubjectId: getSubjectIdFromChapter(chapter),
-                resolvedSubjectId: subjectIdForRequest,
-            });
             const data = subjectIdForRequest
                 ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, true)
                 : await apiClient.getChapterLessons(chapterId, true);
             const lessonsList = Array.isArray(data) ? (data as LessonWithProgress[]) : [];
             setLessons(lessonsList);
             setCache(cacheKey, lessonsList, CHAPTER_CACHE_TTL).catch(() => {});
+            // Prefetch upcoming lessons for offline access
+            if (subjectIdForRequest && lessonsList.length > 0) {
+                const sorted = [...lessonsList].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+                const firstIncomplete = sorted.find((l) => !l.isCompleted);
+                prefetchUpcomingLessons(subjectIdForRequest, chapterId, firstIncomplete?.id).catch(() => {});
+            }
         } catch (error: any) {
             const cached = getCacheSync<LessonWithProgress[]>(cacheKey);
             if (!cached) {
@@ -176,14 +185,6 @@ export default function ChapterScreen() {
             loadLessons();
         }
     }, [chapter, chapterId, loadLessons]);
-
-    useFocusEffect(
-        useCallback(() => {
-            if (chapter && !loading) {
-                loadLessons();
-            }
-        }, [chapter, loading, loadLessons])
-    );
 
     const handleViewProgress = async () => {
         if (!chapterId) return;
@@ -278,11 +279,23 @@ export default function ChapterScreen() {
         );
     }
 
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await Promise.all([loadChapter(true), loadLessons(true)]);
+        setRefreshing(false);
+    };
+
     return (
         <View style={styles.container}>
             <ScreenHeader title="Chapter" />
 
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.content}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#F2B138" />
+                }
+            >
                 <ChapterHeader chapter={chapter} lessons={lessons} />
 
                 <View style={styles.lessonsHeader}>
@@ -292,7 +305,7 @@ export default function ChapterScreen() {
                     </View>
                     <TouchableOpacity
                         style={styles.refreshButton}
-                        onPress={loadLessons}
+                        onPress={() => loadLessons(true)}
                         disabled={lessonsLoading}
                     >
                         <Ionicons name="refresh" size={16} color="#8A5D00" />

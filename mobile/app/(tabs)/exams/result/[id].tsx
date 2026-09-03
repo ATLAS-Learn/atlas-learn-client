@@ -26,7 +26,6 @@ export default function ExamResultScreen() {
             const data = await apiClient.getExamResult(examId);
             setResult(data);
         } catch {
-            // Result might not exist yet
         } finally {
             setLoading(false);
         }
@@ -54,7 +53,7 @@ export default function ExamResultScreen() {
                 <View style={styles.loadingContainer}>
                     <Text style={{ color: "#999" }}>No result found</Text>
                     <TouchableOpacity
-                        onPress={() => router.replace("/(tabs)/learn/exam")}
+                        onPress={() => router.replace("/(tabs)/exams" as any)}
                         style={{ marginTop: 16 }}
                     >
                         <Text style={{ color: "#F2B138", fontWeight: "600" }}>Go Back</Text>
@@ -73,7 +72,6 @@ export default function ExamResultScreen() {
             <ScreenHeader title="Exam Result" onBack={() => router.back()} />
 
             <ScrollView contentContainerStyle={styles.content}>
-                {/* Score Card */}
                 <View style={[styles.scoreCard, passed ? styles.scoreCardPass : styles.scoreCardFail]}>
                     <Ionicons
                         name={passed ? "checkmark-circle" : "close-circle"}
@@ -94,13 +92,11 @@ export default function ExamResultScreen() {
                     )}
                 </View>
 
-                {/* Exam Info */}
                 <View style={styles.infoCard}>
                     <Text style={styles.infoTitle}>{result.exam?.title}</Text>
                     <Text style={styles.infoMeta}>{result.exam?.subject?.name}</Text>
                 </View>
 
-                {/* Corrections */}
                 <Text style={styles.sectionTitle}>Review Answers</Text>
                 {result.corrections?.map((c: any, idx: number) => (
                     <View key={idx} style={styles.correctionCard}>
@@ -142,13 +138,12 @@ export default function ExamResultScreen() {
                 ))}
             </ScrollView>
 
-            {/* Bottom Actions */}
             <View style={styles.bottomBar}>
                 <TouchableOpacity
                     style={styles.backButton}
-                    onPress={() => router.replace("/(tabs)/learn/exam")}
+                    onPress={() => router.replace("/(tabs)/exams" as any)}
                 >
-                    <Text style={styles.backButtonText}>Back to Learn</Text>
+                    <Text style={styles.backButtonText}>Back to Exams</Text>
                 </TouchableOpacity>
             </View>
         </View>

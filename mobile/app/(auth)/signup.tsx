@@ -49,7 +49,6 @@ export default function SignUpScreen() {
           name: fullName,
           email,
           username: username.trim() || undefined,
-          role: "student",
           image: image.trim() || undefined,
           school: school.trim() || undefined,
           examYear: examYear.trim() ? Number(examYear) : undefined,

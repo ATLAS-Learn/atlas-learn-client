@@ -11,10 +11,12 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
 import { apiClient } from "@/lib/api";
 import { Chapter, LessonWithProgress } from "@/lib/types";
 import ScreenHeader from "@/components/ui/screen-header";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+
+const LESSONS_CACHE_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
 
 export default function LessonsListScreen() {
     const router = useRouter();
@@ -23,15 +25,9 @@ export default function LessonsListScreen() {
     const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;
 
     const [chapter, setChapter] = useState<Chapter | null>(null);
-    const [resolvedSubjectId, setResolvedSubjectId] = useState<string | null>(subjectKey || null);
-    const [lessons, setLessons] = useState<Lesson[]>([]);
+    const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-
-    const getPrimaryLessonProgress = (lesson: Lesson) =>
-        Array.isArray(lesson.LessonProgress) && lesson.LessonProgress.length > 0
-            ? lesson.LessonProgress[0]
-            : undefined;
 
     const getSubjectIdFromChapter = (chapterValue: Chapter | null): string | undefined => {
         if (!chapterValue) return undefined;
@@ -40,60 +36,52 @@ export default function LessonsListScreen() {
         return legacy.subject_id;
     };
 
-    const loadChapter = useCallback(async (): Promise<Chapter | null> => {
+    const resolvedSubjectId = subjectKey || getSubjectIdFromChapter(chapter);
+
+    const loadChapter = useCallback(async () => {
         if (!chapterId) return;
         try {
             const data = await apiClient.getChapter(chapterId);
             setChapter(data);
-            const chapterSubjectId = getSubjectIdFromChapter(data);
-            if (chapterSubjectId) {
-                setResolvedSubjectId(chapterSubjectId);
-            }
-            return data;
         } catch {
             // Optional, list can still render without chapter metadata.
-            return null;
         }
     }, [chapterId]);
 
-    const loadLessons = useCallback(async (subjectIdOverride?: string) => {
+    const loadLessons = useCallback(async (force = false) => {
         if (!chapterId) return;
         try {
-            const subjectIdForRequest = subjectIdOverride || resolvedSubjectId || subjectKey;
-            const data = subjectIdForRequest
-                ? await apiClient.getSubjectChapterLessons(subjectIdForRequest, chapterId, { includeProgress: true })
-                : await apiClient.getChapterLessons(chapterId);
-            setLessons(Array.isArray(data) ? data : []);
+            // Fetch-once: skip network when valid cache exists
+            const cached = getCacheSync<LessonWithProgress[]>(`cache:lessons:${chapterId}`);
+            if (cached && !force) {
+                setLessons(cached);
+                return;
+            }
+            const data = resolvedSubjectId
+                ? await apiClient.getSubjectChapterLessons(resolvedSubjectId, chapterId, true)
+                : await apiClient.getChapterLessons(chapterId, true);
+            setLessons(Array.isArray(data) ? (data as LessonWithProgress[]) : []);
+            setCache(`cache:lessons:${chapterId}`, Array.isArray(data) ? data : [], LESSONS_CACHE_TTL).catch(() => {});
         } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to load lessons.");
+            const cached = getCacheSync<LessonWithProgress[]>(`cache:lessons:${chapterId}`);
+            if (!cached) Alert.alert("Error", error.message || "Failed to load lessons.");
         }
-    }, [chapterId, resolvedSubjectId, subjectKey]);
+    }, [chapterId, resolvedSubjectId]);
 
     const initialize = useCallback(async () => {
         if (!chapterId) return;
         setLoading(true);
-        const chapterData = await loadChapter();
-        const chapterSubjectId = getSubjectIdFromChapter(chapterData);
-        await loadLessons(chapterSubjectId || subjectKey);
+        await Promise.all([loadChapter(), loadLessons()]);
         setLoading(false);
-    }, [chapterId, loadChapter, loadLessons, subjectKey]);
+    }, [chapterId, loadChapter, loadLessons]);
 
     useEffect(() => {
         initialize();
     }, [initialize]);
 
-    useFocusEffect(
-        useCallback(() => {
-            if (!loading) {
-                loadLessons();
-            }
-        }, [loading, loadLessons])
-    );
-
     const handleRefresh = async () => {
         setRefreshing(true);
-        const chapterSubjectId = getSubjectIdFromChapter(chapter);
-        await loadLessons(chapterSubjectId || resolvedSubjectId || subjectKey);
+        await loadLessons(true);
         setRefreshing(false);
     };
 
@@ -143,44 +131,45 @@ export default function LessonsListScreen() {
                         <Text style={styles.emptyLessonsText}>No lessons yet.</Text>
                     </View>
                 ) : (
-                    lessons.map((lesson, index) => (
-                        <TouchableOpacity key={lesson.id} style={styles.lessonCard} onPress={() => handleOpenLesson(lesson.id)}>
-                            <View style={styles.lessonRow}>
-                                <Text style={styles.lessonIndex}>{lesson.orderIndex ?? index + 1}</Text>
-                                <View style={styles.lessonInfo}>
-                                    <View style={styles.lessonTitleRow}>
-                                        <Text style={styles.lessonTitle} numberOfLines={2}>
+                    lessons.map((lesson, index) => {
+                        const isCompleted = lesson.isCompleted || (lesson.LessonProgress && lesson.LessonProgress.length > 0 && lesson.LessonProgress[0]?.isCompleted);
+                        return (
+                            <TouchableOpacity
+                                key={lesson.id}
+                                style={[
+                                    styles.lessonCard,
+                                    isCompleted && styles.lessonCardCompleted,
+                                ]}
+                                onPress={() => handleOpenLesson(lesson.id)}
+                            >
+                                <View style={styles.lessonRow}>
+                                    {isCompleted ? (
+                                        <View style={styles.lessonIndexCompleted}>
+                                            <Ionicons name="checkmark" size={14} color="#fff" />
+                                        </View>
+                                    ) : (
+                                        <Text style={styles.lessonIndex}>{lesson.orderIndex ?? index + 1}</Text>
+                                    )}
+                                    <View style={styles.lessonInfo}>
+                                        <Text
+                                            style={[
+                                                styles.lessonTitle,
+                                                isCompleted && styles.lessonTitleCompleted,
+                                            ]}
+                                            numberOfLines={2}
+                                        >
                                             {lesson.title || "Untitled lesson"}
                                         </Text>
-                                        {lesson.isFree ? (
-                                            <View style={styles.freeBadge}>
-                                                <Text style={styles.freeBadgeText}>Free</Text>
-                                            </View>
-                                        ) : null}
+                                        <Text style={styles.lessonMeta}>
+                                            {lesson.durationMinutes
+                                                ? `${lesson.durationMinutes} min`
+                                                : "Time n/a"}
+                                            {isCompleted ? " \u2022 Completed" : ""}
+                                        </Text>
                                     </View>
-                                    <Text style={styles.lessonMeta}>
-                                        {lesson.estimatedMinutes
-                                            ? `${lesson.estimatedMinutes} min`
-                                            : lesson.durationSeconds
-                                              ? `${Math.ceil(lesson.durationSeconds / 60)} min`
-                                              : "Duration unavailable"}
-                                    </Text>
-                                    {getPrimaryLessonProgress(lesson)?.isCompleted ? (
-                                        <Text style={styles.lessonProgressText}>
-                                            Completed
-                                            {typeof getPrimaryLessonProgress(lesson)?.timeSpent === "number"
-                                                ? ` • ${Math.max(1, Math.ceil((getPrimaryLessonProgress(lesson)?.timeSpent || 0) / 60))} min spent`
-                                                : ""}
-                                        </Text>
-                                    ) : typeof getPrimaryLessonProgress(lesson)?.timeSpent === "number" ? (
-                                        <Text style={styles.lessonProgressText}>
-                                            In progress • {Math.max(1, Math.ceil((getPrimaryLessonProgress(lesson)?.timeSpent || 0) / 60))} min spent
-                                        </Text>
-                                    ) : null}
                                 </View>
-                                 <Ionicons name="chevron-forward" size={20} color={isCompleted ? "#4CAF50" : "#999"} />
-                             </View>
-                         </TouchableOpacity>
+                                <Ionicons name="chevron-forward" size={20} color={isCompleted ? "#4CAF50" : "#999"} />
+                            </TouchableOpacity>
                         );
                     })
                 )}
@@ -288,16 +277,10 @@ const styles = StyleSheet.create({
     lessonInfo: {
         flex: 1,
     },
-    lessonTitleRow: {
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 8,
-    },
     lessonTitle: {
         fontSize: 15,
         fontWeight: "700",
         color: "#222",
-        flex: 1,
     },
     lessonTitleCompleted: {
         color: "#2E7D32",
@@ -307,22 +290,5 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: "#777",
         fontWeight: "600",
-    },
-    lessonProgressText: {
-        marginTop: 4,
-        fontSize: 12,
-        color: "#4F6B52",
-        fontWeight: "600",
-    },
-    freeBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 999,
-        backgroundColor: "#FFF3D6",
-    },
-    freeBadgeText: {
-        color: "#9A6500",
-        fontSize: 11,
-        fontWeight: "700",
     },
 });

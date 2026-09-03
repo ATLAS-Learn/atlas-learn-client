@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions, Image, Linking } from "react-native";
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions, Image, Linking, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -7,7 +7,6 @@ import { useUserStore } from "@/lib/store/user";
 import { useAuthStore } from "@/lib/store/auth";
 import { apiClient } from "@/lib/api";
 import { API_BASE_URL } from "@/lib/constants/api";
-import { UserRole } from "@/lib/types";
 import { useOverallProgress } from "@/lib/hooks/api";
 import ProgressBar from "@/components/progress/progress-bar";
 
@@ -41,15 +40,11 @@ export default function ProfileScreen() {
     const { width } = useWindowDimensions();
     const { user, setUser } = useUserStore();
     const { logout } = useAuthStore();
-    const [requestingUpgrade, setRequestingUpgrade] = useState(false);
     const { data: overallProgressData, isLoading: loadingProgress } = useOverallProgress();
     const [sessionsModalVisible, setSessionsModalVisible] = useState(false);
     const [sessions, setSessions] = useState<{ id: string; createdAt: string; expiresAt: string; userAgent?: string; ipAddress?: string }[]>([]);
     const [loadingSessions, setLoadingSessions] = useState(false);
     const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
-    const [roleRequestModalVisible, setRoleRequestModalVisible] = useState(false);
-    const [roleRequestReason, setRoleRequestReason] = useState("");
-    const [roleRequestSchool, setRoleRequestSchool] = useState("");
     const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
     const [savingProfile, setSavingProfile] = useState(false);
     const [editName, setEditName] = useState("");
@@ -58,72 +53,21 @@ export default function ProfileScreen() {
     const [editBio, setEditBio] = useState("");
     const [editSchool, setEditSchool] = useState("");
     const [editExamYear, setEditExamYear] = useState("");
-    const isStudentRole = (user?.role || "").toLowerCase() === UserRole.STUDENT;
+    const [editPickedImage, setEditPickedImage] = useState<string | null>(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+    const [submittingFeedback, setSubmittingFeedback] = useState(false);
+    const [feedbackCategory, setFeedbackCategory] = useState<string>("general");
+    const [feedbackSubject, setFeedbackSubject] = useState("");
+    const [feedbackMessage, setFeedbackMessage] = useState("");
+    const [feedbackRating, setFeedbackRating] = useState<number>(0);
 
-    const refreshUser = useCallback(async () => {
-        try {
-            const freshUser = await apiClient.getCurrentUser();
-            setUser(freshUser);
-        } catch {
-            // Keep local user data if refresh fails.
-        }
-    }, [setUser]);
-
-    useEffect(() => {
-        refreshUser();
-    }, [refreshUser]);
+    // User data comes from the persisted store (single /auth/me fetch at startup).
+    // Profile edits below update the store directly after saving.
 
     const handleLogout = async () => {
         await logout();
         router.replace("/(auth)");
-    };
-
-    const handleRequestRoleUpgrade = async () => {
-        if (!isStudentRole) {
-            return;
-        }
-        setRoleRequestModalVisible(true);
-    };
-
-    const closeRoleRequestModal = () => {
-        if (requestingUpgrade) return;
-        setRoleRequestModalVisible(false);
-    };
-
-    const submitRoleUpgradeRequest = async () => {
-        if (!roleRequestReason.trim()) {
-            Alert.alert("Missing Reason", "Please provide a reason for requesting teacher role.");
-            return;
-        }
-        if (!roleRequestSchool.trim()) {
-            Alert.alert("Missing School", "Please provide your school name.");
-            return;
-        }
-
-        setRequestingUpgrade(true);
-        try {
-            const response = await apiClient.requestRoleUpgrade({
-                reason: roleRequestReason.trim(),
-                school: roleRequestSchool.trim(),
-            });
-
-            try {
-                const updatedUser = await apiClient.getCurrentUser();
-                setUser(updatedUser);
-            } catch {
-                // Role request succeeded; user refresh can fail independently.
-            }
-
-            setRoleRequestModalVisible(false);
-            setRoleRequestReason("");
-            setRoleRequestSchool("");
-            Alert.alert("Request Submitted", response.message);
-            router.push("/(tabs)/profile/pending-approval");
-        } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to submit role upgrade request. Please try again.");
-        } finally {
-            setRequestingUpgrade(false);
-        }
     };
 
     const handleOpenSessions = async () => {
@@ -203,7 +147,9 @@ export default function ProfileScreen() {
                 school: editSchool.trim() || undefined,
                 examYear: parsedExamYear,
             });
-            setUser(updatedUser);
+            // Cache-bust the image URL so React Native Image reloads immediately
+            const displayImage = imageUrl ? `${imageUrl}?t=${Date.now()}` : updatedUser.image;
+            setUser({ ...updatedUser, image: displayImage });
             setEditProfileModalVisible(false);
             Alert.alert("Success", "Profile updated successfully.");
         } catch (error: any) {
@@ -283,8 +229,21 @@ export default function ProfileScreen() {
             setFeedbackRating(0);
             setFeedbackCategory("general");
             Alert.alert("Thank You!", "Your feedback has been submitted successfully.");
-        } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to submit feedback. Please try again.");
+        } catch {
+            // Offline fallback — queue for background sync
+            const { enqueueFeedback } = await import("@/lib/utils/syncQueue");
+            await enqueueFeedback({
+                category: feedbackCategory,
+                subject: feedbackSubject.trim(),
+                message: feedbackMessage.trim(),
+                rating: feedbackRating > 0 ? feedbackRating : undefined,
+            });
+            setFeedbackModalVisible(false);
+            setFeedbackSubject("");
+            setFeedbackMessage("");
+            setFeedbackRating(0);
+            setFeedbackCategory("general");
+            Alert.alert("Feedback Queued", "Your feedback will be submitted when you're back online.");
         } finally {
             setSubmittingFeedback(false);
         }
@@ -309,13 +268,7 @@ export default function ProfileScreen() {
     return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            <View
-                style={[
-                    styles.header,
-                    { paddingHorizontal: width < 390 ? 16 : 24 },
-                    { paddingTop: 22 },
-                ]}
-            >
+            <View style={[styles.header, { paddingHorizontal: width < 390 ? 16 : 24 }]}>
                 <View style={styles.avatarContainer}>
                     {user?.image ? (
                         <Image source={{ uri: user.image.startsWith("http") ? user.image : `${API_BASE_URL}${user.image}` }} style={styles.avatarImage} />
@@ -325,13 +278,6 @@ export default function ProfileScreen() {
                 </View>
                 <Text style={styles.name}>{user?.name || "User"}</Text>
                 <Text style={styles.email}>{user?.email || ""}</Text>
-                {user?.role && (
-                    <View style={styles.roleBadge}>
-                        <Text style={styles.roleText}>
-                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                        </Text>
-                    </View>
-                )}
                 {!!user?.school && <Text style={styles.metaText}>School: {user.school}</Text>}
                 {!!user?.examYear && <Text style={styles.metaText}>Exam Year: {user.examYear}</Text>}
                 {!!user?.username && <Text style={styles.metaText}>Username: @{user.username}</Text>}
@@ -339,17 +285,15 @@ export default function ProfileScreen() {
                 {!!user?.bio && <Text style={styles.metaText} numberOfLines={2}>{user.bio}</Text>}
             </View>
 
-            {isStudentRole && (
-                <View style={styles.progressSection}>
-                    {loadingProgress ? (
-                        <View style={styles.progressLoadingContainer}>
-                            <ActivityIndicator size="small" color="#F2B138" />
-                        </View>
-                    ) : (
-                        <ProgressBar progress={Number(overallProgressData?.overall?.completionPercentage || 0)} />
-                    )}
-                </View>
-            )}
+            <View style={styles.progressSection}>
+                {loadingProgress ? (
+                    <View style={styles.progressLoadingContainer}>
+                        <ActivityIndicator size="small" color="#F2B138" />
+                    </View>
+                ) : (
+                    <ProgressBar progress={Number(overallProgressData?.overall?.completionPercentage || 0)} />
+                )}
+            </View>
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Learning</Text>
@@ -359,6 +303,14 @@ export default function ProfileScreen() {
                 >
                     <Ionicons name="document-text-outline" size={24} color="#666" />
                     <Text style={styles.menuText}>Quiz Scores</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => router.push("/(tabs)/profile/exam-history" as any)}
+                >
+                    <Ionicons name="school-outline" size={24} color="#666" />
+                    <Text style={styles.menuText}>Exam History</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -409,90 +361,6 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
             </View>
 
-            {user?.role === UserRole.ADMIN && (
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Admin</Text>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => router.push("/(tabs)/profile/admin-assessments")}
-                    >
-                        <Ionicons name="clipboard-outline" size={24} color="#666" />
-                        <Text style={styles.menuText}>Assessments</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#999" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => router.push("/(tabs)/profile/admin-subjects")}
-                    >
-                        <Ionicons name="library-outline" size={24} color="#666" />
-                        <Text style={styles.menuText}>Subjects</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#999" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => router.push("/(tabs)/profile/admin-users")}
-                    >
-                        <Ionicons name="people-outline" size={24} color="#666" />
-                        <Text style={styles.menuText}>Users</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#999" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => router.push("/(tabs)/profile/admin-analytics")}
-                    >
-                        <Ionicons name="stats-chart-outline" size={24} color="#666" />
-                        <Text style={styles.menuText}>Platform Analytics</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#999" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => router.push("/(tabs)/profile/admin-role-upgrades")}
-                    >
-                        <Ionicons name="shield-checkmark-outline" size={24} color="#666" />
-                        <Text style={styles.menuText}>Role Upgrade Requests</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#999" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => router.push("/(tabs)/profile/admin-feedback")}
-                    >
-                        <Ionicons name="chatbubbles-outline" size={24} color="#666" />
-                        <Text style={styles.menuText}>User Feedback</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#999" />
-                    </TouchableOpacity>
-                </View>
-            )}
-
-            {isStudentRole && (
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Account</Text>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={handleRequestRoleUpgrade}
-                        disabled={requestingUpgrade || user?.roleUpgradeStatus === "pending"}
-                    >
-                        <Ionicons name="school-outline" size={24} color="#666" />
-                        <View style={styles.menuTextContainer}>
-                            <Text style={styles.menuText}>Request Teacher Role</Text>
-                            {user?.roleUpgradeStatus === "pending" && (
-                                <Text style={styles.statusText}>Pending approval</Text>
-                            )}
-                            {user?.roleUpgradeStatus === "approved" && (
-                                <Text style={[styles.statusText, styles.statusApproved]}>Approved</Text>
-                            )}
-                            {user?.roleUpgradeStatus === "rejected" && (
-                                <Text style={[styles.statusText, styles.statusRejected]}>Rejected</Text>
-                            )}
-                        </View>
-                        {requestingUpgrade ? (
-                            <ActivityIndicator size="small" color="#F2B138" />
-                        ) : (
-                            <Ionicons name="chevron-forward" size={20} color="#999" />
-                        )}
-                    </TouchableOpacity>
-                </View>
-            )}
-
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                 <Ionicons name="log-out-outline" size={24} color="#E57373" />
                 <Text style={styles.logoutText}>Sign Out</Text>
@@ -502,9 +370,19 @@ export default function ProfileScreen() {
             <Modal
                 visible={editProfileModalVisible}
                 animationType="slide"
+                presentationStyle="pageSheet"
                 onRequestClose={() => setEditProfileModalVisible(false)}
             >
-                <View style={styles.feedbackModalOverlay}>
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                >
+                    <ScrollView
+                        style={{ flex: 1 }}
+                        contentContainerStyle={styles.feedbackModalOverlay}
+                        keyboardShouldPersistTaps="handled"
+                        bounces={false}
+                    >
                     <View style={styles.requestModalCard}>
                         <Text style={styles.requestModalTitle}>Edit Profile</Text>
                         <Text style={styles.requestModalSubtitle}>Update the fields you want to change.</Text>
@@ -604,63 +482,8 @@ export default function ProfileScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
-            </Modal>
-
-            <Modal
-                visible={roleRequestModalVisible}
-                animationType="slide"
-                onRequestClose={closeRoleRequestModal}
-            >
-                <View style={styles.feedbackModalOverlay}>
-                    <View style={styles.requestModalCard}>
-                        <Text style={styles.requestModalTitle}>Request Teacher Role</Text>
-                        <Text style={styles.requestModalSubtitle}>
-                            Provide details for admin review.
-                        </Text>
-
-                        <Text style={styles.requestFieldLabel}>Reason</Text>
-                        <TextInput
-                            style={[styles.requestInput, styles.requestInputMultiline]}
-                            placeholder="I teach mathematics and need access to class analytics."
-                            value={roleRequestReason}
-                            onChangeText={setRoleRequestReason}
-                            multiline
-                            numberOfLines={4}
-                            editable={!requestingUpgrade}
-                        />
-
-                        <Text style={styles.requestFieldLabel}>School</Text>
-                        <TextInput
-                            style={styles.requestInput}
-                            placeholder="XYZ Secondary School"
-                            value={roleRequestSchool}
-                            onChangeText={setRoleRequestSchool}
-                            editable={!requestingUpgrade}
-                        />
-
-                        <View style={styles.requestActions}>
-                            <TouchableOpacity
-                                style={styles.requestCancelButton}
-                                onPress={closeRoleRequestModal}
-                                disabled={requestingUpgrade}
-                            >
-                                <Text style={styles.requestCancelText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.requestSubmitButton}
-                                onPress={submitRoleUpgradeRequest}
-                                disabled={requestingUpgrade}
-                            >
-                                {requestingUpgrade ? (
-                                    <ActivityIndicator size="small" color="#fff" />
-                                ) : (
-                                    <Text style={styles.requestSubmitText}>Submit</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
             </Modal>
 
             {/* Sessions Modal */}
@@ -738,7 +561,16 @@ export default function ProfileScreen() {
                 animationType="slide"
                 onRequestClose={() => setFeedbackModalVisible(false)}
             >
-                <View style={styles.feedbackModalOverlay}>
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                >
+                    <ScrollView
+                        style={{ flex: 1 }}
+                        contentContainerStyle={styles.feedbackModalOverlay}
+                        keyboardShouldPersistTaps="handled"
+                        bounces={false}
+                    >
                     <View style={styles.requestModalCard}>
                         <Text style={styles.requestModalTitle}>Send Feedback</Text>
                         <Text style={styles.requestModalSubtitle}>
@@ -819,7 +651,8 @@ export default function ProfileScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     );
@@ -831,7 +664,6 @@ const styles = StyleSheet.create({
         backgroundColor: "#FAFAFA",
     },
     scrollContent: {
-        paddingTop: 12,
         paddingBottom: 24,
     },
     header: {
@@ -872,17 +704,6 @@ const styles = StyleSheet.create({
         color: "#777",
         marginTop: 3,
     },
-    roleBadge: {
-        backgroundColor: "#FFF9E6",
-        paddingVertical: 4,
-        paddingHorizontal: 12,
-        borderRadius: 16,
-    },
-    roleText: {
-        fontSize: 12,
-        fontWeight: "600",
-        color: "#F2B138",
-    },
     progressSection: {
         marginTop: 24,
         paddingHorizontal: 16,
@@ -918,21 +739,6 @@ const styles = StyleSheet.create({
         color: "#282F2E",
         fontWeight: "500",
     },
-    menuTextContainer: {
-        flex: 1,
-    },
-    statusText: {
-        fontSize: 12,
-        color: "#F2B138",
-        fontWeight: "600",
-        marginTop: 4,
-    },
-    statusApproved: {
-        color: "#4CAF50",
-    },
-    statusRejected: {
-        color: "#E57373",
-    },
     logoutButton: {
         flexDirection: "row",
         alignItems: "center",
@@ -957,7 +763,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     feedbackModalOverlay: {
-        flex: 1,
+        flexGrow: 1,
         backgroundColor: "#FAFAFA",
         padding: 20,
         paddingTop: 60,

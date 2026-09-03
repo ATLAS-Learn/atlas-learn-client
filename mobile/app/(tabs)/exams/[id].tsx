@@ -37,7 +37,7 @@ export default function ExamTakeScreen() {
             }
             if (data.userAttempt) {
                 router.replace({
-                    pathname: "/(tabs)/learn/exam/result/[id]",
+                    pathname: "/(tabs)/exams/result/[id]" as any,
                     params: { id: examId },
                 });
                 return;
@@ -59,7 +59,6 @@ export default function ExamTakeScreen() {
         loadExam();
     }, [loadExam]);
 
-    // Timer
     useEffect(() => {
         if (timeLeft === null || timeLeft <= 0) return;
         timerRef.current = setInterval(() => {
@@ -115,12 +114,12 @@ export default function ExamTakeScreen() {
             const timeSpent = exam?.timeLimit
                 ? exam.timeLimit - (timeLeft ?? 0)
                 : 0;
-            const result = await apiClient.submitExam(examId, {
+            await apiClient.submitExam(examId, {
                 answers,
                 timeSpent,
             });
             router.replace({
-                pathname: "/(tabs)/learn/exam/result/[id]",
+                pathname: "/(tabs)/exams/result/[id]" as any,
                 params: { id: examId },
             });
         } catch (err: any) {
@@ -160,7 +159,6 @@ export default function ExamTakeScreen() {
         <View style={styles.container}>
             <ScreenHeader title={exam.title} onBack={() => router.back()} />
 
-            {/* Timer + Progress */}
             <View style={styles.topBar}>
                 <View style={styles.progressInfo}>
                     <Text style={styles.progressText}>
@@ -192,7 +190,6 @@ export default function ExamTakeScreen() {
                 )}
             </View>
 
-            {/* Progress Bar */}
             <View style={styles.progressBar}>
                 <View
                     style={[
@@ -202,7 +199,6 @@ export default function ExamTakeScreen() {
                 />
             </View>
 
-            {/* Question */}
             <ScrollView
                 style={styles.questionContainer}
                 contentContainerStyle={styles.questionContent}
@@ -254,7 +250,6 @@ export default function ExamTakeScreen() {
                 ))}
             </ScrollView>
 
-            {/* Navigation */}
             <View style={styles.navBar}>
                 <TouchableOpacity
                     style={[

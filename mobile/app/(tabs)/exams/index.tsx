@@ -4,51 +4,111 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
-    FlatList,
+    SectionList,
     ActivityIndicator,
+    RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
-import ScreenHeader from "@/components/ui/screen-header";
-import { useFocusEffect } from "@react-navigation/native";
+import { getCacheSync, setCache } from "@/lib/utils/cache";
+import { DISK_TTL } from "@/lib/config/cachePolicy";
+
+const EXAM_LIST_CACHE_KEY = "cache:exam-list";
+
+interface ExamItem {
+    id: string;
+    title: string;
+    description?: string;
+    isPublished: boolean;
+    timeLimit?: number;
+    subject?: { id: string; name: string; code: string };
+    _count?: { questions: number; attempts: number };
+    userAttempt?: { id: string; score: number; completedAt: string } | null;
+}
+
+interface SubjectSection {
+    title: string;
+    subjectId: string;
+    data: ExamItem[];
+}
 
 export default function ExamListScreen() {
     const router = useRouter();
-    const [exams, setExams] = useState<any[]>([]);
+    const [sections, setSections] = useState<SubjectSection[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const loadExams = useCallback(async () => {
+    const buildSections = (data: ExamItem[]): SubjectSection[] => {
+        const grouped: Record<string, ExamItem[]> = {};
+        for (const exam of data) {
+            const key = exam.subject?.id || "general";
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(exam);
+        }
+        const result: SubjectSection[] = Object.entries(grouped).map(([key, exams]) => ({
+            title: key === "general" ? "General" : (exams[0]?.subject?.name || "Unknown"),
+            subjectId: key,
+            data: exams,
+        }));
+        result.sort((a, b) => {
+            if (a.subjectId === "general") return 1;
+            if (b.subjectId === "general") return -1;
+            return a.title.localeCompare(b.title);
+        });
+        return result;
+    };
+
+    const loadExams = useCallback(async (force = false) => {
         try {
-            const data = await apiClient.getExams();
-            setExams(data);
-        } catch {} finally {
+            const cached = getCacheSync<ExamItem[]>(EXAM_LIST_CACHE_KEY);
+            if (cached && !force) {
+                setSections(buildSections(cached));
+                setLoading(false);
+                return;
+            }
+            if (cached) {
+                setSections(buildSections(cached));
+                setLoading(false);
+            }
+
+            const data: ExamItem[] = await apiClient.getExams();
+            setSections(buildSections(data));
+            setCache(EXAM_LIST_CACHE_KEY, data, DISK_TTL.DYNAMIC).catch(() => {});
+        } catch {
+            const cached = getCacheSync<ExamItem[]>(EXAM_LIST_CACHE_KEY);
+            if (!cached) setSections([]);
+        } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }, []);
 
-    useFocusEffect(
-        useCallback(() => {
-            loadExams();
-        }, [loadExams])
-    );
+    React.useEffect(() => {
+        loadExams();
+    }, [loadExams]);
 
-    const handleStartExam = (exam: any) => {
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        loadExams(true);
+    }, [loadExams]);
+
+    const handleStartExam = (exam: ExamItem) => {
         if (!exam.isPublished) return;
         if (exam.userAttempt) {
             router.push({
-                pathname: "/(tabs)/learn/exam/result/[id]",
+                pathname: "/(tabs)/exams/result/[id]" as any,
                 params: { id: exam.id },
             });
         } else {
             router.push({
-                pathname: "/(tabs)/learn/exam/[id]",
+                pathname: "/(tabs)/exams/[id]" as any,
                 params: { id: exam.id },
             });
         }
     };
 
-    const renderExam = ({ item }: { item: any }) => (
+    const renderExam = ({ item }: { item: ExamItem }) => (
         <TouchableOpacity
             style={styles.examCard}
             onPress={() => handleStartExam(item)}
@@ -56,12 +116,12 @@ export default function ExamListScreen() {
         >
             <View style={styles.examHeader}>
                 <View style={styles.examIcon}>
-                    <Ionicons name="school-outline" size={24} color="#F2B138" />
+                    <Ionicons name="document-text-outline" size={22} color="#F2B138" />
                 </View>
                 <View style={styles.examInfo}>
                     <Text style={styles.examTitle}>{item.title}</Text>
                     <Text style={styles.examMeta}>
-                        {item.subject?.name || "General"} · {item._count?.questions ?? 0} questions
+                        {item._count?.questions ?? 0} questions
                         {item.timeLimit ? ` · ${Math.round(item.timeLimit / 60)} min` : ""}
                     </Text>
                 </View>
@@ -97,14 +157,21 @@ export default function ExamListScreen() {
         </TouchableOpacity>
     );
 
+    const renderSectionHeader = ({ section }: { section: SubjectSection }) => (
+        <View style={styles.sectionHeader}>
+            <View style={styles.sectionDot} />
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <Text style={styles.sectionCount}>{section.data.length}</Text>
+        </View>
+    );
+
     return (
         <View style={styles.container}>
-            <ScreenHeader title="Exams" />
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#F2B138" />
                 </View>
-            ) : exams.length === 0 ? (
+            ) : sections.length === 0 ? (
                 <View style={styles.emptyContainer}>
                     <Ionicons name="document-text-outline" size={48} color="#CCC" />
                     <Text style={styles.emptyTitle}>No Exams Available</Text>
@@ -113,12 +180,16 @@ export default function ExamListScreen() {
                     </Text>
                 </View>
             ) : (
-                <FlatList
-                    data={exams}
+                <SectionList
+                    sections={sections}
                     renderItem={renderExam}
+                    renderSectionHeader={renderSectionHeader}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B138" />
+                    }
                 />
             )}
         </View>
@@ -137,12 +208,42 @@ const styles = StyleSheet.create({
     },
     listContent: {
         padding: 16,
+        paddingBottom: 32,
+    },
+    sectionHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginTop: 16,
+        marginBottom: 10,
+        paddingTop: 8,
+    },
+    sectionDot: {
+        width: 4,
+        height: 20,
+        borderRadius: 2,
+        backgroundColor: "#F2B138",
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: "#1F2524",
+        flex: 1,
+    },
+    sectionCount: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: "#999",
+        backgroundColor: "#F0F0F0",
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 8,
     },
     examCard: {
         backgroundColor: "#FFF",
         borderRadius: 16,
         padding: 16,
-        marginBottom: 12,
+        marginBottom: 10,
         borderWidth: 1,
         borderColor: "#F0F0F0",
     },
@@ -151,9 +252,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     examIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
+        width: 42,
+        height: 42,
+        borderRadius: 10,
         backgroundColor: "#F2B13815",
         justifyContent: "center",
         alignItems: "center",
@@ -163,7 +264,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     examTitle: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: "700",
         color: "#1F2524",
     },
@@ -175,15 +276,15 @@ const styles = StyleSheet.create({
     examDescription: {
         fontSize: 13,
         color: "#666",
-        marginTop: 12,
+        marginTop: 10,
         lineHeight: 18,
     },
     examFooter: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginTop: 12,
-        paddingTop: 12,
+        marginTop: 10,
+        paddingTop: 10,
         borderTopWidth: 1,
         borderTopColor: "#F5F5F5",
     },

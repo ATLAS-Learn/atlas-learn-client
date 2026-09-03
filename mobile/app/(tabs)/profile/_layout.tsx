@@ -8,13 +8,6 @@ export default function ProfileLayout() {
             <Stack.Screen name="assessment-result" />
             <Stack.Screen name="assessment-corrections" />
             <Stack.Screen name="quiz-corrections" />
-            <Stack.Screen name="pending-approval" />
-            <Stack.Screen name="admin-role-upgrades" />
-            <Stack.Screen name="admin-assessments" />
-            <Stack.Screen name="admin-subjects" />
-            <Stack.Screen name="admin-quiz-analytics" />
-            <Stack.Screen name="admin-users" />
-            <Stack.Screen name="admin-analytics" />
         </Stack>
     );
 }
