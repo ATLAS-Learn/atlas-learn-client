@@ -11,7 +11,6 @@ export default function TeacherStudents() {
   const limit = 20
 
   const loadStudents = useCallback(async () => {
-    setLoading(true)
     try {
       const res = await api.getTeacherStudents({ search: search || undefined, limit, offset: page * limit })
       const data = res?.data || res?.students || res || []

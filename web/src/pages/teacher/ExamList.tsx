@@ -18,9 +18,6 @@ export default function ExamList() {
   })
   const [creating, setCreating] = useState(false)
 
-  useEffect(() => { loadSubjects() }, [])
-  useEffect(() => { loadExams() }, [filterSubject])
-
   const loadSubjects = async () => {
     try {
       const subjectsRes = await api.getExamSubjects()
@@ -36,6 +33,9 @@ export default function ExamList() {
     } catch (err) { console.error('Failed to load exams:', err) }
     finally { setLoading(false) }
   }
+
+  useEffect(() => { loadSubjects() }, [])
+  useEffect(() => { loadExams() }, [filterSubject, loadExams])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()

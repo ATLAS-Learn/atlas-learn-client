@@ -43,8 +43,6 @@ export default function ExamDetail() {
   const [editingDraftIdx, setEditingDraftIdx] = useState<number | null>(null)
   const [editDraftForm, setEditDraftForm] = useState<DraftQuestion | null>(null)
 
-  useEffect(() => { if (examId) loadExam() }, [examId])
-
   const loadExam = async () => {
     if (!examId) return
     try {
@@ -62,19 +60,20 @@ export default function ExamDetail() {
     } catch {}
   }
 
-  useEffect(() => {
-    if (tab === 'attempts' && examId) loadAttempts()
-    if (tab === 'corrections' && examId) loadCorrections()
-  }, [tab, examId])
-
   const loadCorrections = async () => {
     if (!examId) return
-    setCorrectionsLoading(true)
     try {
       const res = await api.getExamAttempts(examId)
       setCorrections(res?.data || [])
     } catch {} finally { setCorrectionsLoading(false) }
   }
+
+  useEffect(() => { if (examId) loadExam() }, [examId, loadExam])
+
+  useEffect(() => {
+    if (tab === 'attempts' && examId) loadAttempts()
+    if (tab === 'corrections' && examId) loadCorrections()
+  }, [tab, examId, loadAttempts, loadCorrections])
 
   // AI questions go into draft queue — no API call yet
   const handleAIAccept = (questions: DraftQuestion[]) => {

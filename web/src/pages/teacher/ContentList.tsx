@@ -10,14 +10,14 @@ export default function ContentList() {
   const [editSubject, setEditSubject] = useState<any>(null)
   const [subjectForm, setSubjectForm] = useState({ name: '', code: '', description: '' })
 
-  useEffect(() => { loadSubjects() }, [])
-
   const loadSubjects = async () => {
     try {
       const res: any = await api.getSubjects({ includeChapters: true })
       setSubjects(Array.isArray(res) ? res : res?.data || [])
     } catch {} finally { setLoading(false) }
   }
+
+  useEffect(() => { loadSubjects() }, [])
 
   const handleSubjectSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,7 +68,7 @@ export default function ContentList() {
         </div>
       ) : (
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-          {subjects.map((subject, idx) => (
+          {subjects.map((subject, _idx) => (
             <div
               key={subject.id}
               className='bg-white rounded-2xl border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md transition-shadow'

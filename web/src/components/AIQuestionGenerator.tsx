@@ -47,26 +47,11 @@ export default function AIQuestionGenerator({
   // Chapter picker state
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [selectedChapterIds, setSelectedChapterIds] = useState<Set<string>>(new Set(initialChapterIds || []))
-  const [chaptersLoading, setChaptersLoading] = useState(false)
-  const [allChaptersSelected, setAllChaptersSelected] = useState(true)
-
-  useEffect(() => {
-    if (subjectId && mode === 'exam') {
-      loadChapters()
-    }
-  }, [subjectId, mode])
-
-  useEffect(() => {
-    if (chapters.length > 0 && selectedChapterIds.size === chapters.length) {
-      setAllChaptersSelected(true)
-    } else {
-      setAllChaptersSelected(false)
-    }
-  }, [selectedChapterIds, chapters])
+  const [chaptersLoading, setChaptersLoading] = useState(true)
+  const allChaptersSelected = chapters.length > 0 && selectedChapterIds.size === chapters.length
 
   const loadChapters = async () => {
     if (!subjectId) return
-    setChaptersLoading(true)
     try {
       const data = await api.getChaptersBySubject(subjectId)
       const list = Array.isArray(data) ? data : data?.data || []
@@ -76,6 +61,12 @@ export default function AIQuestionGenerator({
       }
     } catch {} finally { setChaptersLoading(false) }
   }
+
+  useEffect(() => {
+    if (subjectId && mode === 'exam') {
+      loadChapters()
+    }
+  }, [subjectId, mode, loadChapters])
 
   const toggleChapter = (id: string) => {
     const next = new Set(selectedChapterIds)

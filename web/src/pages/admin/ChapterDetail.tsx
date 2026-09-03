@@ -37,7 +37,6 @@ export default function AdminChapterDetail() {
 
   const loadAll = useCallback(async () => {
     if (!subjectId || !chapterId) return
-    setLoading(true)
     try {
       const [chData, lData, qData] = await Promise.all([
         api.getChapter(chapterId),

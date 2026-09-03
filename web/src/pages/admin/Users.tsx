@@ -21,7 +21,6 @@ export default function AdminUsers() {
   const isSuperadmin = currentUser?.role === 'superadmin'
 
   const loadUsers = useCallback(async () => {
-    setLoading(true)
     try {
       const res = await api.getUsers({ search: search || undefined, role: roleFilter || undefined, limit, offset: page * limit })
       setUsers(res?.data ?? [])

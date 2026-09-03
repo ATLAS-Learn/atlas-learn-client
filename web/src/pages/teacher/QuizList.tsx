@@ -13,14 +13,14 @@ export default function QuizList() {
   const [showQuizForm, setShowQuizForm] = useState<string | null>(null)
   const [quizForm, setQuizForm] = useState({ title: '', description: '', timeLimit: 30 })
 
-  useEffect(() => { loadSubjects() }, [])
-
   const loadSubjects = async () => {
     try {
       const res: any = await api.getSubjects({ includeChapters: true })
       setSubjects(Array.isArray(res) ? res : res?.data || [])
     } catch {} finally { setLoading(false) }
   }
+
+  useEffect(() => { loadSubjects() }, [])
 
   const toggleSubject = async (subjectId: string) => {
     if (expandedSubject === subjectId) {
@@ -111,7 +111,7 @@ export default function QuizList() {
         </div>
       ) : (
         <div className='space-y-3'>
-          {subjects.map((subject, idx) => (
+          {subjects.map((subject, _idx) => (
             <div key={subject.id} className='bg-white rounded-2xl border border-gray-200 overflow-hidden'>
               <div
                 className='flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50/50 transition-colors'
