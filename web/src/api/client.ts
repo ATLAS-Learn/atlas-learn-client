@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
 class WebAPIClient {
   private axiosInstance;
@@ -413,7 +413,7 @@ class WebAPIClient {
   }
 
   // Invite management (admin)
-  async adminCreateUser(data: { email: string; name: string; role: string }) {
+  async adminCreateUser(data: { email: string; name?: string; role: string }) {
     return this.request<any>('/auth/admin/create-user', {
       method: 'POST',
       data,
