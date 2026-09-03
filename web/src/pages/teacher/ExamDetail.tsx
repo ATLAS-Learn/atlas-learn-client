@@ -36,7 +36,7 @@ export default function ExamDetail() {
   const [saving, setSaving] = useState(false)
   const [draftQuestions, setDraftQuestions] = useState<DraftQuestion[]>([])
   const [corrections, setCorrections] = useState<any[]>([])
-  const [correctionsLoading, setCorrectionsLoading] = useState(false)
+  const [correctionsLoading, setCorrectionsLoading] = useState(true)
   const [correctingAttempt, setCorrectingAttempt] = useState<any>(null)
   const [correctionGrades, setCorrectionGrades] = useState<Record<string, { points: number; comment: string }>>({})
   const [correctionSaving, setCorrectionSaving] = useState(false)
@@ -68,12 +68,15 @@ export default function ExamDetail() {
     } catch {} finally { setCorrectionsLoading(false) }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (examId) loadExam() }, [examId, loadExam])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadAttempts/loadCorrections are stable useCallbacks
   useEffect(() => {
     if (tab === 'attempts' && examId) loadAttempts()
     if (tab === 'corrections' && examId) loadCorrections()
-  }, [tab, examId, loadAttempts, loadCorrections])
+  }, [tab, examId, loadAttempts, loadCorrections]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // AI questions go into draft queue — no API call yet
   const handleAIAccept = (questions: DraftQuestion[]) => {

@@ -62,10 +62,12 @@ export default function AIQuestionGenerator({
     } catch {} finally { setChaptersLoading(false) }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (subjectId && mode === 'exam') {
       loadChapters()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subjectId, mode, loadChapters])
 
   const toggleChapter = (id: string) => {

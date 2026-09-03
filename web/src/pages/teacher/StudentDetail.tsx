@@ -22,6 +22,7 @@ export default function StudentDetail() {
     } catch {} finally { setLoading(false) }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadData() }, [studentId, loadData])
 
   if (loading) {

@@ -28,6 +28,7 @@ export default function AdminUsers() {
     } catch {} finally { setLoading(false) }
   }, [search, roleFilter, page])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadUsers() }, [loadUsers])
 
   const handleDeactivate = async (userId: string) => {

@@ -64,6 +64,7 @@ export default function AdminChapterDetail() {
     } catch {} finally { setLoading(false) }
   }, [subjectId, chapterId])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAll() }, [loadAll])
 
   const reloadLessons = async () => {

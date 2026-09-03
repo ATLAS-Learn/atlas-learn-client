@@ -19,6 +19,7 @@ export default function TeacherStudents() {
     } catch { setStudents([]) } finally { setLoading(false) }
   }, [search, page])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadStudents() }, [loadStudents])
 
   return (

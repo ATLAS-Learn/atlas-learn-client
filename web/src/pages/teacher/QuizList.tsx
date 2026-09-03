@@ -20,6 +20,7 @@ export default function QuizList() {
     } catch {} finally { setLoading(false) }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadSubjects() }, [])
 
   const toggleSubject = async (subjectId: string) => {

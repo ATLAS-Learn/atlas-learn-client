@@ -17,6 +17,7 @@ export default function SubjectList() {
     } catch {} finally { setLoading(false) }
   }, [])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadSubjects() }, [loadSubjects])
 
   const handleSubmit = async (e: React.FormEvent) => {
