@@ -32,7 +32,7 @@ export default function VerifyOTPScreen() {
     const [error, setError] = useState("");
     const [cooldown, setCooldown] = useState(0);
     const otpInputRef = useRef<TextInput>(null);
-    const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const email = params.email || "";
     const mode = params.mode === "signup" ? "signup" : "login";
@@ -66,7 +66,7 @@ export default function VerifyOTPScreen() {
                 return prev - 1;
             });
         }, 1000);
-        cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
+        cooldownIntervalRef.current = interval;
 
         return () => clearInterval(interval);
     }, []);
@@ -167,7 +167,7 @@ export default function VerifyOTPScreen() {
                     return prev - 1;
                 });
             }, 1000);
-            cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
+            cooldownIntervalRef.current = interval;
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to resend verification code.");
         } finally {
@@ -179,7 +179,7 @@ export default function VerifyOTPScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <KeyboardAvoidingView
                 style={styles.container}
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
+                behavior="padding"
             >
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}

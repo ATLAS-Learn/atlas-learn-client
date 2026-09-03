@@ -11,13 +11,13 @@ export default function SubjectList() {
   const [form, setForm] = useState({ name: '', code: '', description: '' })
 
   const loadSubjects = useCallback(async () => {
-    setLoading(true)
     try {
       const data = await api.getSubjects({ includeChapters: true })
       setSubjects(Array.isArray(data) ? data : [])
     } catch {} finally { setLoading(false) }
   }, [])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadSubjects() }, [loadSubjects])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,7 +72,7 @@ export default function SubjectList() {
         </div>
       ) : (
         <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'>
-          {subjects.map((s, idx) => (
+          {subjects.map((s, _idx) => (
             <div
               key={s.id}
               onClick={() => handleCardClick(s.id)}

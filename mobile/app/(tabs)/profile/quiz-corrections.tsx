@@ -8,7 +8,7 @@ import {
     TouchableOpacity,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import ScreenHeader from "@/components/ui/screen-header";

@@ -6,11 +6,10 @@ export default function AdminRoleUpgrades() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'pending' | 'history'>('pending')
   const [history, setHistory] = useState<any[]>([])
-  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(true)
   const [historyLoaded, setHistoryLoaded] = useState(false)
 
   const loadPending = useCallback(async () => {
-    setLoading(true)
     try {
       const res = await api.getPendingRoleUpgrades()
       setRequests(Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [])
@@ -19,7 +18,6 @@ export default function AdminRoleUpgrades() {
 
   const loadHistory = useCallback(async () => {
     if (historyLoaded) return
-    setHistoryLoading(true)
     try {
       const res = await api.getRoleUpgradeHistory()
       setHistory(Array.isArray(res?.data) ? res.data : [])
@@ -27,8 +25,10 @@ export default function AdminRoleUpgrades() {
     } catch {} finally { setHistoryLoading(false) }
   }, [historyLoaded])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadPending() }, [loadPending])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (tab === 'history' && !historyLoaded) loadHistory()
   }, [tab, historyLoaded, loadHistory])

@@ -11,7 +11,6 @@ export default function TeacherStudents() {
   const limit = 20
 
   const loadStudents = useCallback(async () => {
-    setLoading(true)
     try {
       const res = await api.getTeacherStudents({ search: search || undefined, limit, offset: page * limit })
       const data = res?.data || res?.students || res || []
@@ -20,6 +19,7 @@ export default function TeacherStudents() {
     } catch { setStudents([]) } finally { setLoading(false) }
   }, [search, page])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadStudents() }, [loadStudents])
 
   return (

@@ -10,7 +10,7 @@ export default function SetPassword() {
   const [schools, setSchools] = useState<any[]>([]);
   const [schoolSearch, setSchoolSearch] = useState('');
   const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
-  const [schoolsLoading, setSchoolsLoading] = useState(true);
+  const [_schoolsLoading, setSchoolsLoading] = useState(false);
   const [step, setStep] = useState(1);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,9 +18,9 @@ export default function SetPassword() {
   const [school, setSchool] = useState('');
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [validating, setValidating] = useState(true);
+  const [validating, setValidating] = useState(!!token);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(!token ? 'Invalid or missing invite link' : '');
   const navigate = useNavigate();
   const schoolRef = useRef<HTMLDivElement>(null);
 
@@ -29,8 +29,6 @@ export default function SetPassword() {
 
   useEffect(() => {
     if (!token) {
-      setError('Invalid or missing invite link');
-      setValidating(false);
       return;
     }
     api
@@ -63,7 +61,6 @@ export default function SetPassword() {
 
   useEffect(() => {
     if (schools.length === 0) {
-      setSchoolsLoading(true);
       api
         .getSchools()
         .then((res) => {

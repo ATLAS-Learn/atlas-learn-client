@@ -143,7 +143,7 @@ export default function AdminDashboard() {
   const users = overview?.users || {}
   const active = overview?.activeUsers || {}
   const content = overview?.content || {}
-  const quiz = overview?.quizzes || {}
+  const _quiz = overview?.quizzes || {}
   const ch1 = chapterCompletion?.primaryMetric || {}
   const summary = quizStats?.summary || {}
   const wauTrend = wau?.trend ?? []

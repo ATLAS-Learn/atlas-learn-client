@@ -9,8 +9,6 @@ export default function StudentDetail() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'progress' | 'quizzes'>('progress')
 
-  useEffect(() => { loadData() }, [studentId])
-
   const loadData = async () => {
     if (!studentId) return
     try {
@@ -23,6 +21,9 @@ export default function StudentDetail() {
       setQuizAttempts(Array.isArray(attemptData) ? attemptData : [])
     } catch {} finally { setLoading(false) }
   }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadData() }, [studentId, loadData])
 
   if (loading) {
     return (

@@ -39,7 +39,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         navigate('/dashboard', { replace: true })
       })
       .finally(() => setChecking(false))
-  }, [])
+  }, [navigate])
 
   if (checking) {
     return (

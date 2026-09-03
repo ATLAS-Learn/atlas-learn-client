@@ -37,7 +37,6 @@ export default function AdminChapterDetail() {
 
   const loadAll = useCallback(async () => {
     if (!subjectId || !chapterId) return
-    setLoading(true)
     try {
       const [chData, lData, qData] = await Promise.all([
         api.getChapter(chapterId),
@@ -65,6 +64,7 @@ export default function AdminChapterDetail() {
     } catch {} finally { setLoading(false) }
   }, [subjectId, chapterId])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAll() }, [loadAll])
 
   const reloadLessons = async () => {

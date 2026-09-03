@@ -33,7 +33,7 @@ export default function VerifyEmailScreen() {
     const [error, setError] = useState("");
     const [cooldown, setCooldown] = useState(0);
     const otpInputRef = useRef<TextInput>(null);
-    const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Cleanup cooldown timer on unmount
     useEffect(() => {
@@ -56,7 +56,7 @@ export default function VerifyEmailScreen() {
                 return prev - 1;
             });
         }, 1000);
-        cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
+        cooldownIntervalRef.current = interval;
 
         return () => clearInterval(interval);
     }, []);
@@ -174,7 +174,7 @@ export default function VerifyEmailScreen() {
                     return prev - 1;
                 });
             }, 1000);
-            cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
+            cooldownIntervalRef.current = interval;
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to resend verification code.");
         } finally {
@@ -186,7 +186,7 @@ export default function VerifyEmailScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <KeyboardAvoidingView
                 style={styles.container}
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                behavior="padding"
                 keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
             >
                 <ScrollView

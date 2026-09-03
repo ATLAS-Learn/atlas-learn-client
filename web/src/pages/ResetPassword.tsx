@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 
@@ -9,14 +9,8 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(!token ? 'Invalid or missing reset token' : '')
   const navigate = useNavigate()
-
-  useEffect(() => {
-    if (!token) {
-      setError('Invalid or missing reset token')
-    }
-  }, [token])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

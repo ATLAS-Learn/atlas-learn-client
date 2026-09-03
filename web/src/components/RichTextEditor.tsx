@@ -124,7 +124,7 @@ export default function RichTextEditor({
     if (editor && value !== editor.getHTML()) {
       editor.commands.setContent(value || '');
     }
-  }, [value]);
+  }, [value, editor, editor.commands]);
 
   const setLink = useCallback(() => {
     if (!editor) return;

@@ -23,7 +23,6 @@ export default function AdminSubjectDetail() {
 
   const loadData = useCallback(async () => {
     if (!subjectId) return
-    setLoading(true)
     try {
       const [subjectData, chaptersData] = await Promise.all([
         api.getSubjects({ includeChapters: true }),
@@ -41,6 +40,7 @@ export default function AdminSubjectDetail() {
     }
   }, [subjectId])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadData()
   }, [loadData])

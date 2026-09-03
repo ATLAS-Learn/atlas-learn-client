@@ -1,24 +1,17 @@
 import React from "react";
-import { Dimensions, Image, StatusBar, StyleSheet, Text, View } from "react-native";
+import { Image, StatusBar, StyleSheet, View } from "react-native";
 
-const { width, height } = Dimensions.get("window");
+const ICON_SIZE = 240;
+const BG = "#FFFFFF";
 
 export function SplashScreen() {
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFD580" translucent={false} />
-      <View style={styles.content}>
-        <Image
-          source={require("@/assets/images/splash-icon.png")}
-          resizeMode="contain"
-          style={styles.logo}
-        />
-        <Text style={styles.tagline}>Your Gateway to an A Grade</Text>
-      </View>
+      <StatusBar barStyle="dark-content" backgroundColor={BG} translucent={false} />
       <Image
-        source={require("@/assets/images/waves.png")}
+        source={require("@/assets/images/splash-badge.png")}
         resizeMode="contain"
-        style={styles.waves}
+        style={styles.icon}
       />
     </View>
   );
@@ -29,28 +22,12 @@ const styles = StyleSheet.create({
     flex: 1,
     width: "100%",
     height: "100%",
-    backgroundColor: "#FFD580",
-    flexDirection: "column",
-  },
-  content: {
-    flex: 1,
+    backgroundColor: BG,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
   },
-  logo: {
-    width: width * 0.55,
-    height: width * 0.55,
-    marginBottom: 16,
-  },
-  tagline: {
-    fontSize: Math.min(width, height) * 0.045,
-    fontFamily: "Nunito-Bold",
-    color: "#000000",
-    textAlign: "center",
-    paddingHorizontal: 20,
-  },
-  waves: {
-    width: "100%",
+  icon: {
+    width: ICON_SIZE,
+    height: ICON_SIZE,
   },
 });

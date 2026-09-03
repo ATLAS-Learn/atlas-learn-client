@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Markdown from "react-native-markdown-display";
 import { apiClient } from "@/lib/api";
 
 const TEAL = "#084A59";
@@ -134,7 +135,11 @@ export default function FloatingChatButton({
                     </View>
                 )}
                 <View style={[styles.msgBubble, isUser ? styles.msgBubbleUser : styles.msgBubbleAI]}>
-                    <Text selectable style={[styles.msgText, isUser ? styles.msgTextUser : styles.msgTextAI]}>{item.content}</Text>
+                    {isUser ? (
+                        <Text selectable style={[styles.msgText, styles.msgTextUser]}>{item.content}</Text>
+                    ) : (
+                        <Markdown style={markdownStyles}>{item.content}</Markdown>
+                    )}
                 </View>
             </View>
         );
@@ -224,6 +229,55 @@ export default function FloatingChatButton({
         </>
     );
 }
+
+const markdownStyles = StyleSheet.create({
+    body: { fontSize: 15, lineHeight: 22, color: "#1F2524" },
+    paragraph: { marginTop: 0, marginBottom: 6 },
+    heading1: { fontSize: 20, fontWeight: "800", marginBottom: 6 },
+    heading2: { fontSize: 17, fontWeight: "700", marginBottom: 4 },
+    heading3: { fontSize: 15, fontWeight: "700", marginBottom: 4 },
+    bold: { fontWeight: "700" },
+    italic: { fontStyle: "italic" },
+    code_inline: {
+        backgroundColor: "#F0F0F0",
+        color: "#D63384",
+        fontSize: 13,
+        fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+        paddingHorizontal: 4,
+        borderRadius: 4,
+    },
+    code_block: {
+        backgroundColor: "#1E293B",
+        color: "#E2E8F0",
+        fontSize: 13,
+        fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+        padding: 12,
+        borderRadius: 8,
+        marginVertical: 6,
+    },
+    fence: {
+        backgroundColor: "#1E293B",
+        color: "#E2E8F0",
+        fontSize: 13,
+        fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+        padding: 12,
+        borderRadius: 8,
+        marginVertical: 6,
+    },
+    list_item: { fontSize: 15, lineHeight: 22, color: "#1F2524", marginBottom: 2 },
+    bullet_list: { marginTop: 4, marginBottom: 4 },
+    ordered_list: { marginTop: 4, marginBottom: 4 },
+    link: { color: TEAL, textDecorationLine: "underline" },
+    blockquote: {
+        borderLeftWidth: 3,
+        borderLeftColor: GOLD,
+        paddingLeft: 10,
+        marginVertical: 6,
+        fontStyle: "italic",
+        color: "#555",
+    },
+    hr: { backgroundColor: "#E5E7EB", height: 1, marginVertical: 8 },
+} as any);
 
 const styles = StyleSheet.create({
     fabWrap: {

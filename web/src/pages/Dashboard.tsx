@@ -26,21 +26,26 @@ export default function Dashboard() {
         return;
       }
       const userRole = user.role;
-      if (role === 'admin' && userRole !== 'admin') {
-        setError('Access denied. Admin accounts only.');
+      if (role === 'admin' && userRole !== 'admin' && userRole !== 'superadmin') {
+        setError('Access denied. Admin or superadmin accounts only.');
         api.clearUser();
         return;
       }
       if (
         role === 'teacher' &&
         userRole !== 'teacher' &&
-        userRole !== 'admin'
+        userRole !== 'admin' &&
+        userRole !== 'superadmin'
       ) {
-        setError('Access denied. Teacher or admin accounts only.');
+        setError('Access denied. Teacher, admin, or superadmin accounts only.');
         api.clearUser();
         return;
       }
-      navigate(userRole === 'admin' ? '/admin' : '/teacher');
+      if (userRole === 'superadmin' || userRole === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/teacher');
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
