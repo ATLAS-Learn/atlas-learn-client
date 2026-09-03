@@ -1,20 +1,48 @@
-import React from "react";
-import { Dimensions, Image, StatusBar, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Dimensions, Image, StatusBar, StyleSheet, Text, View } from "react-native";
 
 const { width, height } = Dimensions.get("window");
 
+// Must match app.json's expo-splash-screen "imageWidth" (200) exactly — this is
+// what makes the native OS splash icon and this JS splash icon feel like the
+// same, unmoving element instead of two different screens.
+const ICON_SIZE = 200;
+const BRAND_TEAL = "#084858";
+
 export function SplashScreen() {
+  const fade = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fade, {
+      toValue: 1,
+      duration: 450,
+      delay: 60,
+      useNativeDriver: true,
+    }).start();
+  }, [fade]);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFD580" translucent={false} />
-      <View style={styles.content}>
+
+      {/* Same asset, same size, same screen position as the native Android splash
+          icon (app.json -> expo-splash-screen). It never moves between the OS
+          splash and this screen, so the handoff reads as one continuous splash. */}
+      <View style={styles.iconWrap} pointerEvents="none">
         <Image
-          source={require("@/assets/images/splash-icon.png")}
+          source={require("@/assets/images/splash-icon-native.png")}
           resizeMode="contain"
-          style={styles.logo}
+          style={styles.icon}
         />
-        <Text style={styles.tagline}>Your Gateway to an A Grade</Text>
       </View>
+
+      {/* Wordmark + tagline fade in around the icon once JS has booted. */}
+      <Animated.View style={[styles.textWrap, { opacity: fade }]} pointerEvents="none">
+        <Text style={styles.wordmarkApex}>apex</Text>
+        <Text style={styles.wordmarkLearn}>Learn</Text>
+        <Text style={styles.tagline}>Your Gateway to an A Grade</Text>
+      </Animated.View>
+
       <Image
         source={require("@/assets/images/waves.png")}
         resizeMode="contain"
@@ -30,27 +58,51 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     backgroundColor: "#FFD580",
-    flexDirection: "column",
   },
-  content: {
-    flex: 1,
-    justifyContent: "center",
+  iconWrap: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    width: ICON_SIZE,
+    height: ICON_SIZE,
+    marginLeft: -ICON_SIZE / 2,
+    marginTop: -ICON_SIZE / 2,
+  },
+  icon: {
+    width: "100%",
+    height: "100%",
+  },
+  textWrap: {
+    position: "absolute",
+    top: "50%",
+    left: 0,
+    right: 0,
+    marginTop: ICON_SIZE / 2 + 20,
     alignItems: "center",
     paddingHorizontal: 24,
   },
-  logo: {
-    width: width * 0.55,
-    height: width * 0.55,
-    marginBottom: 16,
+  wordmarkApex: {
+    fontSize: 34,
+    lineHeight: 40,
+    fontFamily: "Nunito-Bold",
+    color: BRAND_TEAL,
+  },
+  wordmarkLearn: {
+    fontSize: 34,
+    lineHeight: 38,
+    fontFamily: "Nunito-Black",
+    color: BRAND_TEAL,
   },
   tagline: {
     fontSize: Math.min(width, height) * 0.045,
     fontFamily: "Nunito-Bold",
     color: "#000000",
     textAlign: "center",
-    paddingHorizontal: 20,
+    marginTop: 16,
   },
   waves: {
+    position: "absolute",
+    bottom: 0,
     width: "100%",
   },
 });
