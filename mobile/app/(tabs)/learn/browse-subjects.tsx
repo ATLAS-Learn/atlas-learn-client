@@ -74,9 +74,18 @@ export default function BrowseSubjectsScreen() {
                 apiClient.getPreferredSubjects(),
             ]);
             setSubjects(allSubjects);
-            setPreferredIds(new Set(preferred));
+            // Clean stale IDs: keep only IDs that match real subjects
+            const validIds = preferred.filter((id: string) =>
+                allSubjects.some((s: Subject) => s.id === id)
+            );
+            const cleaned = validIds.length !== preferred.length;
+            const finalIds = cleaned ? validIds : preferred;
+            setPreferredIds(new Set(finalIds));
+            if (cleaned) {
+                apiClient.updatePreferredSubjects(finalIds).catch(() => {});
+            }
             setCache(SUBJECTS_CACHE_KEY, allSubjects, SUBJECTS_CACHE_TTL).catch(() => {});
-            setCache(PREFERRED_CACHE_KEY, Array.from(new Set(preferred)), PREFERRED_CACHE_TTL).catch(() => {});
+            setCache(PREFERRED_CACHE_KEY, finalIds, PREFERRED_CACHE_TTL).catch(() => {});
         } catch {
             const cached = getCacheSync<Subject[]>(SUBJECTS_CACHE_KEY);
             if (!cached) {

@@ -107,7 +107,6 @@ export default function LearnScreen() {
             })
             .catch(() => {
                 if (cancelled) return;
-                // If cache didn't have it, set empty array so UI doesn't hang on null
                 if (!cached) setPreferredIds([]);
             });
         return () => { cancelled = true; };
@@ -116,7 +115,16 @@ export default function LearnScreen() {
     const subjects = useMemo(() => {
         const allSubjects = progressData?.subjects || [];
         if (!preferredIds || preferredIds.length === 0) return allSubjects;
-        return allSubjects.filter((s: SubjectProgress) => preferredIds.includes(s.subjectId));
+        const validPreferred = preferredIds.filter((id: string) =>
+            allSubjects.some((s: SubjectProgress) => s.subjectId === id)
+        );
+        // Auto-clean stale IDs: if some IDs are invalid, clear them server-side
+        if (validPreferred.length !== preferredIds.length && validPreferred.length === 0) {
+            apiClient.updatePreferredSubjects([]).catch(() => {});
+            setCache(PREFERRED_SUBJECTS_CACHE_KEY, [], PREFERRED_SUBJECTS_TTL).catch(() => {});
+            return allSubjects;
+        }
+        return allSubjects.filter((s: SubjectProgress) => validPreferred.includes(s.subjectId));
     }, [progressData, preferredIds]);
 
     if (isLoading || preferredIds === null) {
