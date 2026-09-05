@@ -1,18 +1,21 @@
 import React from "react";
-import { Image, StatusBar, StyleSheet, View } from "react-native";
+import { Image, StatusBar, StyleSheet, Text, View } from "react-native";
 
-const ICON_SIZE = 240;
-const BG = "#FFFFFF";
+const BRAND_TEAL = "#084858";
 
 export function SplashScreen() {
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={BG} translucent={false} />
+      <StatusBar barStyle="light-content" backgroundColor={BRAND_TEAL} translucent={false} />
       <Image
-        source={require("@/assets/images/splash-badge.png")}
+        source={require("@/assets/images/icon-gold.png")}
         resizeMode="contain"
         style={styles.icon}
       />
+      <Text style={styles.wordmark}>
+        <Text style={styles.wordmarkApex}>Apex</Text>
+        <Text style={styles.wordmarkLearn}> Learn</Text>
+      </Text>
     </View>
   );
 }
@@ -22,12 +25,26 @@ const styles = StyleSheet.create({
     flex: 1,
     width: "100%",
     height: "100%",
-    backgroundColor: BG,
+    backgroundColor: BRAND_TEAL,
     justifyContent: "center",
     alignItems: "center",
   },
   icon: {
-    width: ICON_SIZE,
-    height: ICON_SIZE,
+    width: 260,
+    height: 260,
+    marginBottom: 14,
+  },
+  wordmark: {
+    fontSize: 36,
+    textAlign: "center",
+    letterSpacing: 1,
+  },
+  wordmarkApex: {
+    fontFamily: "Nunito-Bold",
+    color: "#FFFFFF",
+  },
+  wordmarkLearn: {
+    fontFamily: "Nunito-Black",
+    color: "#FFFFFF",
   },
 });
