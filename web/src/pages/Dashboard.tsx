@@ -41,7 +41,9 @@ export default function Dashboard() {
         api.clearUser();
         return;
       }
-      if (userRole === 'superadmin' || userRole === 'admin') {
+      if (userRole === 'superadmin') {
+        navigate('/superadmin');
+      } else if (userRole === 'admin') {
         navigate('/admin');
       } else {
         navigate('/teacher');

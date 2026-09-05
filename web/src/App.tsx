@@ -6,6 +6,11 @@ import Dashboard from './pages/Dashboard'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import SetPassword from './pages/SetPassword'
+import SuperadminLayout from './pages/superadmin/Layout'
+import SuperadminDashboard from './pages/superadmin/Dashboard'
+import SuperadminUsers from './pages/superadmin/Users'
+import SuperadminSchools from './pages/superadmin/Schools'
+import SuperadminFeedback from './pages/superadmin/Feedback'
 import AdminLayout from './pages/admin/Layout'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminUsers from './pages/admin/Users'
@@ -13,7 +18,6 @@ import AdminSubjectList from './pages/admin/SubjectList'
 import AdminSubjectDetail from './pages/admin/SubjectDetail'
 import AdminChapterDetail from './pages/admin/ChapterDetail'
 import AdminRoleUpgrades from './pages/admin/RoleUpgrades'
-import AdminFeedback from './pages/admin/Feedback'
 import TeacherLayout from './pages/teacher/Layout'
 import TeacherDashboard from './pages/teacher/Dashboard'
 import TeacherStudents from './pages/teacher/Students'
@@ -61,6 +65,21 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/set-password" element={<SetPassword />} />
 
+      {/* Superadmin Routes */}
+      <Route
+        path="/superadmin"
+        element={
+          <ProtectedRoute>
+            <SuperadminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<SuperadminDashboard />} />
+        <Route path="users" element={<SuperadminUsers />} />
+        <Route path="schools" element={<SuperadminSchools />} />
+        <Route path="feedback" element={<SuperadminFeedback />} />
+      </Route>
+
       {/* Admin Routes */}
       <Route
         path="/admin"
@@ -76,7 +95,6 @@ export default function App() {
         <Route path="subjects/:subjectId" element={<AdminSubjectDetail />} />
         <Route path="subjects/:subjectId/chapters/:chapterId" element={<AdminChapterDetail />} />
         <Route path="role-upgrades" element={<AdminRoleUpgrades />} />
-        <Route path="feedback" element={<AdminFeedback />} />
       </Route>
 
       {/* Teacher Routes */}

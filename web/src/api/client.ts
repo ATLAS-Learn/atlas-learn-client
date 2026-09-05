@@ -566,6 +566,103 @@ class WebAPIClient {
     const res = await this.request<any>('/chapters', { params: { subjectId } });
     return this.unwrap(res);
   }
+
+  // ─── Superadmin ────────────────────────────────────────────────
+
+  // Superadmin Analytics
+  async getSuperadminOverview() {
+    const res = await this.request<any>('/superadmin/analytics/overview');
+    return this.unwrap(res);
+  }
+
+  async getSuperadminChapterCompletion() {
+    const res = await this.request<any>('/superadmin/analytics/chapter-completion');
+    return this.unwrap(res);
+  }
+
+  async getSuperadminQuizStats() {
+    const res = await this.request<any>('/superadmin/analytics/quiz-stats');
+    return this.unwrap(res);
+  }
+
+  async getSuperadminWAU() {
+    const res = await this.request<any>('/superadmin/analytics/wau');
+    return this.unwrap(res);
+  }
+
+  async getSuperadminTeacherActivity() {
+    const res = await this.request<any>('/superadmin/analytics/teacher-activity');
+    return this.unwrap(res);
+  }
+
+  async getSuperadminSignupTrend() {
+    const res = await this.request<any>('/superadmin/analytics/signups');
+    return this.unwrap(res);
+  }
+
+  // Superadmin Users
+  async getSuperadminUsers(params?: {
+    search?: string;
+    role?: string;
+    isActive?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    const res = await this.request<any>('/superadmin/users', { params });
+    return res;
+  }
+
+  async getSuperadminUser(userId: string) {
+    const res = await this.request<any>(`/superadmin/users/${userId}`);
+    return this.unwrap(res);
+  }
+
+  async changeUserRole(userId: string, role: string) {
+    return this.request<any>(`/superadmin/users/${userId}/role`, {
+      method: 'PATCH',
+      data: { role },
+    });
+  }
+
+  async superadminDeactivateUser(userId: string) {
+    return this.request<any>(`/superadmin/users/${userId}/deactivate`, {
+      method: 'PATCH',
+    });
+  }
+
+  async superadminReactivateUser(userId: string) {
+    return this.request<any>(`/superadmin/users/${userId}/reactivate`, {
+      method: 'PATCH',
+    });
+  }
+
+  // Superadmin Schools
+  async getSuperadminSchools(params?: { search?: string }) {
+    const res = await this.request<any>('/superadmin/schools', { params });
+    return res;
+  }
+
+  async createSchool(data: { name: string }) {
+    return this.request<any>('/superadmin/schools', { method: 'POST', data });
+  }
+
+  async updateSchool(schoolId: string, data: { name: string }) {
+    return this.request<any>(`/superadmin/schools/${schoolId}`, { method: 'PUT', data });
+  }
+
+  async deleteSchool(schoolId: string) {
+    return this.request<any>(`/superadmin/schools/${schoolId}`, { method: 'DELETE' });
+  }
+
+  // Superadmin Feedback
+  async getSuperadminFeedback(params?: { status?: string; category?: string; page?: number; limit?: number }) {
+    const res = await this.request<any>('/superadmin/feedback', { params });
+    return res;
+  }
+
+  async superadminUpdateFeedback(id: string, data: { status?: string; adminReply?: string }) {
+    return this.request<any>(`/superadmin/feedback/${id}`, { method: 'PATCH', data });
+  }
 }
 
 export const api = new WebAPIClient();
