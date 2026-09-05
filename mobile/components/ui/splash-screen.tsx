@@ -28,10 +28,11 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND_TEAL,
     justifyContent: "center",
     alignItems: "center",
+    paddingBottom: 120,
   },
   icon: {
-    width: 260,
-    height: 260,
+    width: 220,
+    height: 220,
     marginBottom: 14,
   },
   wordmark: {
