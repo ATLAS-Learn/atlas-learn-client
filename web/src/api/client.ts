@@ -605,6 +605,7 @@ class WebAPIClient {
     search?: string;
     role?: string;
     isActive?: string;
+    school?: string;
     limit?: number;
     offset?: number;
   }) {

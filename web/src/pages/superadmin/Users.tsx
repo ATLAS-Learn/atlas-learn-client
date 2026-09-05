@@ -15,6 +15,8 @@ export default function SuperadminUsers() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [schoolFilter, setSchoolFilter] = useState('');
+  const [schools, setSchools] = useState<any[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('teacher');
@@ -32,6 +34,7 @@ export default function SuperadminUsers() {
       const params: any = { limit: 30, offset: reset ? 0 : (page - 1) * 30 };
       if (search) params.search = search;
       if (roleFilter) params.role = roleFilter;
+      if (schoolFilter) params.school = schoolFilter;
 
       const res = await api.getSuperadminUsers(params);
       const data = res.data || res.users || [];
@@ -48,7 +51,11 @@ export default function SuperadminUsers() {
   useEffect(() => {
     loadUsers(true);
     setPage(1);
-  }, [search, roleFilter]);
+  }, [search, roleFilter, schoolFilter]);
+
+  useEffect(() => {
+    api.getSuperadminSchools().then((res) => setSchools(res.data || [])).catch(() => {});
+  }, []);
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -130,6 +137,16 @@ export default function SuperadminUsers() {
           onChange={(e) => setSearch(e.target.value)}
           className='flex-1 min-w-[200px] px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#084A59]'
         />
+        <select
+          value={schoolFilter}
+          onChange={(e) => setSchoolFilter(e.target.value)}
+          className='px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#084A59] max-w-[220px]'
+        >
+          <option value=''>All Schools</option>
+          {schools.map((s) => (
+            <option key={s.id} value={s.name}>{s.name}</option>
+          ))}
+        </select>
         <div className='flex gap-1'>
           <button
             onClick={() => setRoleFilter('')}
