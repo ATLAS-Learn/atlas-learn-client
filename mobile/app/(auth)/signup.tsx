@@ -38,6 +38,7 @@ export default function SignUpScreen() {
     const newErrors: ValidationErrors = validateFields({
       fullName,
       email,
+      school,
     });
 
     setErrors(newErrors);
@@ -163,13 +164,16 @@ export default function SignUpScreen() {
           <View style={styles.inputContainer}>
             <Ionicons name="school-outline" size={24} color="#B3B3B3" style={styles.icon} />
             <TextInput
-              placeholder="School (optional)"
+              placeholder="School"
               placeholderTextColor="#B3B3B3"
               value={school}
               onChangeText={setSchool}
               style={styles.input}
             />
           </View>
+          {errors.school && (
+            <Text style={{ color: "#E57373", marginBottom: 10 }}>{errors.school}</Text>
+          )}
           <View style={styles.inputContainer}>
             <Ionicons name="calendar-outline" size={24} color="#B3B3B3" style={styles.icon} />
             <TextInput
