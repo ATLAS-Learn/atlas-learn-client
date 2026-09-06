@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { Subject, SubjectChapter, LearningPathSubject, LessonWithProgress } from "@/lib/types";
 import { DISK_TTL } from "@/lib/config/cachePolicy";
@@ -12,7 +13,6 @@ async function preloadSubject(subjectId: string) {
     const cacheKey = `cache:subject:${subjectId}`;
     const chaptersCacheKey = `cache:subject-chapters:${subjectId}`;
 
-    // Skip if both already cached
     if (getCacheSync<Subject>(cacheKey) && getCacheSync<SubjectChapter[]>(chaptersCacheKey)) {
         return;
     }
@@ -39,12 +39,10 @@ async function preloadChapter(subjectId: string, chapterId: string) {
     const chapterCacheKey = `cache:chapter:${chapterId}`;
     const lessonsCacheKey = `cache:lessons:${chapterId}`;
 
-    // Skip if both already cached
     if (getCacheSync(chapterCacheKey) && getCacheSync(lessonsCacheKey)) {
         return;
     }
 
-    // Chapter data
     if (!getCacheSync(chapterCacheKey)) {
         try {
             const chapter = await apiClient.getChapter(chapterId);
@@ -54,7 +52,6 @@ async function preloadChapter(subjectId: string, chapterId: string) {
         }
     }
 
-    // Lessons list + first lesson content
     if (!getCacheSync(lessonsCacheKey)) {
         try {
             const lessons = await apiClient.getSubjectChapterLessons(subjectId, chapterId, true);
@@ -62,7 +59,6 @@ async function preloadChapter(subjectId: string, chapterId: string) {
             if (list.length > 0) {
                 await setCache(lessonsCacheKey, list, CHAPTER_CACHE_TTL);
 
-                // Prefetch first lesson content for offline reading
                 const firstLesson = [...list].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))[0];
                 if (firstLesson) {
                     const lessonCacheKey = `cache:lesson:${subjectId}:${chapterId}:${firstLesson.id}`;
@@ -83,29 +79,48 @@ async function preloadChapter(subjectId: string, chapterId: string) {
 }
 
 export default function useOfflinePreload() {
+    const queryClient = useQueryClient();
     const { isConnected, isInternetReachable } = useNetworkState();
-    const hasPreloaded = useRef(false);
+    const hasHydrated = useRef(false);
 
     useEffect(() => {
-        const isOnline = isConnected && isInternetReachable !== false;
-        if (!isOnline || hasPreloaded.current) return;
-        hasPreloaded.current = true;
+        if (hasHydrated.current) return;
+        hasHydrated.current = true;
 
+        const isOnline = isConnected && isInternetReachable !== false;
+
+        // Always hydrate React Query from MMKV — works offline or online
+        const hydrateFromCache = () => {
+            const progress = getCacheSync("cache:progress:overall");
+            if (progress) {
+                queryClient.setQueryData(["progress", "overall"], progress);
+            }
+            const streak = getCacheSync("cache:progress:streak");
+            if (streak) {
+                queryClient.setQueryData(["progress", "streak"], streak);
+            }
+            const learningPath = getCacheSync("cache:learning-path");
+            if (learningPath) {
+                queryClient.setQueryData(["recommendations", "learning-path"], learningPath);
+            }
+        };
+
+        hydrateFromCache();
+
+        if (!isOnline) return;
+
+        // Online: fetch fresh data for preferred subjects + current chapters
         const run = async () => {
-            // 1. Read preferred subject IDs from cache
             const preferredIds = getCacheSync<string[]>("cache:preferred-subjects-ids");
             if (!preferredIds || preferredIds.length === 0) return;
 
-            // 2. Preload each preferred subject's data
             await Promise.allSettled(preferredIds.map((id) => preloadSubject(id)));
 
-            // 3. Read learning path to find current chapters
-            const learningPath = getCacheSync<{ perSubject?: LearningPathSubject[] }>("cache:learning-path");
-            if (!learningPath?.perSubject) return;
+            const lp = getCacheSync<{ perSubject?: LearningPathSubject[] }>("cache:learning-path");
+            if (!lp?.perSubject) return;
 
-            // 4. For each preferred subject, preload the current chapter + its lessons
             for (const subjectId of preferredIds) {
-                const subjectData = learningPath.perSubject.find((s) => s.subjectId === subjectId);
+                const subjectData = lp.perSubject.find((s) => s.subjectId === subjectId);
                 if (!subjectData || subjectData.completionPercentage >= 100) continue;
 
                 const currentId = subjectData.currentChapter?.id;
@@ -113,7 +128,6 @@ export default function useOfflinePreload() {
                     await preloadChapter(subjectId, currentId);
                 }
 
-                // Also preload next chapter if available
                 const nextId = subjectData.nextRecommended?.id;
                 if (nextId && nextId !== currentId) {
                     await preloadChapter(subjectId, nextId);
@@ -121,7 +135,6 @@ export default function useOfflinePreload() {
             }
         };
 
-        // Fire and forget — best-effort, non-blocking
         run().catch(() => {});
-    }, [isConnected, isInternetReachable]);
+    }, [isConnected, isInternetReachable, queryClient]);
 }

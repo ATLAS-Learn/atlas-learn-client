@@ -1,20 +1,96 @@
-import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image } from "react-native";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image, Animated as RNAnimated, Easing, StatusBar } from "react-native";
 import { Svg, Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useUserStore } from "@/lib/store/user";
 import { useOverallProgress, useStreak, useUserQuizAttempts, useLearningPath } from "@/lib/hooks/api";
 import { API_BASE_URL } from "@/lib/constants/api";
+
+const DARK_TEAL = "#084A59";
+const GOLD = "#F2B138";
+const BLACK = "#011C26";
+const CIRCUMFERENCE = 2 * Math.PI * 34;
+const AnimatedCircle = RNAnimated.createAnimatedComponent(Circle);
+
+function useAnimatedNumber(target: number, duration = 1200, delay = 200, focusKey = 0) {
+    const anim = useRef(new RNAnimated.Value(0)).current;
+    const [display, setDisplay] = useState(0);
+
+    useEffect(() => {
+        anim.setValue(0);
+        setDisplay(0);
+        const timer = setTimeout(() => {
+            RNAnimated.timing(anim, {
+                toValue: target,
+                duration,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: false,
+            }).start();
+        }, delay);
+        return () => clearTimeout(timer);
+    }, [target, focusKey]);
+
+    useEffect(() => {
+        const listener = anim.addListener(({ value }) => {
+            setDisplay(Math.round(value));
+        });
+        return () => anim.removeListener(listener);
+    }, []);
+
+    return display;
+}
+
+function useAnimatedTime(seconds: number, duration = 1200, delay = 200, focusKey = 0) {
+    const anim = useRef(new RNAnimated.Value(0)).current;
+    const [display, setDisplay] = useState("0s");
+
+    useEffect(() => {
+        anim.setValue(0);
+        setDisplay("0s");
+        const timer = setTimeout(() => {
+            RNAnimated.timing(anim, {
+                toValue: seconds,
+                duration,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: false,
+            }).start();
+        }, delay);
+        return () => clearTimeout(timer);
+    }, [seconds, focusKey]);
+
+    useEffect(() => {
+        const listener = anim.addListener(({ value }) => {
+            const s = Math.round(value);
+            if (s < 60) setDisplay(`${s}s`);
+            else if (s < 3600) setDisplay(`${Math.round(s / 60)}m`);
+            else {
+                const h = Math.floor(s / 3600);
+                const m = Math.round((s % 3600) / 60);
+                setDisplay(m > 0 ? `${h}h ${m}m` : `${h}h`);
+            }
+        });
+        return () => anim.removeListener(listener);
+    }, []);
+
+    return display;
+}
 
 export default function HomeTab() {
     const router = useRouter();
     const { user } = useUserStore();
     const [refreshing, setRefreshing] = useState(false);
+    const [focusKey, setFocusKey] = useState(0);
     const { data: overallProgress, refetch: refetchProgress } = useOverallProgress();
     const { data: streakData, refetch: refetchStreak } = useStreak();
     const { data: quizAttempts = [], refetch: refetchAttempts } = useUserQuizAttempts(user?.id);
     const { data: learningPath, refetch: refetchLearningPath } = useLearningPath();
+
+    useFocusEffect(
+        useCallback(() => {
+            setFocusKey((k) => k + 1);
+        }, [])
+    );
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -43,22 +119,36 @@ export default function HomeTab() {
         return Math.round(total / quizAttempts.length);
     }, [quizAttempts]);
 
-    const formatTimeSpent = (seconds: number): string => {
-        if (seconds < 60) return `${seconds}s`;
-        if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
-        const hours = Math.floor(seconds / 3600);
-        const mins = Math.round((seconds % 3600) / 60);
-        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-    };
+    const animatedCompletion = useRef(new RNAnimated.Value(0)).current;
+    useEffect(() => {
+        animatedCompletion.setValue(0);
+        const timer = setTimeout(() => {
+            RNAnimated.timing(animatedCompletion, {
+                toValue: completion,
+                duration: 1400,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: false,
+            }).start();
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [completion, focusKey]);
+
+    const animCompletion = useAnimatedNumber(completion, 1400, 300, focusKey);
+    const animLessonsDone = useAnimatedNumber(lessonsDone, 1000, 400, focusKey);
+    const animQuizzesPassed = useAnimatedNumber(quizzesPassed, 1000, 500, focusKey);
+    const animTimeSpent = useAnimatedTime(totalTimeSpent, 1000, 600, focusKey);
+    const animAvgScore = useAnimatedNumber(averageScore, 1000, 700, focusKey);
 
     return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.content}
-            refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B138" />
-            }
-        >
+        <View style={styles.root}>
+            <StatusBar barStyle="light-content" backgroundColor={DARK_TEAL} />
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={styles.content}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GOLD} />
+                }
+            >
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
@@ -68,12 +158,12 @@ export default function HomeTab() {
                             style={styles.avatar}
                         />
                     ) : (
-                        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                            <Ionicons name="person" size={22} color="#999" />
+                        <View style={styles.avatarPlaceholder}>
+                            <Ionicons name="person" size={22} color="#FFF" />
                         </View>
                     )}
                     <View>
-                        <Text style={styles.greeting}>Welcome 👋</Text>
+                        <Text style={styles.greeting}>Welcome back</Text>
                         <Text style={styles.name}>{displayName}</Text>
                     </View>
                 </View>
@@ -85,169 +175,175 @@ export default function HomeTab() {
                 )}
             </View>
 
-            {/* Streak Banner (only when streak is 0) */}
-            {streak === 0 && (
-                <View style={styles.streakBanner}>
-                    <Text style={styles.streakBannerEmoji}>{"\uD83D\uDD25"}</Text>
-                    <View style={styles.streakBannerInfo}>
-                        <Text style={styles.streakBannerTitle}>Start your streak!</Text>
-                        <Text style={styles.streakBannerText}>Complete a lesson or quiz today</Text>
+                {/* Streak Banner (only when streak is 0) */}
+                {streak === 0 && (
+                    <View style={styles.streakBanner}>
+                        <View style={styles.streakBannerIconWrap}>
+                            <Text style={styles.streakBannerEmoji}>{"\uD83D\uDD25"}</Text>
+                        </View>
+                        <View style={styles.streakBannerInfo}>
+                            <Text style={styles.streakBannerTitle}>Start your streak!</Text>
+                            <Text style={styles.streakBannerText}>Complete a lesson or quiz today</Text>
+                        </View>
                     </View>
-                </View>
-            )}
+                )}
 
-            {/* Progress Ring + Stats */}
-            <View style={styles.progressCard}>
-                    <View style={styles.progressRing}>
+                {/* Progress Card */}
+                <View style={styles.progressCard}>
+                    <View style={styles.progressRingWrap}>
                         <Svg width={80} height={80} viewBox="0 0 80 80">
-                            {/* Background circle */}
-                            <Circle
+                            <Circle cx={40} cy={40} r={34} fill="none" stroke="#084A5920" strokeWidth={6} />
+                            <AnimatedCircle
                                 cx={40}
                                 cy={40}
                                 r={34}
                                 fill="none"
-                                stroke="#F0F0F0"
+                                stroke={GOLD}
                                 strokeWidth={6}
-                            />
-                            {/* Progress circle */}
-                            <Circle
-                                cx={40}
-                                cy={40}
-                                r={34}
-                                fill="none"
-                                stroke="#1F2524"
-                                strokeWidth={6}
-                                strokeDasharray={`${2 * Math.PI * 34}`}
-                                strokeDashoffset={`${2 * Math.PI * 34 * (1 - completion / 100)}`}
+                                strokeDasharray={CIRCUMFERENCE}
+                                strokeDashoffset={animatedCompletion.interpolate({
+                                    inputRange: [0, 100],
+                                    outputRange: [CIRCUMFERENCE, 0],
+                                })}
                                 strokeLinecap="round"
                                 transform="rotate(-90 40 40)"
                             />
                         </Svg>
                         <View style={styles.progressTextContainer}>
-                            <Text style={styles.progressPercent}>{completion}%</Text>
+                            <Text style={styles.progressPercent}>{animCompletion}%</Text>
                             <Text style={styles.progressLabel}>complete</Text>
                         </View>
                     </View>
                     <View style={styles.progressStats}>
                         <View style={styles.progressStat}>
-                            <Ionicons name="book-outline" size={16} color="#999" />
-                            <Text style={styles.progressStatValue}>{lessonsDone}/{lessonsTotal}</Text>
+                            <Ionicons name="book-outline" size={16} color={DARK_TEAL} />
+                            <Text style={styles.progressStatValue}>{animLessonsDone}/{lessonsTotal}</Text>
                             <Text style={styles.progressStatLabel}>Lessons</Text>
                         </View>
                         <View style={styles.progressStatDivider} />
                         <View style={styles.progressStat}>
-                            <Ionicons name="checkmark-circle-outline" size={16} color="#999" />
-                            <Text style={styles.progressStatValue}>{quizzesPassed}/{quizzesTotal}</Text>
+                            <Ionicons name="checkmark-circle-outline" size={16} color={DARK_TEAL} />
+                            <Text style={styles.progressStatValue}>{animQuizzesPassed}/{quizzesTotal}</Text>
                             <Text style={styles.progressStatLabel}>Quizzes</Text>
+                        </View>
                     </View>
                 </View>
-            </View>
 
-            {/* Quick Stats */}
-            <View style={styles.statsRow}>
+                {/* Quick Stats */}
+                <View style={styles.statsRow}>
                     <View style={styles.statCard}>
-                        <Ionicons name="time-outline" size={18} color="#999" />
-                        <Text style={styles.statValue}>{formatTimeSpent(totalTimeSpent)}</Text>
+                        <View style={[styles.statIconWrap, { backgroundColor: "#084A5912" }]}>
+                            <Ionicons name="time-outline" size={16} color={DARK_TEAL} />
+                        </View>
+                        <Text style={styles.statValue}>{animTimeSpent}</Text>
                         <Text style={styles.statLabel}>Time Spent</Text>
                     </View>
                     <View style={styles.statCard}>
-                        <Ionicons name="trophy-outline" size={18} color="#999" />
-                        <Text style={styles.statValue}>{averageScore}%</Text>
+                        <View style={[styles.statIconWrap, { backgroundColor: "#F2B13818" }]}>
+                            <Ionicons name="trophy-outline" size={16} color={GOLD} />
+                        </View>
+                        <Text style={styles.statValue}>{animAvgScore}%</Text>
                         <Text style={styles.statLabel}>Avg Score</Text>
                     </View>
                     <View style={styles.statCard}>
-                        <Ionicons name="ribbon-outline" size={18} color="#999" />
-                        <Text style={styles.statValue}>{quizzesPassed}</Text>
+                        <View style={[styles.statIconWrap, { backgroundColor: "#12A67C12" }]}>
+                            <Ionicons name="ribbon-outline" size={16} color="#12A67C" />
+                        </View>
+                        <Text style={styles.statValue}>{animQuizzesPassed}</Text>
                         <Text style={styles.statLabel}>Passed</Text>
                     </View>
-            </View>
-
-            {/* Continue Your Path */}
-            {learningPath && learningPath.perSubject.length > 0 && (() => {
-                const incompleteSubjects = learningPath.perSubject.filter(
-                    (s) => s.completionPercentage < 100
-                );
-                if (incompleteSubjects.length === 0) return null;
-                return (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Continue Learning</Text>
-                        {incompleteSubjects.map((subject) => {
-                            const next = subject.currentChapter || subject.nextRecommended || subject.startChapter;
-                            if (!next) return null;
-                            return (
-                                <TouchableOpacity
-                                    key={subject.subjectId}
-                                    style={styles.pathCard}
-                                    onPress={() => {
-                                        // First switch to the learn tab (resets to its index)
-                                        router.navigate("/(tabs)/learn");
-                                        // Then push the chapter onto the learn tab's stack
-                                        // Use a small delay to ensure the tab switch completes
-                                        requestAnimationFrame(() => {
-                                            router.push({
-                                                pathname: "/(tabs)/learn/[id]",
-                                                params: {
-                                                    id: next.id,
-                                                    subjectId: subject.subjectId,
-                                                },
-                                            } as any);
-                                        });
-                                    }}
-                                    activeOpacity={0.7}
-                                >
-                                    <View style={styles.pathLeft}>
-                                        <View style={styles.pathDot} />
-                                        <View>
-                                            <Text style={styles.pathSubject}>{subject.subjectName}</Text>
-                                            <Text style={styles.pathChapter}>{next.title}</Text>
-                                        </View>
-                                    </View>
-                                    <View style={styles.pathRight}>
-                                        <Text style={styles.pathPercent}>{subject.completionPercentage}%</Text>
-                                        <Ionicons name="chevron-forward" size={14} color="#CCC" />
-                                    </View>
-                                </TouchableOpacity>
-                            );
-                        })}
-                        {learningPath.studyPlan && (
-                            <Text style={styles.studyPlan}>{learningPath.studyPlan}</Text>
-                        )}
-                    </View>
-                );
-            })()}
-
-            {/* Quick Actions */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Quick Actions</Text>
-                <View style={styles.actionsRow}>
-                    <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/learn")} activeOpacity={0.7}>
-                        <Ionicons name="book-outline" size={20} color="#1F2524" />
-                        <Text style={styles.actionTitle}>Learn</Text>
-                        <Text style={styles.actionDesc}>Continue lessons</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/exams" as any)} activeOpacity={0.7}>
-                        <Ionicons name="school-outline" size={20} color="#1F2524" />
-                        <Text style={styles.actionTitle}>Exams</Text>
-                        <Text style={styles.actionDesc}>Take exams</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.7}>
-                        <Ionicons name="person-outline" size={20} color="#1F2524" />
-                        <Text style={styles.actionTitle}>Profile</Text>
-                        <Text style={styles.actionDesc}>View progress</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionCard} onPress={() => router.push({ pathname: "/(tabs)/profile", params: { openFeedback: "true" } } as any)} activeOpacity={0.7}>
-                        <Ionicons name="chatbubble-outline" size={20} color="#1F2524" />
-                        <Text style={styles.actionTitle}>Feedback</Text>
-                        <Text style={styles.actionDesc}>Send feedback</Text>
-                    </TouchableOpacity>
                 </View>
-            </View>
-        </ScrollView>
+
+                {/* Continue Your Path */}
+                {learningPath && learningPath.perSubject.length > 0 && (() => {
+                    const incompleteSubjects = learningPath.perSubject.filter(
+                        (s) => s.completionPercentage < 100
+                    );
+                    if (incompleteSubjects.length === 0) return null;
+                    return (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Continue Learning</Text>
+                            {incompleteSubjects.map((subject) => {
+                                const next = subject.currentChapter || subject.nextRecommended || subject.startChapter;
+                                if (!next) return null;
+                                return (
+                                    <TouchableOpacity
+                                        key={subject.subjectId}
+                                        style={styles.pathCard}
+                                        onPress={() => {
+                                            router.navigate("/(tabs)/learn");
+                                            requestAnimationFrame(() => {
+                                                router.push({
+                                                    pathname: "/(tabs)/learn/[id]",
+                                                    params: { id: next.id, subjectId: subject.subjectId },
+                                                } as any);
+                                            });
+                                        }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <View style={styles.pathLeft}>
+                                            <View style={styles.pathDot} />
+                                            <View>
+                                                <Text style={styles.pathSubject}>{subject.subjectName}</Text>
+                                                <Text style={styles.pathChapter}>{next.title}</Text>
+                                            </View>
+                                        </View>
+                                        <View style={styles.pathRight}>
+                                            <Text style={styles.pathPercent}>{subject.completionPercentage}%</Text>
+                                            <Ionicons name="chevron-forward" size={14} color="#084A5950" />
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                            {learningPath.studyPlan && (
+                                <Text style={styles.studyPlan}>{learningPath.studyPlan}</Text>
+                            )}
+                        </View>
+                    );
+                })()}
+
+                {/* Quick Actions */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Quick Actions</Text>
+                    <View style={styles.actionsRow}>
+                        <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/learn")} activeOpacity={0.7}>
+                            <View style={[styles.actionIconWrap, { backgroundColor: "#084A5912" }]}>
+                                <Ionicons name="book-outline" size={20} color={DARK_TEAL} />
+                            </View>
+                            <Text style={styles.actionTitle}>Learn</Text>
+                            <Text style={styles.actionDesc}>Continue lessons</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.actionCard} onPress={() => router.navigate("/(tabs)/exams" as any)} activeOpacity={0.7}>
+                            <View style={[styles.actionIconWrap, { backgroundColor: "#F2B13818" }]}>
+                                <Ionicons name="school-outline" size={20} color={GOLD} />
+                            </View>
+                            <Text style={styles.actionTitle}>Exams</Text>
+                            <Text style={styles.actionDesc}>Take exams</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.7}>
+                            <View style={[styles.actionIconWrap, { backgroundColor: "#12A67C12" }]}>
+                                <Ionicons name="person-outline" size={20} color="#12A67C" />
+                            </View>
+                            <Text style={styles.actionTitle}>Profile</Text>
+                            <Text style={styles.actionDesc}>View progress</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.actionCard} onPress={() => router.push({ pathname: "/(tabs)/profile", params: { openFeedback: "true" } } as any)} activeOpacity={0.7}>
+                            <View style={[styles.actionIconWrap, { backgroundColor: "#BF522A12" }]}>
+                                <Ionicons name="chatbubble-outline" size={20} color="#BF522A" />
+                            </View>
+                            <Text style={styles.actionTitle}>Feedback</Text>
+                            <Text style={styles.actionDesc}>Send feedback</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </ScrollView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#FAFAFA" },
+    root: { flex: 1, backgroundColor: DARK_TEAL },
+    container: { flex: 1, backgroundColor: "#F7F8FA" },
     content: { padding: 20, paddingBottom: 40 },
 
     // Header
@@ -258,64 +354,72 @@ const styles = StyleSheet.create({
         marginBottom: 24,
         marginTop: 8,
     },
-    headerLeft: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-    },
-    avatar: {
+    headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+    avatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: GOLD },
+    avatarPlaceholder: {
         width: 48,
         height: 48,
         borderRadius: 24,
-    },
-    avatarPlaceholder: {
-        backgroundColor: "#F5F5F5",
+        backgroundColor: DARK_TEAL,
         justifyContent: "center",
         alignItems: "center",
     },
-    greeting: { fontSize: 15, color: "#999", fontWeight: "500" },
-    name: { fontSize: 26, fontWeight: "800", color: "#1F2524", marginTop: 2 },
+    greeting: { fontSize: 13, color: "#888", fontWeight: "500" },
+    name: { fontSize: 24, fontWeight: "800", color: BLACK, marginTop: 1 },
     streakBadge: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#FFF3E0",
+        backgroundColor: GOLD + "18",
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
         gap: 4,
     },
     streakIcon: { fontSize: 16 },
-    streakText: { fontSize: 14, fontWeight: "700", color: "#E65100" },
+    streakText: { fontSize: 14, fontWeight: "700", color: GOLD },
 
     // Streak Banner
     streakBanner: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#FFF3E0",
-        borderRadius: 14,
+        backgroundColor: GOLD + "12",
+        borderRadius: 16,
         padding: 14,
         marginBottom: 20,
+        borderWidth: 1,
+        borderColor: GOLD + "25",
     },
-    streakBannerEmoji: { fontSize: 28, marginRight: 12 },
+    streakBannerIconWrap: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: GOLD + "20",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 12,
+    },
+    streakBannerEmoji: { fontSize: 24 },
     streakBannerInfo: { flex: 1 },
-    streakBannerTitle: { fontSize: 14, fontWeight: "700", color: "#E65100" },
-    streakBannerText: { fontSize: 12, color: "#BF360C", marginTop: 2 },
+    streakBannerTitle: { fontSize: 14, fontWeight: "700", color: BLACK },
+    streakBannerText: { fontSize: 12, color: "#666", marginTop: 2 },
 
     // Progress Card
     progressCard: {
         flexDirection: "row",
-        backgroundColor: "#fff",
-        borderRadius: 16,
+        backgroundColor: "#FFF",
+        borderRadius: 20,
         padding: 20,
-        marginBottom: 16,
+        marginBottom: 14,
         alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-        elevation: 1,
+        shadowColor: BLACK,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: "#F0F0F0",
     },
-    progressRing: {
+    progressRingWrap: {
         width: 80,
         height: 80,
         marginRight: 20,
@@ -327,11 +431,11 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    progressPercent: { fontSize: 20, fontWeight: "800", color: "#1F2524" },
+    progressPercent: { fontSize: 20, fontWeight: "800", color: DARK_TEAL },
     progressLabel: { fontSize: 10, color: "#999", marginTop: -2 },
     progressStats: { flex: 1, flexDirection: "row", alignItems: "center" },
     progressStat: { flex: 1, alignItems: "center" },
-    progressStatValue: { fontSize: 16, fontWeight: "700", color: "#1F2524", marginTop: 4 },
+    progressStatValue: { fontSize: 16, fontWeight: "700", color: BLACK, marginTop: 4 },
     progressStatLabel: { fontSize: 11, color: "#999", marginTop: 2 },
     progressStatDivider: { width: 1, height: 30, backgroundColor: "#F0F0F0" },
 
@@ -339,34 +443,45 @@ const styles = StyleSheet.create({
     statsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
     statCard: {
         flex: 1,
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 12,
+        backgroundColor: "#FFF",
+        borderRadius: 14,
+        padding: 14,
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#F0F0F0",
+    },
+    statIconWrap: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        justifyContent: "center",
         alignItems: "center",
     },
-    statValue: { fontSize: 15, fontWeight: "700", color: "#1F2524", marginTop: 6 },
+    statValue: { fontSize: 16, fontWeight: "700", color: BLACK, marginTop: 8 },
     statLabel: { fontSize: 10, color: "#999", marginTop: 2, fontWeight: "500" },
 
     // Sections
     section: { marginBottom: 24 },
-    sectionTitle: { fontSize: 15, fontWeight: "700", color: "#1F2524", marginBottom: 12 },
+    sectionTitle: { fontSize: 16, fontWeight: "700", color: BLACK, marginBottom: 12 },
 
     // Learning Path
     pathCard: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        backgroundColor: "#fff",
-        borderRadius: 12,
+        backgroundColor: "#FFF",
+        borderRadius: 14,
         padding: 14,
         marginBottom: 8,
+        borderWidth: 1,
+        borderColor: "#F0F0F0",
     },
     pathLeft: { flexDirection: "row", alignItems: "center", flex: 1, gap: 10 },
-    pathDot: { width: 4, height: 32, borderRadius: 2, backgroundColor: "#1F2524" },
+    pathDot: { width: 4, height: 32, borderRadius: 2, backgroundColor: GOLD },
     pathSubject: { fontSize: 11, color: "#999", fontWeight: "600" },
-    pathChapter: { fontSize: 14, fontWeight: "600", color: "#1F2524", marginTop: 2 },
+    pathChapter: { fontSize: 14, fontWeight: "600", color: BLACK, marginTop: 2 },
     pathRight: { flexDirection: "row", alignItems: "center", gap: 4 },
-    pathPercent: { fontSize: 12, fontWeight: "700", color: "#999" },
+    pathPercent: { fontSize: 12, fontWeight: "700", color: DARK_TEAL },
     studyPlan: { fontSize: 12, color: "#999", fontStyle: "italic", marginTop: 4 },
 
     // Actions
@@ -374,10 +489,19 @@ const styles = StyleSheet.create({
     actionCard: {
         flex: 1,
         minWidth: 100,
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 16,
+        backgroundColor: "#FFF",
+        borderRadius: 14,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: "#F0F0F0",
     },
-    actionTitle: { marginTop: 10, fontSize: 14, fontWeight: "700", color: "#1F2524" },
-    actionDesc: { marginTop: 4, fontSize: 11, color: "#999" },
+    actionIconWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    actionTitle: { marginTop: 10, fontSize: 13, fontWeight: "700", color: BLACK },
+    actionDesc: { marginTop: 3, fontSize: 11, color: "#999" },
 });

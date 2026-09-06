@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,18 +13,16 @@ import {
   Keyboard,
   Alert,
   ScrollView,
-  useWindowDimensions,
-} from "react-native";
-import { useRouter, Link } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { validateFields, ValidationErrors } from "@/lib/utils/validate";
-import { apiClient } from "@/lib/api";
+} from 'react-native';
+import { useRouter, Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { validateFields, ValidationErrors } from '@/lib/utils/validate';
+import { apiClient } from '@/lib/api';
 
 export default function SignIn() {
   const router = useRouter();
-  const { width, height } = useWindowDimensions();
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
 
@@ -41,25 +39,29 @@ export default function SignIn() {
         await apiClient.requestOTP(email);
         // Navigate to OTP verification screen with email param
         router.push({
-          pathname: "/(auth)/verify-otp",
+          pathname: '/(auth)/verify-otp',
           params: { email },
         });
       } catch (error: any) {
-        const errorMessage = error.message || "Failed to send OTP. Please try again.";
+        const errorMessage =
+          error.message || 'Failed to send OTP. Please try again.';
 
-        if (errorMessage.toLowerCase().includes("no account found") || errorMessage.toLowerCase().includes("please sign up")) {
+        if (
+          errorMessage.toLowerCase().includes('no account found') ||
+          errorMessage.toLowerCase().includes('please sign up')
+        ) {
           Alert.alert(
-            "Account Not Found",
-            "No account exists with this email. Would you like to create one?",
+            'Account Not Found',
+            'No account exists with this email. Would you like to create one?',
             [
-              { text: "Cancel", style: "cancel" },
-              { text: "Sign Up", onPress: () => router.push("/(auth)/signup") },
-            ]
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Sign Up', onPress: () => router.push('/(auth)/signup') },
+            ],
           );
-        } else if (errorMessage.toLowerCase().includes("email")) {
+        } else if (errorMessage.toLowerCase().includes('email')) {
           setErrors({ email: errorMessage });
         } else {
-          Alert.alert("Error", errorMessage);
+          Alert.alert('Error', errorMessage);
         }
       } finally {
         setLoading(false);
@@ -69,49 +71,48 @@ export default function SignIn() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-      >
+      <KeyboardAvoidingView style={styles.container} behavior='padding'>
         <ScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              paddingTop: Math.max(64, Math.floor(height * 0.08)),
-              paddingHorizontal: width < 390 ? 16 : 24,
-            },
-          ]}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps='handled'
         >
-          <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
+          <View style={styles.logoContainer}>
             <Image
-              source={require("@/assets/images/Blue atlas icon.png")}
-              style={[styles.logo, { height: width < 390 ? 130 : 170, width: width < 390 ? 130 : 170 }]}
+              source={require('@/assets/images/icon-gold.png')}
+              style={styles.logo}
             />
           </View>
 
           <Text style={styles.title}>Sign In</Text>
-          <Text style={styles.subtitle}>Enter your email to receive a verification code.</Text>
+          <Text style={styles.subtitle}>
+            Enter your email to receive a verification code.
+          </Text>
 
           {/* Email Input  */}
           <View style={styles.inputContainer}>
-            <Ionicons name="mail" size={24} color="#B3B3B3" style={styles.icon} />
+            <Ionicons
+              name='mail'
+              size={24}
+              color='#B3B3B3'
+              style={styles.icon}
+            />
             <TextInput
-              placeholder="Email"
-              placeholderTextColor="#B3B3B3"
+              placeholder='Email'
+              placeholderTextColor='#B3B3B3'
               value={email}
               onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
+              autoCapitalize='none'
+              keyboardType='email-address'
               style={styles.input}
-              returnKeyType="done"
+              returnKeyType='done'
               onSubmitEditing={handleRequestOTP}
             />
           </View>
           {errors.email && (
-            <Text style={{ color: "#E57373", marginBottom: 10 }}>{errors.email}</Text>
+            <Text style={{ color: '#E57373', marginBottom: 10 }}>
+              {errors.email}
+            </Text>
           )}
 
           <TouchableOpacity
@@ -120,14 +121,14 @@ export default function SignIn() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color='#fff' />
             ) : (
               <Text style={styles.loginText}>Send OTP</Text>
             )}
           </TouchableOpacity>
           <Text style={styles.signupText}>
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" style={styles.signupLink}>
+            Don&apos;t have an account?{' '}
+            <Link href='/signup' style={styles.signupLink}>
               Sign up
             </Link>
           </Text>
@@ -140,43 +141,44 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
-    paddingBottom: 100, // Increased bottom padding for keyboard
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 0,
+    paddingBottom: 20,
   },
   logoContainer: {
-    alignItems: "center",
+    alignItems: 'center',
     marginBottom: 10,
-    marginTop: 32,
+    marginTop: 0,
   },
   logo: {
-    fontWeight: "bold",
     height: 170,
     width: 170,
   },
   title: {
     fontSize: 36,
-    fontWeight: "800",
-    textAlign: "center",
-    color: "#282F2E",
+    fontWeight: '800',
+    textAlign: 'center',
+    color: '#282F2E',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    fontWeight: "400",
-    textAlign: "center",
-    color: "#424E4C",
+    fontWeight: '400',
+    textAlign: 'center',
+    color: '#424E4C',
     marginBottom: 30,
   },
   inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: "#E0E0E0",
-    backgroundColor: "#F9FBFB",
+    borderColor: '#E0E0E0',
+    backgroundColor: '#F9FBFB',
     borderRadius: 16,
     paddingHorizontal: 10,
     marginBottom: 15,
@@ -188,30 +190,30 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 64,
     fontSize: 16,
-    color: "#333",
+    color: '#333',
   },
   loginButton: {
-    backgroundColor: "#F2B138",
+    backgroundColor: '#084A59',
     paddingVertical: 15,
     borderRadius: 25,
-    alignItems: "center",
+    alignItems: 'center',
     marginTop: 20,
   },
   loginText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   signupText: {
-    textAlign: "center",
-    color: "#9E9E9E",
+    textAlign: 'center',
+    color: '#9E9E9E',
     fontSize: 14,
-    fontWeight: "400",
+    fontWeight: '400',
     marginTop: 25,
   },
   signupLink: {
-    color: "#F2B138",
-    fontWeight: "600",
+    color: '#F2B138',
+    fontWeight: '600',
     fontSize: 14,
   },
   loginButtonDisabled: {

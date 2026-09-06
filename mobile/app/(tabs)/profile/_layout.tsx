@@ -8,6 +8,7 @@ export default function ProfileLayout() {
             <Stack.Screen name="assessment-result" />
             <Stack.Screen name="assessment-corrections" />
             <Stack.Screen name="quiz-corrections" />
+            <Stack.Screen name="notifications" />
         </Stack>
     );
 }

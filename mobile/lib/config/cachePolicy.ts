@@ -6,7 +6,7 @@ const DAY = HOUR * 24;
 export const DISK_TTL = {
   STATIC: DAY * 30,    // subjects, chapters, lessons, quizzes
   DYNAMIC: DAY * 1,    // progress, streak, quiz attempts, learning path
-  LEADERBOARD: MINUTE * 15,
+  LEADERBOARD: MINUTE * 2,
 } as const;
 
 // React Query in-memory stale times — how long before refetch is allowed

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, ScrollView, TextInput, useWindowDimensions, Image, Linking, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -48,6 +48,7 @@ export default function ProfileScreen() {
     const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
     const [savingProfile, setSavingProfile] = useState(false);
     const [editName, setEditName] = useState("");
+    const [unreadCount, setUnreadCount] = useState(0);
     const [editUsername, setEditUsername] = useState("");
     const [editImage, setEditImage] = useState("");
     const [editBio, setEditBio] = useState("");
@@ -61,6 +62,12 @@ export default function ProfileScreen() {
     const [feedbackSubject, setFeedbackSubject] = useState("");
     const [feedbackMessage, setFeedbackMessage] = useState("");
     const [feedbackRating, setFeedbackRating] = useState<number>(0);
+    const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+
+    // Fetch unread notification count
+    useEffect(() => {
+        apiClient.getUnreadNotificationCount().then(setUnreadCount).catch(() => {});
+    }, []);
 
     // User data comes from the persisted store (single /auth/me fetch at startup).
     // Profile edits below update the store directly after saving.
@@ -251,7 +258,7 @@ export default function ProfileScreen() {
 
     const handleWhatsApp = () => {
         const phoneNumber = "237600000000";
-        const message = encodeURIComponent("Hello! I need help with Atlas Learn.");
+        const message = encodeURIComponent("Hello! I need help with Apex Learn.");
         const url = `https://wa.me/${phoneNumber}?text=${message}`;
         Linking.openURL(url).catch(() => {
             Alert.alert("Error", "WhatsApp is not installed on this device.");
@@ -265,16 +272,77 @@ export default function ProfileScreen() {
         });
     };
 
+    const handleAvatarPickImage = async () => {
+        setAvatarModalVisible(false);
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+            Alert.alert("Permission needed", "Please grant photo library access.");
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+        if (!result.canceled && result.assets[0]) {
+            await uploadAvatar(result.assets[0].uri);
+        }
+    };
+
+    const handleAvatarTakePhoto = async () => {
+        setAvatarModalVisible(false);
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+            Alert.alert("Permission needed", "Please grant camera access.");
+            return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+        if (!result.canceled && result.assets[0]) {
+            await uploadAvatar(result.assets[0].uri);
+        }
+    };
+
+    const handleAvatarRemove = async () => {
+        setAvatarModalVisible(false);
+        try {
+            const updatedUser = await apiClient.updateCurrentUserProfile({ image: undefined });
+            const displayImage = updatedUser.image ? `${updatedUser.image}?t=${Date.now()}` : undefined;
+            setUser({ ...updatedUser, image: displayImage });
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to remove profile picture.");
+        }
+    };
+
+    const uploadAvatar = async (uri: string) => {
+        try {
+            const imageUrl = await apiClient.uploadProfileImage(uri);
+            const displayImage = `${imageUrl}?t=${Date.now()}`;
+            setUser({ ...user!, image: displayImage });
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to upload profile picture.");
+        }
+    };
+
     return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             <View style={[styles.header, { paddingHorizontal: width < 390 ? 16 : 24 }]}>
-                <View style={styles.avatarContainer}>
-                    {user?.image ? (
-                        <Image source={{ uri: user.image.startsWith("http") ? user.image : `${API_BASE_URL}${user.image}` }} style={styles.avatarImage} />
-                    ) : (
-                        <Ionicons name="person" size={48} color="#666" />
-                    )}
+                <View>
+                    <View style={styles.avatarContainer}>
+                        {user?.image ? (
+                            <Image source={{ uri: user.image.startsWith("http") ? user.image : `${API_BASE_URL}${user.image}` }} style={styles.avatarImage} />
+                        ) : (
+                            <Ionicons name="person" size={48} color="#666" />
+                        )}
+                    </View>
+                    <TouchableOpacity style={styles.avatarEditButton} onPress={() => setAvatarModalVisible(true)}>
+                        <Ionicons name="pencil" size={14} color="#fff" />
+                    </TouchableOpacity>
                 </View>
                 <Text style={styles.name}>{user?.name || "User"}</Text>
                 <Text style={styles.email}>{user?.email || ""}</Text>
@@ -335,9 +403,14 @@ export default function ProfileScreen() {
                     <Text style={styles.menuText}>Send Feedback</Text>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem} disabled>
+                <TouchableOpacity style={styles.menuItem} onPress={() => { setUnreadCount(0); router.push("/(tabs)/profile/notifications" as any); }}>
                     <Ionicons name="notifications-outline" size={24} color="#666" />
                     <Text style={styles.menuText}>Notifications</Text>
+                    {unreadCount > 0 && (
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+                        </View>
+                    )}
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.menuItem} onPress={handleOpenSessions}>
@@ -574,7 +647,7 @@ export default function ProfileScreen() {
                     <View style={styles.requestModalCard}>
                         <Text style={styles.requestModalTitle}>Send Feedback</Text>
                         <Text style={styles.requestModalSubtitle}>
-                            Help us improve Atlas Learn. Your feedback is sent to our team.
+                            Help us improve Apex Learn. Your feedback is sent to our team.
                         </Text>
 
                         <Text style={styles.requestFieldLabel}>Category</Text>
@@ -654,6 +727,37 @@ export default function ProfileScreen() {
                     </ScrollView>
                 </KeyboardAvoidingView>
             </Modal>
+
+            {/* Avatar Edit Modal */}
+            <Modal
+                visible={avatarModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setAvatarModalVisible(false)}
+            >
+                <TouchableOpacity style={styles.avatarModalOverlay} activeOpacity={1} onPress={() => setAvatarModalVisible(false)}>
+                    <View style={styles.avatarModalCard}>
+                        <Text style={styles.avatarModalTitle}>Profile Picture</Text>
+                        <TouchableOpacity style={styles.avatarModalOption} onPress={handleAvatarPickImage}>
+                            <Ionicons name="images-outline" size={22} color="#F2B138" />
+                            <Text style={styles.avatarModalOptionText}>Choose from Gallery</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.avatarModalOption} onPress={handleAvatarTakePhoto}>
+                            <Ionicons name="camera-outline" size={22} color="#F2B138" />
+                            <Text style={styles.avatarModalOptionText}>Take a Photo</Text>
+                        </TouchableOpacity>
+                        {user?.image && (
+                            <TouchableOpacity style={[styles.avatarModalOption, styles.avatarModalOptionDanger]} onPress={handleAvatarRemove}>
+                                <Ionicons name="trash-outline" size={22} color="#E57373" />
+                                <Text style={[styles.avatarModalOptionText, styles.avatarModalOptionTextDanger]}>Remove Photo</Text>
+                            </TouchableOpacity>
+                        )}
+                        <TouchableOpacity style={styles.avatarModalCancel} onPress={() => setAvatarModalVisible(false)}>
+                            <Text style={styles.avatarModalCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 }
@@ -661,101 +765,164 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#FAFAFA",
+        backgroundColor: "#F7F8FA",
     },
     scrollContent: {
         paddingBottom: 24,
     },
+
+    // Header — full-width teal background
     header: {
         alignItems: "center",
-        paddingVertical: 28,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
+        paddingTop: 28,
+        paddingBottom: 40,
+        backgroundColor: "#084A59",
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
     },
     avatarContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: "#F5F5F5",
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        backgroundColor: "rgba(255,255,255,0.15)",
         justifyContent: "center",
         alignItems: "center",
-        marginBottom: 16,
+        marginBottom: 14,
         overflow: "hidden",
+        borderWidth: 3,
+        borderColor: "rgba(255,255,255,0.3)",
     },
     avatarImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+    },
+    avatarEditButton: {
+        position: "absolute",
+        bottom: 2,
+        right: -2,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: "#F2B138",
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 2,
+        borderColor: "#084A59",
     },
     name: {
-        fontSize: 24,
-        fontWeight: "700",
-        color: "#282F2E",
+        fontSize: 22,
+        fontWeight: "800",
+        color: "#FFF",
         marginBottom: 4,
     },
     email: {
         fontSize: 14,
-        color: "#666",
-        marginBottom: 12,
+        color: "rgba(255,255,255,0.7)",
+        marginBottom: 10,
     },
     metaText: {
         fontSize: 12,
-        color: "#777",
+        color: "rgba(255,255,255,0.5)",
         marginTop: 3,
     },
+
+    // Progress
     progressSection: {
-        marginTop: 24,
-        paddingHorizontal: 16,
+        marginTop: -16,
+        marginHorizontal: 16,
+        backgroundColor: "#FFF",
+        borderRadius: 16,
+        padding: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
     },
     progressLoadingContainer: {
         alignItems: "center",
         justifyContent: "center",
         minHeight: 42,
     },
+
+    // Sections
     section: {
-        marginTop: 24,
-        backgroundColor: "#fff",
-        paddingHorizontal: 16,
+        marginTop: 20,
+        marginHorizontal: 16,
+        backgroundColor: "#FFF",
+        borderRadius: 16,
+        padding: 4,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
     },
     sectionTitle: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: "#666",
-        marginBottom: 12,
-        marginTop: 16,
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#999",
+        textTransform: "uppercase",
+        letterSpacing: 0.8,
+        paddingHorizontal: 16,
+        paddingTop: 14,
+        paddingBottom: 6,
     },
     menuItem: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: "#F0F0F0",
-        gap: 16,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        gap: 14,
     },
     menuText: {
         flex: 1,
-        fontSize: 16,
-        color: "#282F2E",
-        fontWeight: "500",
+        fontSize: 15,
+        color: "#1F2524",
+        fontWeight: "600",
     },
+    badge: {
+        backgroundColor: "#DC2626",
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 6,
+    },
+    badgeText: {
+        color: "#FFF",
+        fontSize: 11,
+        fontWeight: "700",
+    },
+
+    // Logout
     logoutButton: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: 12,
-        margin: 24,
-        padding: 16,
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        borderWidth: 2,
+        gap: 10,
+        marginHorizontal: 16,
+        marginTop: 24,
+        padding: 15,
+        backgroundColor: "#FFF",
+        borderRadius: 16,
+        borderWidth: 1,
         borderColor: "#FFEBEE",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
     },
     logoutText: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: "700",
         color: "#E57373",
     },
+
+    // Modals
     requestModalOverlay: {
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.4)",
@@ -764,30 +931,30 @@ const styles = StyleSheet.create({
     },
     feedbackModalOverlay: {
         flexGrow: 1,
-        backgroundColor: "#FAFAFA",
+        backgroundColor: "#F7F8FA",
         padding: 20,
         paddingTop: 60,
     },
     requestModalCard: {
         backgroundColor: "#fff",
-        borderRadius: 16,
+        borderRadius: 20,
         padding: 20,
     },
     requestModalTitle: {
         fontSize: 22,
-        fontWeight: "700",
-        color: "#282F2E",
+        fontWeight: "800",
+        color: "#1F2524",
         marginBottom: 4,
     },
     requestModalSubtitle: {
         fontSize: 14,
-        color: "#666",
+        color: "#999",
         marginBottom: 16,
     },
     requestFieldLabel: {
         fontSize: 14,
-        color: "#282F2E",
-        fontWeight: "600",
+        color: "#1F2524",
+        fontWeight: "700",
         marginBottom: 8,
         marginTop: 8,
     },
@@ -795,10 +962,10 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#E0E0E0",
         borderRadius: 12,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
         fontSize: 15,
-        color: "#282F2E",
+        color: "#1F2524",
         backgroundColor: "#FAFAFA",
     },
     requestInputMultiline: {
@@ -817,14 +984,14 @@ const styles = StyleSheet.create({
     },
     requestCancelText: {
         fontSize: 15,
-        color: "#666",
+        color: "#999",
         fontWeight: "600",
     },
     requestSubmitButton: {
-        backgroundColor: "#F2B138",
-        borderRadius: 10,
+        backgroundColor: "#084A59",
+        borderRadius: 12,
         paddingVertical: 10,
-        paddingHorizontal: 16,
+        paddingHorizontal: 18,
         minWidth: 90,
         alignItems: "center",
     },
@@ -833,23 +1000,23 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "700",
     },
+
+    // Sessions modal
     modalContainer: {
         flex: 1,
-        backgroundColor: "#FAFAFA",
+        backgroundColor: "#F7F8FA",
     },
     modalHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
         padding: 16,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
+        backgroundColor: "#084A59",
     },
     modalTitle: {
         fontSize: 20,
-        fontWeight: "700",
-        color: "#282F2E",
+        fontWeight: "800",
+        color: "#FFF",
     },
     modalContent: {
         flex: 1,
@@ -861,10 +1028,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "#fff",
         padding: 16,
-        borderRadius: 12,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: "#E0E0E0",
+        borderRadius: 14,
+        marginBottom: 10,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+        elevation: 2,
     },
     sessionInfo: {
         flex: 1,
@@ -874,12 +1044,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        marginBottom: 8,
+        marginBottom: 6,
     },
     sessionDevice: {
-        fontSize: 16,
-        fontWeight: "600",
-        color: "#282F2E",
+        fontSize: 15,
+        fontWeight: "700",
+        color: "#1F2524",
     },
     sessionUserAgent: {
         fontSize: 11,
@@ -903,13 +1073,13 @@ const styles = StyleSheet.create({
         gap: 4,
         paddingVertical: 8,
         paddingHorizontal: 12,
-        borderRadius: 8,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: "#FFEBEE",
         backgroundColor: "#FFF",
     },
     revokeButtonText: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: "600",
         color: "#E57373",
     },
@@ -933,6 +1103,8 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: "#666",
     },
+
+    // Image picker
     imagePreviewRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -979,6 +1151,8 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#333",
     },
+
+    // Feedback
     categoryRow: {
         flexDirection: "row",
         flexWrap: "wrap",
@@ -1010,5 +1184,57 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         gap: 8,
         marginBottom: 8,
+    },
+
+    // Avatar modal
+    avatarModalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    avatarModalCard: {
+        backgroundColor: "#fff",
+        borderRadius: 20,
+        width: 280,
+        padding: 8,
+        overflow: "hidden",
+    },
+    avatarModalTitle: {
+        fontSize: 17,
+        fontWeight: "800",
+        color: "#1F2524",
+        textAlign: "center",
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: "#F0F0F0",
+    },
+    avatarModalOption: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 14,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: "#F0F0F0",
+    },
+    avatarModalOptionText: {
+        fontSize: 16,
+        color: "#1F2524",
+    },
+    avatarModalOptionDanger: {
+        borderBottomColor: "#F0F0F0",
+    },
+    avatarModalOptionTextDanger: {
+        color: "#E57373",
+    },
+    avatarModalCancel: {
+        paddingVertical: 14,
+        alignItems: "center",
+    },
+    avatarModalCancelText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#999",
     },
 });

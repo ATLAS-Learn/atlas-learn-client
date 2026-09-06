@@ -34,7 +34,7 @@ export default function Onboarding() {
       </Text>
 
       <Text style={[styles.description, { fontSize: descriptionSize }]}>
-        First, choose the subjects you want to study. Then we&apos;ll ask you 5 questions to understand your current knowledge level.
+        First, choose the subjects you want to study. Then we&apos;ll ask you max of 10 questions from each subject you&apos;ll choose to understand your current knowledge level.
       </Text>
 
       <View style={styles.benefitsContainer}>
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   startButton: {
-    backgroundColor: "#F2B138",
+    backgroundColor: "#084A59",
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 25,

@@ -13,7 +13,7 @@ let inFlight: { token: string | null; promise: Promise<boolean> } | null = null;
 
 // Minimum splash display time so the logo has a moment to show.
 const appStartTime = Date.now();
-const MIN_SPLASH_MS = 1200;
+const MIN_SPLASH_MS = 600;
 
 function waitForMinSplash(): Promise<void> {
   const remaining = MIN_SPLASH_MS - (Date.now() - appStartTime);

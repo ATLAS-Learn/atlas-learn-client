@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     Alert,
     RefreshControl,
+    Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +22,34 @@ const PREFERRED_CACHE_KEY = "cache:preferred-subjects-ids";
 const SUBJECTS_CACHE_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
 const PREFERRED_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
 
+function SkeletonCard() {
+    const shimmer = React.useRef(new Animated.Value(0)).current;
+
+    React.useEffect(() => {
+        const loop = Animated.loop(
+            Animated.sequence([
+                Animated.timing(shimmer, { toValue: 1, duration: 800, useNativeDriver: true }),
+                Animated.timing(shimmer, { toValue: 0, duration: 800, useNativeDriver: true }),
+            ]),
+        );
+        loop.start();
+        return () => loop.stop();
+    }, [shimmer]);
+
+    const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
+
+    return (
+        <Animated.View style={[styles.subjectCard, { opacity, borderColor: "#E0E0E0", backgroundColor: "#F0F0F0" }]}>
+            <View style={styles.subjectInfo}>
+                <View style={{ height: 16, width: "60%", backgroundColor: "#D0D0D0", borderRadius: 6 }} />
+                <View style={{ height: 12, width: "30%", backgroundColor: "#E0E0E0", borderRadius: 4, marginTop: 6 }} />
+                <View style={{ height: 12, width: "80%", backgroundColor: "#E8E8E8", borderRadius: 4, marginTop: 6 }} />
+            </View>
+            <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: "#D0D0D0" }} />
+        </Animated.View>
+    );
+}
+
 export default function BrowseSubjectsScreen() {
     const router = useRouter();
     const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -30,25 +59,38 @@ export default function BrowseSubjectsScreen() {
 
     const loadSubjects = useCallback(async (force = false) => {
         try {
-            // Fetch-once: skip network when valid cache exists
+            // 1. Seed from cache for instant display
             const cachedSubjects = getCacheSync<Subject[]>(SUBJECTS_CACHE_KEY);
             const cachedPreferred = getCacheSync<string[]>(PREFERRED_CACHE_KEY);
-            if (cachedSubjects && cachedPreferred && !force) {
+            if (cachedSubjects) {
                 setSubjects(cachedSubjects);
-                setPreferredIds(new Set(cachedPreferred));
+                setPreferredIds(new Set(cachedPreferred || []));
                 setLoading(false);
-                return;
             }
+
+            // 2. Always fetch fresh from network
             const [allSubjects, preferred] = await Promise.all([
                 apiClient.getSubjects(),
                 apiClient.getPreferredSubjects(),
             ]);
             setSubjects(allSubjects);
-            setPreferredIds(new Set(preferred));
+            // Clean stale IDs: keep only IDs that match real subjects
+            const validIds = preferred.filter((id: string) =>
+                allSubjects.some((s: Subject) => s.id === id)
+            );
+            const cleaned = validIds.length !== preferred.length;
+            const finalIds = cleaned ? validIds : preferred;
+            setPreferredIds(new Set(finalIds));
+            if (cleaned) {
+                apiClient.updatePreferredSubjects(finalIds).catch(() => {});
+            }
             setCache(SUBJECTS_CACHE_KEY, allSubjects, SUBJECTS_CACHE_TTL).catch(() => {});
-            setCache(PREFERRED_CACHE_KEY, Array.from(new Set(preferred)), PREFERRED_CACHE_TTL).catch(() => {});
+            setCache(PREFERRED_CACHE_KEY, finalIds, PREFERRED_CACHE_TTL).catch(() => {});
         } catch {
-            Alert.alert("Error", "Failed to load subjects. Please try again.");
+            const cached = getCacheSync<Subject[]>(SUBJECTS_CACHE_KEY);
+            if (!cached) {
+                Alert.alert("Error", "Failed to load subjects. Please try again.");
+            }
         } finally {
             setLoading(false);
         }
@@ -103,10 +145,13 @@ export default function BrowseSubjectsScreen() {
             <ScreenHeader title="All Subjects" />
 
             {loading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#F2B138" />
-                    <Text style={styles.loadingText}>Loading subjects...</Text>
-                </View>
+                <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                </ScrollView>
             ) : (
                 <ScrollView
                     style={styles.scrollView}

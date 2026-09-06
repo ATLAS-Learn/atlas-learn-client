@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,26 +13,34 @@ import {
   Keyboard,
   ActivityIndicator,
   Alert,
-  useWindowDimensions,
-} from "react-native";
-import { useRouter, Link } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { ValidationErrors, validateFields } from "@/lib/utils/validate";
-import { apiClient } from "@/lib/api";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+  Modal,
+  FlatList,
+} from 'react-native';
+import { useRouter, Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { ValidationErrors, validateFields } from '@/lib/utils/validate';
+import { apiClient } from '@/lib/api';
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const { width, height } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [username, setUsername] = useState("");
-  const [school, setSchool] = useState("");
-  const [examYear, setExamYear] = useState("");
-  const [image, setImage] = useState("");
+  const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
+  const [school, setSchool] = useState('');
+  const [examYear, setExamYear] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
+  const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
+  const [showSchoolPicker, setShowSchoolPicker] = useState(false);
+  const [showYearPicker, setShowYearPicker] = useState(false);
+  const [schoolSearch, setSchoolSearch] = useState('');
+
+  useEffect(() => {
+    apiClient
+      .getSchools()
+      .then(setSchools)
+      .catch(() => {});
+  }, []);
 
   const handleSignUp = async () => {
     const newErrors: ValidationErrors = validateFields({
@@ -50,24 +58,27 @@ export default function SignUpScreen() {
           name: fullName,
           email,
           username: username.trim() || undefined,
-          image: image.trim() || undefined,
-          school: school.trim() || undefined,
+          school: school.trim(),
           examYear: examYear.trim() ? Number(examYear) : undefined,
         });
 
         // Navigate to OTP verification screen
         router.replace({
-          pathname: "/(auth)/verify-otp",
-          params: { email, mode: "signup", fullName },
+          pathname: '/(auth)/verify-otp',
+          params: { email, mode: 'signup', fullName },
         });
       } catch (error: any) {
-        const errorMessage = error.message || "An error occurred. Please try again.";
+        const errorMessage =
+          error.message || 'An error occurred. Please try again.';
 
         // If error is about email already existing, show it inline
-        if (errorMessage.toLowerCase().includes("already exists") || errorMessage.toLowerCase().includes("email")) {
+        if (
+          errorMessage.toLowerCase().includes('already exists') ||
+          errorMessage.toLowerCase().includes('email')
+        ) {
           setErrors({ email: errorMessage });
         } else {
-          Alert.alert("Signup Failed", errorMessage);
+          Alert.alert('Signup Failed', errorMessage);
         }
       } finally {
         setLoading(false);
@@ -75,199 +86,294 @@ export default function SignUpScreen() {
     }
   };
 
-
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-      >
-        <TouchableOpacity
-          style={[
-            styles.backArrow,
-            {
-              top: Math.max(insets.top + 8, 16),
-              left: width < 390 ? 12 : 16,
-            },
-          ]}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-
-        <ScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              paddingTop: Math.max(insets.top + 64, Math.floor(height * 0.11)),
-              paddingHorizontal: width < 390 ? 16 : 24,
-            },
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={[styles.logoContainer, { marginTop: width < 390 ? 32 : 52 }]}>
-            <Image
-              source={require("@/assets/images/Blue atlas icon.png")}
-              style={[styles.logo, { height: width < 390 ? 130 : 170, width: width < 390 ? 130 : 170 }]}
-            />
-          </View>
-
-          <Text style={styles.title}>Create New Account</Text>
-
-          {/* Email Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail" size={24} color="#B3B3B3" style={styles.icon} />
-            <TextInput
-              placeholder="Email"
-              placeholderTextColor="#B3B3B3"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              style={styles.input}
-            />
-          </View>
-          {errors.email && (
-            <Text style={{ color: "#E57373", marginBottom: 10 }}>{errors.email}</Text>
-          )
-          }
-          {/* Name Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="person" size={24} color="#B3B3B3" style={styles.icon} />
-            <TextInput
-              placeholder="Full Name"
-              placeholderTextColor="#B3B3B3"
-              value={fullName}
-              onChangeText={setFullName}
-              style={styles.input}
-              returnKeyType="next"
-            />
-          </View>
-          {errors.fullName && (
-            <Text style={{ color: "#E57373", marginBottom: 10 }}>{errors.fullName}</Text>
-          )
-          }
-
-          <View style={styles.inputContainer}>
-            <Ionicons name="at" size={24} color="#B3B3B3" style={styles.icon} />
-            <TextInput
-              placeholder="Username (optional)"
-              placeholderTextColor="#B3B3B3"
-              value={username}
-              onChangeText={setUsername}
-              style={styles.input}
-              autoCapitalize="none"
-            />
-          </View>
-          <View style={styles.inputContainer}>
-            <Ionicons name="school-outline" size={24} color="#B3B3B3" style={styles.icon} />
-            <TextInput
-              placeholder="School"
-              placeholderTextColor="#B3B3B3"
-              value={school}
-              onChangeText={setSchool}
-              style={styles.input}
-            />
-          </View>
-          {errors.school && (
-            <Text style={{ color: "#E57373", marginBottom: 10 }}>{errors.school}</Text>
-          )}
-          <View style={styles.inputContainer}>
-            <Ionicons name="calendar-outline" size={24} color="#B3B3B3" style={styles.icon} />
-            <TextInput
-              placeholder="Exam Year (optional)"
-              placeholderTextColor="#B3B3B3"
-              value={examYear}
-              onChangeText={setExamYear}
-              style={styles.input}
-              keyboardType="number-pad"
-            />
-          </View>
-          <View style={styles.inputContainer}>
-            <Ionicons name="link-outline" size={24} color="#B3B3B3" style={styles.icon} />
-            <TextInput
-              placeholder="Image URL (optional)"
-              placeholderTextColor="#B3B3B3"
-              value={image}
-              onChangeText={setImage}
-              style={styles.input}
-              autoCapitalize="none"
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
-            onPress={handleSignUp}
-            disabled={loading}
+    <>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView style={styles.container} behavior='padding'>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps='handled'
           >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.signUpText}>Send OTP</Text>
-            )}
-          </TouchableOpacity>
-          <Text style={styles.loginText}>
-            Already have an account?{" "}
-            <Link href="/(auth)" style={styles.loginLink}>
-              Sign in
-            </Link>
-          </Text>
+            <TouchableOpacity
+              style={styles.backArrow}
+              onPress={() => router.back()}
+            >
+              <Ionicons name='arrow-back' size={24} color='#000' />
+            </TouchableOpacity>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('@/assets/images/icon-gold.png')}
+                style={styles.logo}
+              />
+            </View>
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+            <Text style={styles.title}>Create New Account</Text>
+
+            {/* Email Input */}
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name='mail'
+                size={24}
+                color='#B3B3B3'
+                style={styles.icon}
+              />
+              <TextInput
+                placeholder='Email'
+                placeholderTextColor='#B3B3B3'
+                autoCapitalize='none'
+                keyboardType='email-address'
+                value={email}
+                onChangeText={setEmail}
+                style={styles.input}
+              />
+            </View>
+            {errors.email && (
+              <Text style={{ color: '#E57373', marginBottom: 10 }}>
+                {errors.email}
+              </Text>
+            )}
+            {/* Name Input */}
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name='person'
+                size={24}
+                color='#B3B3B3'
+                style={styles.icon}
+              />
+              <TextInput
+                placeholder='Full Name'
+                placeholderTextColor='#B3B3B3'
+                value={fullName}
+                onChangeText={setFullName}
+                style={styles.input}
+                returnKeyType='next'
+              />
+            </View>
+            {errors.fullName && (
+              <Text style={{ color: '#E57373', marginBottom: 10 }}>
+                {errors.fullName}
+              </Text>
+            )}
+
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name='at'
+                size={24}
+                color='#B3B3B3'
+                style={styles.icon}
+              />
+              <TextInput
+                placeholder='Username (optional)'
+                placeholderTextColor='#B3B3B3'
+                value={username}
+                onChangeText={setUsername}
+                style={styles.input}
+                autoCapitalize='none'
+              />
+            </View>
+            <TouchableOpacity
+              style={styles.inputContainer}
+              onPress={() => {
+                Keyboard.dismiss();
+                setShowSchoolPicker(true);
+              }}
+            >
+              <Ionicons
+                name='school-outline'
+                size={24}
+                color='#B3B3B3'
+                style={styles.icon}
+              />
+              <Text
+                style={[styles.inputText, !school && { color: '#B3B3B3' }]}
+                numberOfLines={1}
+                ellipsizeMode='tail'
+              >
+                {school || 'Select School'}
+              </Text>
+              <Ionicons name='chevron-down' size={20} color='#B3B3B3' />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.inputContainer}
+              onPress={() => {
+                Keyboard.dismiss();
+                setShowYearPicker(true);
+              }}
+            >
+              <Ionicons
+                name='calendar-outline'
+                size={24}
+                color='#B3B3B3'
+                style={styles.icon}
+              />
+              <Text
+                style={[styles.inputText, !examYear && { color: '#B3B3B3' }]}
+                numberOfLines={1}
+              >
+                {examYear || 'Exam Year (optional)'}
+              </Text>
+              <Ionicons name='chevron-down' size={20} color='#B3B3B3' />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.signUpButton,
+                loading && styles.signUpButtonDisabled,
+              ]}
+              onPress={handleSignUp}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color='#fff' />
+              ) : (
+                <Text style={styles.signUpText}>Send OTP</Text>
+              )}
+            </TouchableOpacity>
+            <Text style={styles.loginText}>
+              Already have an account?{' '}
+              <Link href='/(auth)' style={styles.loginLink}>
+                Sign in
+              </Link>
+            </Text>
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+
+      {/* School Picker Modal */}
+      <Modal visible={showSchoolPicker} animationType='slide' transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select School</Text>
+              <TouchableOpacity onPress={() => setShowSchoolPicker(false)}>
+                <Ionicons name='close' size={24} color='#333' />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.modalSearch}
+              placeholder='Search schools...'
+              placeholderTextColor='#999'
+              value={schoolSearch}
+              onChangeText={setSchoolSearch}
+              autoCapitalize='none'
+            />
+            <FlatList
+              data={schools.filter(
+                (s) =>
+                  !schoolSearch ||
+                  s.name.toLowerCase().includes(schoolSearch.toLowerCase()),
+              )}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.modalItem,
+                    school === item.name && styles.modalItemActive,
+                  ]}
+                  onPress={() => {
+                    setSchool(item.name);
+                    setShowSchoolPicker(false);
+                    setSchoolSearch('');
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      school === item.name && styles.modalItemTextActive,
+                    ]}
+                  >
+                    {item.name}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Year Picker Modal */}
+      <Modal visible={showYearPicker} animationType='slide' transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Exam Year</Text>
+              <TouchableOpacity onPress={() => setShowYearPicker(false)}>
+                <Ionicons name='close' size={24} color='#333' />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={Array.from({ length: 10 }, (_, i) =>
+                String(new Date().getFullYear() + i),
+              )}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.modalItem,
+                    examYear === item && styles.modalItemActive,
+                  ]}
+                  onPress={() => {
+                    setExamYear(item);
+                    setShowYearPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      examYear === item && styles.modalItemTextActive,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 100,
-    paddingBottom: 100, // Increased bottom padding for keyboard
+    paddingTop: 0,
+    paddingBottom: 20,
   },
   backArrow: {
-    position: "absolute",
-    zIndex: 10,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#EAEAEA",
+    alignSelf: 'flex-start',
+    marginBottom: 10,
   },
   logoContainer: {
-    alignItems: "center",
-    marginTop: 52,
+    alignItems: 'center',
+    marginTop: 0,
     marginBottom: 10,
-
   },
   logo: {
-    fontWeight: "bold",
     height: 170,
     width: 170,
   },
   title: {
     fontSize: 30,
-    fontWeight: "800",
-    textAlign: "center",
-    color: "#282F2E",
-    marginBottom: 15
+    fontWeight: '800',
+    textAlign: 'center',
+    color: '#282F2E',
+    marginBottom: 15,
   },
   inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: "#E0E0E0",
-    backgroundColor: "#F9FBFB",
+    borderColor: '#E0E0E0',
+    backgroundColor: '#F9FBFB',
     borderRadius: 16,
     paddingHorizontal: 10,
     marginBottom: 15,
@@ -279,60 +385,90 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 64,
     fontSize: 16,
-    color: "#333",
+    color: '#333',
   },
-  countryCode: {
-    fontSize: 16,
-    color: "#333",
-    marginRight: 8,
-  },
-  termsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 25,
-  },
-  checkbox: {
-    height: 20,
-    width: 20,
-    borderColor: "#F2B138",
-    borderWidth: 3,
-    borderRadius: 5,
-    marginRight: 10,
-  },
-  termsText: {
+  inputText: {
     flex: 1,
-    color: "#0F172A",
-    fontSize: 14,
-    fontWeight: "600",
-    flexWrap: "wrap",
-  },
-  link: {
-    color: "#F2B138",
-    fontWeight: "700",
+    height: 64,
+    fontSize: 16,
+    color: '#333',
+    textAlignVertical: 'center',
   },
   signUpButton: {
-    backgroundColor: "#F2B138",
+    backgroundColor: '#084A59',
     paddingVertical: 15,
     borderRadius: 25,
-    alignItems: "center",
+    alignItems: 'center',
   },
   signUpText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   loginText: {
-    textAlign: "center",
-    color: "#9E9E9E",
+    textAlign: 'center',
+    color: '#9E9E9E',
     fontSize: 14,
-    fontWeight: "400",
+    fontWeight: '400',
     marginTop: 20,
   },
   loginLink: {
-    color: "#F2B138",
-    fontWeight: "600",
+    color: '#F2B138',
+    fontWeight: '600',
   },
   signUpButtonDisabled: {
     opacity: 0.6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    paddingBottom: 30,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#282F2E',
+  },
+  modalSearch: {
+    margin: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    fontSize: 15,
+    color: '#333',
+    backgroundColor: '#F9FBFB',
+  },
+  modalItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalItemActive: {
+    backgroundColor: '#084A5910',
+  },
+  modalItemText: {
+    fontSize: 15,
+    color: '#333',
+  },
+  modalItemTextActive: {
+    color: '#084A59',
+    fontWeight: '600',
   },
 });

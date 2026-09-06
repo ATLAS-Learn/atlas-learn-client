@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
 class WebAPIClient {
   private axiosInstance;
+  private schoolsCache: any = null;
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -182,7 +183,7 @@ class WebAPIClient {
   // Subjects
   async getSubjects(params?: any) {
     const res = await this.request<any>('/subjects', {
-      params: { ...params, includeChapters: true },
+      params,
     });
     return this.unwrap(res);
   }
@@ -318,6 +319,23 @@ class WebAPIClient {
     return res;
   }
 
+  async getPendingQuizCorrections(quizId: string) {
+    const res = await this.request<any>(`/quizzes/${quizId}/pending-corrections`);
+    return this.unwrap(res);
+  }
+
+  async correctQuizAttempt(quizId: string, data: {
+    attemptId: string;
+    corrections: { questionId: string; points: number; comment?: string }[];
+    overallComment?: string;
+  }) {
+    const res = await this.request<any>(`/quizzes/${quizId}/correct`, {
+      method: 'POST',
+      data,
+    });
+    return this.unwrap(res);
+  }
+
   async getSingleQuizStats(quizId: string) {
     const res = await this.request<any>(`/quizzes/${quizId}/stats`);
     return this.unwrap(res);
@@ -395,7 +413,7 @@ class WebAPIClient {
   }
 
   // Invite management (admin)
-  async adminCreateUser(data: { email: string; name: string; role: string }) {
+  async adminCreateUser(data: { email: string; name?: string; role: string }) {
     return this.request<any>('/auth/admin/create-user', {
       method: 'POST',
       data,
@@ -414,16 +432,30 @@ class WebAPIClient {
     });
   }
 
+  async cancelInvite(userId: string) {
+    return this.request<any>('/auth/admin/cancel-invite', {
+      method: 'POST',
+      data: { userId },
+    });
+  }
+
   // Set password (public - from invite link)
   async validateInviteToken(token: string) {
     const res = await this.request<any>(`/auth/invite/${token}`);
     return res;
   }
 
-  async setPassword(token: string, password: string) {
+  async getSchools() {
+    if (this.schoolsCache) return this.schoolsCache;
+    const res = await this.request<any>('/schools');
+    this.schoolsCache = res;
+    return res;
+  }
+
+  async setPassword(token: string, password: string, profile?: { name?: string; school?: string; teacherSubjects?: string[] }) {
     return this.request<any>('/auth/set-password', {
       method: 'POST',
-      data: { token, password },
+      data: { token, password, ...profile },
     });
   }
 
@@ -462,6 +494,175 @@ class WebAPIClient {
   async getExamSubjects() {
     const res = await this.request<any>('/exams/subjects');
     return this.unwrap(res);
+  }
+
+  // AI Generation
+  async generateExamQuestions(data: {
+    prompt?: string;
+    subjectId: string;
+    chapterIds?: string[];
+    count?: number;
+    questionType?: 'MCQ' | 'STRUCTURAL' | 'MIXED';
+  }) {
+    const res = await this.request<any>('/exams/generate-questions', {
+      method: 'POST',
+      data,
+    });
+    return this.unwrap(res);
+  }
+
+  async generateQuizQuestions(data: {
+    prompt?: string;
+    chapterId: string;
+    count?: number;
+    questionType?: 'MCQ' | 'STRUCTURAL' | 'MIXED';
+  }) {
+    const res = await this.request<any>('/quizzes/generate-questions', {
+      method: 'POST',
+      data,
+    });
+    return this.unwrap(res);
+  }
+
+  // Exam corrections
+  async getPendingCorrections(examId: string) {
+    const res = await this.request<any>(`/exams/${examId}/pending-corrections`);
+    return this.unwrap(res);
+  }
+
+  async correctExamAttempt(examId: string, data: {
+    attemptId: string;
+    corrections: { questionId: string; points: number; comment?: string }[];
+    overallComment?: string;
+  }) {
+    const res = await this.request<any>(`/exams/${examId}/correct`, {
+      method: 'POST',
+      data,
+    });
+    return this.unwrap(res);
+  }
+
+  // Notifications
+  async getNotifications(params?: { limit?: number; offset?: number; unreadOnly?: boolean }) {
+    const res = await this.request<any>('/notifications', { params });
+    return this.unwrap(res);
+  }
+
+  async getUnreadNotificationCount() {
+    const res = await this.request<any>('/notifications/unread-count');
+    return this.unwrap(res);
+  }
+
+  async markNotificationRead(notificationId: string) {
+    return this.request<any>(`/notifications/${notificationId}/read`, { method: 'PATCH' });
+  }
+
+  async markAllNotificationsRead() {
+    return this.request<any>('/notifications/read-all', { method: 'PATCH' });
+  }
+
+  // Chapters (for curriculum picker)
+  async getChaptersBySubject(subjectId: string) {
+    const res = await this.request<any>('/chapters', { params: { subjectId } });
+    return this.unwrap(res);
+  }
+
+  // ─── Superadmin ────────────────────────────────────────────────
+
+  // Superadmin Analytics
+  async getSuperadminOverview() {
+    const res = await this.request<any>('/superadmin/analytics/overview');
+    return this.unwrap(res);
+  }
+
+  async getSuperadminChapterCompletion() {
+    const res = await this.request<any>('/superadmin/analytics/chapter-completion');
+    return this.unwrap(res);
+  }
+
+  async getSuperadminQuizStats() {
+    const res = await this.request<any>('/superadmin/analytics/quiz-stats');
+    return this.unwrap(res);
+  }
+
+  async getSuperadminWAU() {
+    const res = await this.request<any>('/superadmin/analytics/wau');
+    return this.unwrap(res);
+  }
+
+  async getSuperadminTeacherActivity() {
+    const res = await this.request<any>('/superadmin/analytics/teacher-activity');
+    return this.unwrap(res);
+  }
+
+  async getSuperadminSignupTrend() {
+    const res = await this.request<any>('/superadmin/analytics/signups');
+    return this.unwrap(res);
+  }
+
+  // Superadmin Users
+  async getSuperadminUsers(params?: {
+    search?: string;
+    role?: string;
+    isActive?: string;
+    school?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    const res = await this.request<any>('/superadmin/users', { params });
+    return res;
+  }
+
+  async getSuperadminUser(userId: string) {
+    const res = await this.request<any>(`/superadmin/users/${userId}`);
+    return this.unwrap(res);
+  }
+
+  async changeUserRole(userId: string, role: string) {
+    return this.request<any>(`/superadmin/users/${userId}/role`, {
+      method: 'PATCH',
+      data: { role },
+    });
+  }
+
+  async superadminDeactivateUser(userId: string) {
+    return this.request<any>(`/superadmin/users/${userId}/deactivate`, {
+      method: 'PATCH',
+    });
+  }
+
+  async superadminReactivateUser(userId: string) {
+    return this.request<any>(`/superadmin/users/${userId}/reactivate`, {
+      method: 'PATCH',
+    });
+  }
+
+  // Superadmin Schools
+  async getSuperadminSchools(params?: { search?: string }) {
+    const res = await this.request<any>('/superadmin/schools', { params });
+    return res;
+  }
+
+  async createSchool(data: { name: string }) {
+    return this.request<any>('/superadmin/schools', { method: 'POST', data });
+  }
+
+  async updateSchool(schoolId: string, data: { name: string }) {
+    return this.request<any>(`/superadmin/schools/${schoolId}`, { method: 'PUT', data });
+  }
+
+  async deleteSchool(schoolId: string) {
+    return this.request<any>(`/superadmin/schools/${schoolId}`, { method: 'DELETE' });
+  }
+
+  // Superadmin Feedback
+  async getSuperadminFeedback(params?: { status?: string; category?: string; page?: number; limit?: number }) {
+    const res = await this.request<any>('/superadmin/feedback', { params });
+    return res;
+  }
+
+  async superadminUpdateFeedback(id: string, data: { status?: string; adminReply?: string }) {
+    return this.request<any>(`/superadmin/feedback/${id}`, { method: 'PATCH', data });
   }
 }
 

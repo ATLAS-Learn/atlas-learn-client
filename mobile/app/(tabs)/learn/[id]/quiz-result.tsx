@@ -1,13 +1,9 @@
-import { useEffect, useRef, useState } from "react";
 import {
-    Alert,
     View,
     Text,
     TouchableOpacity,
     StyleSheet,
     ScrollView,
-    Animated,
-    Easing,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,17 +12,7 @@ import ScreenHeader from "@/components/ui/screen-header";
 
 export default function QuizResultScreen() {
     const router = useRouter();
-    const params = useLocalSearchParams<{
-        id: string;
-        subjectId?: string;
-        score: string;
-        totalQuestions: string;
-        percentage: string;
-        passed: string;
-        pastPaperReference?: string;
-        unlockedNextChapter: string;
-        quizId?: string;
-    }>();
+    const params = useLocalSearchParams<{ id: string; score: string; correctAnswers: string; totalQuestions: string; passed: string; unlockedNextChapter: string; nextChapterTitle?: string; nextChapterId?: string; quizId?: string; subjectId?: string; attemptId?: string; hasStructural?: string; isCorrected?: string }>();
 
     const score = parseInt(params.score as string) || 0;
     const correctAnswers = parseInt(params.correctAnswers as string) || 0;
@@ -34,105 +20,28 @@ export default function QuizResultScreen() {
     const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
     const passed = params.passed === "true";
     const unlockedNextChapter = params.unlockedNextChapter === "true";
-    const subjectId = Array.isArray(params.subjectId) ? params.subjectId[0] : params.subjectId;
-    const headerAnimation = useRef(new Animated.Value(0)).current;
-    const scoreAnimation = useRef(new Animated.Value(0)).current;
-    const [continuing, setContinuing] = useState(false);
+    const nextChapterTitle = params.nextChapterTitle as string | undefined;
+    const nextChapterId = params.nextChapterId as string | undefined;
+    const subjectId = params.subjectId as string | undefined;
+    const attemptId = params.attemptId as string | undefined;
+    const quizId = params.quizId as string | undefined;
+    const hasStructural = params.hasStructural === "true";
+    const isCorrected = params.isCorrected === "true";
+    const isPending = hasStructural && !isCorrected;
 
-    useEffect(() => {
-        Animated.parallel([
-            Animated.timing(headerAnimation, {
-                toValue: 1,
-                duration: 500,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: true,
-            }),
-            Animated.spring(scoreAnimation, {
-                toValue: 1,
-                tension: 80,
-                friction: 7,
-                useNativeDriver: true,
-            }),
-        ]).start();
-    }, [headerAnimation, scoreAnimation]);
-
-    const headerStyle = {
-        opacity: headerAnimation,
-        transform: [
-            {
-                translateY: headerAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [24, 0],
-                }),
-            },
-            {
-                scale: headerAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.98, 1],
-                }),
-            },
-        ],
-    };
-
-    const scoreStyle = {
-        transform: [
-            {
-                scale: scoreAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.6, 1],
-                }),
-            },
-        ],
-    };
-
-    const handleContinue = async () => {
-        if (!params.id) {
-            router.replace("/(tabs)/learn");
-            return;
-        }
-
-        if (!passed) {
-            router.back();
-            return;
-        }
-
-        if (!unlockedNextChapter) {
-            if (subjectId) {
-                router.replace({
-                    pathname: "/(tabs)/learn/subjects/[subjectId]",
-                    params: { subjectId },
-                } as any);
-                return;
-            }
-            router.replace("/(tabs)/learn");
-            return;
-        }
-
-        setContinuing(true);
-        try {
-            if (subjectId) {
-                router.replace({
-                    pathname: "/(tabs)/learn/subjects/[subjectId]",
-                    params: {
-                        subjectId,
-                        fromChapterId: params.id,
-                        highlightUnlocked: "true",
-                    },
-                } as any);
-                return;
-            }
-
+    const handleContinue = () => {
+        if (unlockedNextChapter && nextChapterId) {
             router.replace({
-                pathname: "/(tabs)/learn/chapters",
-                params: {
-                    fromChapterId: params.id,
-                    highlightUnlocked: "true",
-                },
+                pathname: "/(tabs)/learn/[id]",
+                params: { id: nextChapterId, subjectId: subjectId || "" },
             } as any);
-        } catch (error: any) {
-            Alert.alert("Error", error?.message || "Could not open the unlocked chapter list.");
-        } finally {
-            setContinuing(false);
+        } else if (subjectId) {
+            router.replace({
+                pathname: "/(tabs)/learn/subjects/[subjectId]",
+                params: { subjectId },
+            } as any);
+        } else {
+            router.replace("/(tabs)/learn");
         }
     };
 
@@ -145,16 +54,10 @@ export default function QuizResultScreen() {
     };
 
     const handleTryAgain = () => {
-        if (!params.id) {
-            return router.back();
-        }
-        if (subjectId) {
-            router.push({
-                pathname: "/(tabs)/learn/[id]/quiz",
-                params: { id: params.id, subjectId },
-            } as any);
+        if (params.id) {
+            router.replace(`/(tabs)/learn/${params.id}/quiz`);
         } else {
-            router.push(`/(tabs)/learn/${params.id}/quiz`);
+            router.back();
         }
     };
 
@@ -172,15 +75,99 @@ export default function QuizResultScreen() {
         }
     };
 
+    // Pending review state
+    if (isPending) {
+        return (
+            <View style={styles.container}>
+                <ScreenHeader title="Quiz Results" />
+                <ScrollView contentContainerStyle={styles.content}>
+                    <View style={styles.pendingContainer}>
+                        <View style={styles.iconContainer}>
+                            <View style={styles.pendingIconCircle}>
+                                <Ionicons name="time-outline" size={60} color="#F2B138" />
+                            </View>
+                        </View>
+
+                        <Text style={styles.pendingTitle}>Awaiting Review</Text>
+
+                        <Text style={styles.pendingSubtitle}>
+                            Your quiz contains essay questions that need to be reviewed by your teacher.
+                        </Text>
+
+                        <View style={styles.pendingInfoCard}>
+                            <View style={styles.pendingInfoRow}>
+                                <Ionicons name="chatbubble-outline" size={20} color="#084A59" />
+                                <Text style={styles.pendingInfoText}>
+                                    Essay questions are pending teacher correction
+                                </Text>
+                            </View>
+                            <View style={styles.pendingInfoRow}>
+                                <Ionicons name="time-outline" size={20} color="#084A59" />
+                                <Text style={styles.pendingInfoText}>
+                                    You&apos;ll be notified once your quiz is graded
+                                </Text>
+                            </View>
+                            <View style={styles.pendingInfoRow}>
+                                <Ionicons name="lock-closed-outline" size={20} color="#084A59" />
+                                <Text style={styles.pendingInfoText}>
+                                    You cannot retake this quiz until it&apos;s graded
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.pendingScoreContainer}>
+                            <Text style={styles.pendingScoreLabel}>MCQ Score (so far)</Text>
+                            <Text style={styles.pendingScoreValue}>{score}%</Text>
+                            <Text style={styles.pendingScoreNote}>
+                                Final score will be updated after teacher review
+                            </Text>
+                        </View>
+
+                        <View style={styles.actionsContainer}>
+                            <TouchableOpacity
+                                style={styles.reviewButton}
+                                onPress={handleReviewChapter}
+                            >
+                                <Ionicons name="book-outline" size={20} color="#F2B138" />
+                                <Text style={styles.reviewButtonText}>Review Chapter</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+                                <Text style={styles.continueButtonText}>Back to Dashboard</Text>
+                                <Ionicons name="arrow-forward" size={20} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </ScrollView>
+            </View>
+        );
+    }
+
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <Animated.View style={headerStyle}>
-                {passed ? (
+        <View style={styles.container}>
+            <ScreenHeader title="Quiz Results" />
+            <ScrollView contentContainerStyle={styles.content}>
+            {passed ? (
+                <>
                     <QuizCelebration
                         score={correctAnswers}
                         totalQuestions={totalQuestions}
                     />
-                ) : (
+
+                    <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+                        <Text style={styles.continueButtonText}>
+                            {unlockedNextChapter ? "Continue to Next Chapter" : "Back to Dashboard"}
+                        </Text>
+                        <Ionicons name="arrow-forward" size={20} color="#fff" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.correctionsButton} onPress={handleViewCorrections}>
+                        <Ionicons name="document-text-outline" size={20} color="#F2B138" />
+                        <Text style={styles.correctionsButtonText}>View Corrections</Text>
+                    </TouchableOpacity>
+                </>
+            ) : (
+                <>
                     <View style={styles.failureContainer}>
                         <View style={styles.iconContainer}>
                             <View style={styles.iconCircle}>
@@ -190,14 +177,12 @@ export default function QuizResultScreen() {
 
                         <Text style={styles.failureTitle}>Let&apos;s Review That Again</Text>
 
-                        <Animated.View style={scoreStyle}>
-                            <View style={styles.scoreContainer}>
-                                <Text style={styles.scoreText}>
-                                    {score} / {totalQuestions}
-                                </Text>
-                                <Text style={styles.percentageText}>{Math.round(percentage)}%</Text>
-                            </View>
-                        </Animated.View>
+                        <View style={styles.scoreContainer}>
+                            <Text style={styles.scoreText}>
+                                {correctAnswers} / {totalQuestions}
+                            </Text>
+                            <Text style={styles.percentageText}>{Math.round(percentage)}%</Text>
+                        </View>
 
                         <View style={styles.messageContainer}>
                             <Text style={styles.messageText}>
@@ -231,22 +216,10 @@ export default function QuizResultScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                )}
-            </Animated.View>
-
-            <Animated.View style={[headerStyle, styles.footerSpacer]}>
-                <TouchableOpacity
-                    style={[styles.continueButton, continuing && styles.continueButtonDisabled]}
-                    onPress={() => void handleContinue()}
-                    disabled={continuing}
-                >
-                    <Text style={styles.continueButtonText}>
-                        {unlockedNextChapter ? "See Unlocked Chapter" : "Back to Dashboard"}
-                    </Text>
-                    <Ionicons name="arrow-forward" size={20} color="#fff" />
-                </TouchableOpacity>
-            </Animated.View>
+                </>
+            )}
         </ScrollView>
+        </View>
     );
 }
 
@@ -258,9 +231,6 @@ const styles = StyleSheet.create({
     content: {
         flexGrow: 1,
         padding: 24,
-    },
-    footerSpacer: {
-        marginTop: 24,
     },
     failureContainer: {
         alignItems: "center",
@@ -357,13 +327,103 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
+        marginTop: 24,
     },
     continueButtonText: {
         color: "#fff",
         fontSize: 18,
         fontWeight: "700",
     },
-    continueButtonDisabled: {
-        opacity: 0.7,
+    correctionsButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        backgroundColor: "#fff",
+        borderWidth: 2,
+        borderColor: "#F2B138",
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 25,
+        marginTop: 12,
+    },
+    correctionsButtonText: {
+        color: "#F2B138",
+        fontSize: 16,
+        fontWeight: "700",
+    },
+    pendingContainer: {
+        alignItems: "center",
+        padding: 24,
+    },
+    pendingIconCircle: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: "#FFF8E1",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    pendingTitle: {
+        fontSize: 28,
+        fontWeight: "800",
+        color: "#282F2E",
+        marginBottom: 12,
+        textAlign: "center",
+    },
+    pendingSubtitle: {
+        fontSize: 16,
+        color: "#666",
+        textAlign: "center",
+        lineHeight: 24,
+        marginBottom: 24,
+        paddingHorizontal: 16,
+    },
+    pendingInfoCard: {
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 20,
+        width: "100%",
+        gap: 16,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+    },
+    pendingInfoRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    pendingInfoText: {
+        flex: 1,
+        fontSize: 14,
+        color: "#444",
+        lineHeight: 20,
+    },
+    pendingScoreContainer: {
+        backgroundColor: "#F9FBFB",
+        borderRadius: 16,
+        padding: 24,
+        width: "100%",
+        alignItems: "center",
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+    },
+    pendingScoreLabel: {
+        fontSize: 14,
+        color: "#666",
+        marginBottom: 8,
+    },
+    pendingScoreValue: {
+        fontSize: 48,
+        fontWeight: "800",
+        color: "#F2B138",
+    },
+    pendingScoreNote: {
+        fontSize: 12,
+        color: "#999",
+        marginTop: 8,
+        textAlign: "center",
     },
 });

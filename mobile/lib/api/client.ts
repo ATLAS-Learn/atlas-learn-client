@@ -530,6 +530,8 @@ class APIClient {
         school?: string;
         examYear?: number;
         level?: Level;
+        role?: string;
+        teacherSubjects?: string[];
     }): Promise<{ success: boolean; message: string }> {
         return this.request<{ success: boolean; message: string }>("/auth/sign-up/otp", {
             method: "POST",
@@ -555,6 +557,7 @@ class APIClient {
         school?: string;
         examYear?: number;
         image?: string;
+        teacherSubjects?: string[];
     }): Promise<User> {
         const response = await this.request<User>("/auth/me", {
             method: "PATCH",
@@ -621,6 +624,11 @@ class APIClient {
 
     async verifyOTPLogin(email: string, otp: string): Promise<AuthResponse> {
         return this.verifyOTP(email, otp);
+    }
+
+    async getSchools(): Promise<{ id: string; name: string }[]> {
+        const res = await this.request<{ data: { id: string; name: string }[] }>("/schools");
+        return res?.data ?? [];
     }
 
     // Session management endpoints
@@ -712,9 +720,10 @@ class APIClient {
     /**
      * Submit assessment answers
      * @param answers Array of answer indices in question order (e.g., [0, 1, 2, 0, 1])
+     * @param questionIds Array of question IDs in the same order as answers
      * @returns Assessment result with score, level, and message
      */
-    async submitAssessment(answers: number[]): Promise<AssessmentResult> {
+    async submitAssessment(answers: number[], questionIds: string[]): Promise<AssessmentResult> {
         const result = await this.request<{
             success: boolean;
             message: string;
@@ -734,7 +743,7 @@ class APIClient {
             };
         }>("/assessment/submit", {
             method: "POST",
-            data: { answers },
+            data: { answers, questionIds },
         });
 
         if (!result?.data) {
@@ -1282,6 +1291,29 @@ class APIClient {
         return this.unwrapData<QuizStats>(response);
     }
 
+    async getPendingQuizCorrections(quizId: string): Promise<any[]> {
+        const response = await this.request<{ success: boolean; count: number; data: any[] }>(
+            `/quizzes/${quizId}/pending-corrections`
+        );
+        return response?.data || [];
+    }
+
+    async correctQuizAttempt(
+        quizId: string,
+        attemptId: string,
+        corrections: { questionId: string; points: number; comment?: string }[],
+        overallComment?: string
+    ): Promise<any> {
+        const response = await this.request<{ success: boolean; data: any }>(
+            `/quizzes/${quizId}/correct`,
+            {
+                method: "POST",
+                data: { attemptId, corrections, overallComment },
+            }
+        );
+        return response?.data;
+    }
+
     // Feedback
     async submitFeedback(data: { category: string; subject: string; message: string; rating?: number }): Promise<{ id: string }> {
         const response = await this.request<{ success: boolean; data: { id: string } }>("/feedback", {
@@ -1328,7 +1360,7 @@ class APIClient {
         return res.data?.data;
     }
 
-    async submitExam(examId: string, data: { answers: number[]; timeSpent?: number }): Promise<any> {
+    async submitExam(examId: string, data: { answers: number[]; textAnswers?: Record<string, string>; timeSpent?: number }): Promise<any> {
         const res = await this.axiosInstance.post(`/exams/${examId}/submit`, data);
         return res.data?.data;
     }
@@ -1351,6 +1383,37 @@ class APIClient {
     async getLeaderboard(): Promise<any[]> {
         const res = await this.axiosInstance.get("/leaderboard");
         return res.data?.data || [];
+    }
+
+    // Notification endpoints
+    async getNotifications(params?: { unreadOnly?: boolean }): Promise<any[]> {
+        const res = await this.axiosInstance.get("/notifications", { params });
+        return res.data?.data || [];
+    }
+
+    async getUnreadNotificationCount(): Promise<number> {
+        const res = await this.axiosInstance.get("/notifications/unread-count");
+        return res.data?.count ?? 0;
+    }
+
+    async markNotificationRead(notificationId: string): Promise<void> {
+        await this.axiosInstance.patch(`/notifications/${notificationId}/read`);
+    }
+
+    async markAllNotificationsRead(): Promise<void> {
+        await this.axiosInstance.patch("/notifications/read-all");
+    }
+
+    // Chat
+    async chatWithAI(params: {
+        message: string;
+        subjectName?: string;
+        chapterName?: string;
+        lessonName?: string;
+        history?: { role: "user" | "assistant"; content: string }[];
+    }): Promise<string> {
+        const res = await this.axiosInstance.post("/chat/ask", params);
+        return res.data?.data?.reply || "No response from AI.";
     }
 }
 

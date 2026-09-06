@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
     View,
     Text,
@@ -6,9 +6,11 @@ import {
     StyleSheet,
     ActivityIndicator,
     TouchableOpacity,
+    RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { useOverallProgress } from "@/lib/hooks/api";
 import { SubjectProgress } from "@/lib/types";
 import { apiClient } from "@/lib/api";
@@ -54,7 +56,10 @@ function SubjectCard({ subject }: { subject: SubjectProgress }) {
                     <View
                         style={[
                             styles.progressBarFill,
-                            { width: `${Math.min(subject.completionPercentage, 100)}%` },
+                            {
+                                width: `${Math.min(subject.completionPercentage, 100)}%`,
+                                backgroundColor: subject.completionPercentage >= 100 ? "#4CAF50" : "#1A5C6B",
+                            },
                         ]}
                     />
                 </View>
@@ -67,30 +72,59 @@ function SubjectCard({ subject }: { subject: SubjectProgress }) {
 
 export default function LearnScreen() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { data: progressData, isLoading, error } = useOverallProgress();
     const [preferredIds, setPreferredIds] = useState<string[] | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            await queryClient.invalidateQueries({ queryKey: ["progress"] });
+            const ids = await apiClient.getPreferredSubjects();
+            setPreferredIds(ids);
+            setCache(PREFERRED_SUBJECTS_CACHE_KEY, ids, PREFERRED_SUBJECTS_TTL).catch(() => {});
+        } catch {
+            // best effort
+        } finally {
+            setRefreshing(false);
+        }
+    }, [queryClient]);
 
     useEffect(() => {
-        // Fetch-once: skip network when valid cache exists
+        let cancelled = false;
+        // 1. Seed from cache for instant display
         const cached = getCacheSync<string[]>(PREFERRED_SUBJECTS_CACHE_KEY);
         if (cached) {
             setPreferredIds(cached);
-            return;
         }
+        // 2. Always fetch fresh from network
         apiClient.getPreferredSubjects()
             .then((ids) => {
+                if (cancelled) return;
                 setPreferredIds(ids);
                 setCache(PREFERRED_SUBJECTS_CACHE_KEY, ids, PREFERRED_SUBJECTS_TTL).catch(() => {});
             })
             .catch(() => {
-                setPreferredIds([]);
+                if (cancelled) return;
+                if (!cached) setPreferredIds([]);
             });
+        return () => { cancelled = true; };
     }, []);
 
     const subjects = useMemo(() => {
         const allSubjects = progressData?.subjects || [];
-        if (!preferredIds || preferredIds.length === 0) return [];
-        return allSubjects.filter((s: SubjectProgress) => preferredIds.includes(s.subjectId));
+        if (!preferredIds || preferredIds.length === 0) return allSubjects;
+        const validPreferred = preferredIds.filter((id: string) =>
+            allSubjects.some((s: SubjectProgress) => s.subjectId === id)
+        );
+        // Auto-clean stale IDs: if some IDs are invalid, clear them server-side
+        if (validPreferred.length !== preferredIds.length && validPreferred.length === 0) {
+            apiClient.updatePreferredSubjects([]).catch(() => {});
+            setCache(PREFERRED_SUBJECTS_CACHE_KEY, [], PREFERRED_SUBJECTS_TTL).catch(() => {});
+            return allSubjects;
+        }
+        return allSubjects.filter((s: SubjectProgress) => validPreferred.includes(s.subjectId));
     }, [progressData, preferredIds]);
 
     if (isLoading || preferredIds === null) {
@@ -117,6 +151,7 @@ export default function LearnScreen() {
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.content}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F2B138" />}
             >
                 {subjects.length === 0 ? (
                     <View style={styles.emptyContainer}>

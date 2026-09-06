@@ -6,15 +6,12 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
-    Image,
-    Modal,
     KeyboardAvoidingView,
     Platform,
     TouchableWithoutFeedback,
     Keyboard,
     Alert,
     ScrollView,
-    useWindowDimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams, Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,19 +22,17 @@ import { getItem, setItem } from "@/lib/utils/storage";
 
 export default function VerifyOTPScreen() {
     const router = useRouter();
-    const { width, height } = useWindowDimensions();
     const params = useLocalSearchParams<{ email?: string; mode?: string; fullName?: string }>();
     const { setAuth, setCookieAuth } = useAuthStore();
     const { setUser } = useUserStore();
 
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(false);
-    const [verificationState, setVerificationState] = useState<"idle" | "verifying" | "success">("idle");
     const [resending, setResending] = useState(false);
     const [error, setError] = useState("");
     const [cooldown, setCooldown] = useState(0);
     const otpInputRef = useRef<TextInput>(null);
-    const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const email = params.email || "";
     const mode = params.mode === "signup" ? "signup" : "login";
@@ -71,7 +66,7 @@ export default function VerifyOTPScreen() {
                 return prev - 1;
             });
         }, 1000);
-        cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
+        cooldownIntervalRef.current = interval;
 
         return () => clearInterval(interval);
     }, []);
@@ -89,7 +84,6 @@ export default function VerifyOTPScreen() {
 
         setError("");
         setLoading(true);
-        setVerificationState("verifying");
         try {
             const response = await apiClient.verifyOTP(email, code);
 
@@ -102,15 +96,13 @@ export default function VerifyOTPScreen() {
                 await setCookieAuth();
                 apiClient.setToken(null);
             }
-            try {
-                const freshUser = await apiClient.getCurrentUser();
-                setUser(freshUser);
-            } catch {
-                // Keep provisional user data if /auth/me is briefly unavailable.
-                setUser(response.user, { markSynced: false });
-            }
+            // Mark OTP payload as provisional; app flow will refresh /auth/me.
+            setUser(response.user, { markSynced: false });
 
+            // New signups always go through onboarding (select subjects + assessment)
+            // Only check stored flag for returning users (login mode)
             if (mode === "signup") {
+                // Clear assessment flag so useAppFlow doesn't override onboarding navigation
                 await setItem("assessmentComplete", "false");
                 router.replace("/(onboarding)");
             } else {
@@ -132,7 +124,6 @@ export default function VerifyOTPScreen() {
                 }
             }
         } catch (error: any) {
-            setVerificationState("idle");
             setError(error.message || "Invalid verification code. Please try again.");
         } finally {
             setLoading(false);
@@ -176,7 +167,7 @@ export default function VerifyOTPScreen() {
                     return prev - 1;
                 });
             }, 1000);
-            cooldownIntervalRef.current = interval as unknown as NodeJS.Timeout;
+            cooldownIntervalRef.current = interval;
         } catch (error: any) {
             Alert.alert("Error", error.message || "Failed to resend verification code.");
         } finally {
@@ -186,139 +177,101 @@ export default function VerifyOTPScreen() {
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.container}>
-                <KeyboardAvoidingView
-                    style={styles.container}
-                    behavior={Platform.OS === "ios" ? "padding" : "height"}
-                    keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+            <KeyboardAvoidingView
+                style={styles.container}
+                behavior="padding"
+            >
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                 >
-                    <ScrollView
-                        contentContainerStyle={[
-                            styles.scrollContent,
-                            {
-                                paddingTop: Math.max(64, Math.floor(height * 0.08)),
-                                paddingHorizontal: width < 390 ? 16 : 24,
-                            },
-                        ]}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
+                    <TouchableOpacity
+                        style={styles.backArrow}
+                        onPress={() => router.back()}
                     >
-                        <TouchableOpacity
-                            style={[styles.backArrow, { top: Math.max(32, Math.floor(height * 0.06)) }]}
-                            onPress={() => router.back()}
-                        >
-                            <Ionicons name="arrow-back" size={24} color="#282F2E" />
-                        </TouchableOpacity>
+                        <Ionicons name="arrow-back" size={24} color="#000" />
+                    </TouchableOpacity>
 
-                        <View style={[styles.logoContainer, { marginTop: width < 390 ? 24 : 32 }]}>
-                            <Ionicons name="keypad-outline" size={80} color="#F2B138" />
-                        </View>
-
-                        <Text style={styles.title}>Enter Verification Code</Text>
-                        <Text style={styles.subtitle}>
-                            We&apos;ve sent a verification code to {email ? email : "your email"}. Please enter it below.
-                        </Text>
-
-                        <TouchableOpacity style={styles.otpContainer} onPress={() => otpInputRef.current?.focus()}>
-                            {Array.from({ length: 6 }).map((_, index) => {
-                                const digit = code[index] || "";
-                                const isActive = code.length === index;
-                                return (
-                                    <View
-                                        key={index}
-                                        style={[
-                                            styles.otpBox,
-                                            isActive && styles.otpBoxActive,
-                                        ]}
-                                    >
-                                        <Text style={styles.otpDigit}>{digit}</Text>
-                                    </View>
-                                );
-                            })}
-                            <TextInput
-                                ref={otpInputRef}
-                                value={code}
-                                onChangeText={(text) => {
-                                    setCode(text.replace(/\D/g, "").slice(0, 6));
-                                    setError("");
-                                }}
-                                keyboardType="number-pad"
-                                maxLength={6}
-                                style={styles.hiddenInput}
-                                autoFocus
-                            />
-                        </TouchableOpacity>
-                        {error && <Text style={styles.errorText}>{error}</Text>}
-
-                        <TouchableOpacity
-                            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-                            onPress={handleVerify}
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.submitButtonText}>
-                                    {mode === "signup" ? "Verify & Create Account" : "Verify & Sign In"}
-                                </Text>
-                            )}
-                        </TouchableOpacity>
-
-                        <View style={styles.resendContainer}>
-                            <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
-                            <TouchableOpacity 
-                                onPress={handleResend} 
-                                disabled={resending || cooldown > 0}
-                            >
-                                {resending ? (
-                                    <ActivityIndicator size="small" color="#F2B138" />
-                                ) : cooldown > 0 ? (
-                                    <Text style={styles.resendLinkDisabled}>
-                                        Resend ({cooldown}s)
-                                    </Text>
-                                ) : (
-                                    <Text style={styles.resendLink}>Resend</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-
-                        <Text style={styles.backToLoginText}>
-                            <Link href="/(auth)" style={styles.link}>
-                                Back to Sign In
-                            </Link>
-                        </Text>
-                    </ScrollView>
-                </KeyboardAvoidingView>
-
-                <Modal visible={verificationState !== "idle"} transparent animationType="fade">
-                    <View style={styles.overlay}>
-                        <View style={styles.sheet}>
-                            <View style={styles.sheetHandle} />
-                            {verificationState === "verifying" ? (
-                                <>
-                                    <Text style={styles.sheetTitle}>Verifying Code</Text>
-                                    <Text style={styles.sheetSubtitle}>We are verifying the code...</Text>
-                                    <View style={styles.sheetButton}>
-                                        <ActivityIndicator color="#FFFFFF" />
-                                    </View>
-                                </>
-                            ) : (
-                                <>
-                                    <Image
-                                        source={require("@/assets/images/icons/Success Illustration.png")}
-                                        resizeMode="contain"
-                                        style={styles.successImage}
-                                    />
-                                    <Text style={styles.successTitle}>Code Verified</Text>
-                                    <TouchableOpacity style={styles.sheetButton} activeOpacity={0.9}>
-                                        <Text style={styles.sheetButtonText}>Continue</Text>
-                                    </TouchableOpacity>
-                                </>
-                            )}
-                        </View>
+                    <View style={styles.logoContainer}>
+                        <Ionicons name="keypad-outline" size={80} color="#F2B138" />
                     </View>
-                </Modal>
-            </View>
+
+                    <Text style={styles.title}>Enter Verification Code</Text>
+                    <Text style={styles.subtitle}>
+                        We&apos;ve sent a verification code to {email ? email : "your email"}. Please enter it below.
+                    </Text>
+
+                    <TouchableOpacity style={styles.otpContainer} onPress={() => otpInputRef.current?.focus()}>
+                        {Array.from({ length: 6 }).map((_, index) => {
+                            const digit = code[index] || "";
+                            const isActive = code.length === index;
+                            return (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.otpBox,
+                                        isActive && styles.otpBoxActive,
+                                    ]}
+                                >
+                                    <Text style={styles.otpDigit}>{digit}</Text>
+                                </View>
+                            );
+                        })}
+                        <TextInput
+                            ref={otpInputRef}
+                            value={code}
+                            onChangeText={(text) => {
+                                setCode(text.replace(/\D/g, "").slice(0, 6));
+                                setError("");
+                            }}
+                            keyboardType="number-pad"
+                            maxLength={6}
+                            style={styles.hiddenInput}
+                            autoFocus
+                        />
+                    </TouchableOpacity>
+                    {error && <Text style={styles.errorText}>{error}</Text>}
+
+                    <TouchableOpacity
+                        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                        onPress={handleVerify}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.submitButtonText}>
+                                {mode === "signup" ? "Verify & Create Account" : "Verify & Sign In"}
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+
+                    <View style={styles.resendContainer}>
+                        <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
+                        <TouchableOpacity
+                            onPress={handleResend}
+                            disabled={resending || cooldown > 0}
+                        >
+                            {resending ? (
+                                <ActivityIndicator size="small" color="#F2B138" />
+                            ) : cooldown > 0 ? (
+                                <Text style={styles.resendLinkDisabled}>
+                                    Resend ({cooldown}s)
+                                </Text>
+                            ) : (
+                                <Text style={styles.resendLink}>Resend</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+
+                    <Text style={styles.backToLoginText}>
+                        <Link href="/(auth)" style={styles.link}>
+                            Back to Sign In
+                        </Link>
+                    </Text>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
     );
 }
@@ -331,17 +284,20 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         justifyContent: "center",
-        paddingBottom: 40,
+        paddingHorizontal: 24,
+        paddingTop: 0,
+        paddingBottom: 20,
     },
     backArrow: {
         position: "absolute",
+        top: 50,
         left: 24,
         zIndex: 10,
     },
     logoContainer: {
         alignItems: "center",
         marginBottom: 30,
-        marginTop: 32,
+        marginTop: 0,
     },
     title: {
         fontSize: 32,
@@ -390,14 +346,6 @@ const styles = StyleSheet.create({
         width: 1,
         height: 1,
     },
-    input: {
-        flex: 1,
-        fontSize: 18,
-        color: "#333",
-        fontWeight: "600",
-        letterSpacing: 4,
-        textAlign: "center",
-    },
     errorText: {
         color: "#E57373",
         marginBottom: 10,
@@ -405,7 +353,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     submitButton: {
-        backgroundColor: "#F2B138",
+        backgroundColor: "#084A59",
         paddingVertical: 16,
         borderRadius: 25,
         alignItems: "center",
@@ -449,64 +397,5 @@ const styles = StyleSheet.create({
     link: {
         color: "#F2B138",
         fontWeight: "600",
-    },
-    overlay: {
-        flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.18)",
-        justifyContent: "flex-end",
-    },
-    sheet: {
-        backgroundColor: "#FFFFFF",
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-        paddingHorizontal: 24,
-        paddingTop: 12,
-        paddingBottom: 32,
-        alignItems: "center",
-        minHeight: 280,
-    },
-    sheetHandle: {
-        width: 44,
-        height: 4,
-        borderRadius: 999,
-        backgroundColor: "#D9D9D9",
-        marginBottom: 36,
-    },
-    sheetTitle: {
-        fontSize: 24,
-        fontWeight: "700",
-        color: "#282F2E",
-        marginBottom: 10,
-    },
-    sheetSubtitle: {
-        fontSize: 16,
-        color: "#6C7580",
-        textAlign: "center",
-        marginBottom: 40,
-    },
-    sheetButton: {
-        marginTop: "auto",
-        width: "100%",
-        height: 56,
-        borderRadius: 16,
-        backgroundColor: "#F2B138",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    sheetButtonText: {
-        color: "#FFFFFF",
-        fontSize: 16,
-        fontWeight: "700",
-    },
-    successImage: {
-        width: 120,
-        height: 120,
-        marginBottom: 12,
-    },
-    successTitle: {
-        fontSize: 22,
-        fontWeight: "700",
-        color: "#F2B138",
-        marginBottom: 32,
     },
 });

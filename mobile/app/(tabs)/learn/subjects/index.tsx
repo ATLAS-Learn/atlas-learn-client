@@ -27,13 +27,14 @@ export default function SubjectsScreen() {
 
     const loadSubjects = useCallback(async (force = false) => {
         try {
-            // Fetch-once: skip network when valid cache exists
+            // 1. Seed from cache for instant display
             const cached = getCacheSync<Subject[]>(SUBJECTS_CACHE_KEY);
-            if (cached && !force) {
+            if (cached) {
                 setSubjects(cached);
                 setLoading(false);
-                return;
             }
+
+            // 2. Always fetch fresh from network
             const data = await apiClient.getSubjects({ includeChapters: false });
             const list = Array.isArray(data) ? data : [];
             setSubjects(list);

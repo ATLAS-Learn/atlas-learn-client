@@ -37,17 +37,16 @@ export default function ChaptersListScreen() {
 
     const loadChapters = async (force = false) => {
         try {
-            // Fetch-once: skip ALL network calls when valid cache exists
+            // 1. Seed from cache for instant display
             const cachedChapters = getCacheSync<Chapter[]>(CHAPTERS_CACHE_KEY);
             const cachedCounts = getCacheSync<Record<string, number>>(LESSON_COUNTS_CACHE_KEY);
-            if (cachedChapters && !force) {
+            if (cachedChapters) {
                 setChapters(cachedChapters);
                 setLessonCounts(cachedCounts || {});
                 setLoading(false);
-                return;
             }
 
-            // Fetch fresh data from server
+            // 2. Always fetch fresh from network
             const [data, progressData] = await Promise.all([
                 apiClient.getChapters(),
                 apiClient.getOverallProgress(),
@@ -62,17 +61,13 @@ export default function ChaptersListScreen() {
                 sortedAllChapters.slice(0, completedCount).map((chapter) => chapter.id)
             );
 
-            // Filter chapters by user level if set
             let filteredChapters = data;
-            // Sort by orderIndex
             filteredChapters.sort((a, b) => a.orderIndex - b.orderIndex);
             setChapters(filteredChapters);
             setCompletedChapters(completedChapterIds);
 
-            // Cache chapters
             setCache(CHAPTERS_CACHE_KEY, filteredChapters, CHAPTERS_CACHE_TTL).catch(() => {});
 
-            // Fetch lesson counts for each chapter in parallel
             const counts: Record<string, number> = {};
             await Promise.all(
                 filteredChapters.map(async (chapter) => {
@@ -87,7 +82,6 @@ export default function ChaptersListScreen() {
             setLessonCounts(counts);
             setCache(LESSON_COUNTS_CACHE_KEY, counts, LESSON_COUNTS_CACHE_TTL).catch(() => {});
         } catch (error: any) {
-            // If we have cached data, don't show error
             const cached = getCacheSync<Chapter[]>(CHAPTERS_CACHE_KEY);
             if (!cached) {
                 Alert.alert("Error", error.message || "Failed to load chapters. Please try again.");
