@@ -55,7 +55,10 @@ export default function SetPassword() {
         .then((res) => {
           setSubjects(Array.isArray(res) ? res : (res?.data ?? []));
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.error('Failed to load subjects:', err);
+          setError('Failed to load subjects. Please try refreshing the page.');
+        });
     }
   }, [isTeacher, step, subjects.length]);
 
