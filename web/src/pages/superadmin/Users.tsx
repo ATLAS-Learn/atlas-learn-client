@@ -20,7 +20,6 @@ export default function SuperadminUsers() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('teacher');
-  const [inviteLoading, setInviteLoading] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);

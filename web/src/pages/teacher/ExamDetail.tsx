@@ -79,8 +79,11 @@ export default function ExamDetail() {
   }, [tab, examId, loadAttempts, loadCorrections]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // AI questions go into draft queue — no API call yet
-  const handleAIAccept = (questions: DraftQuestion[]) => {
-    setDraftQuestions(prev => [...prev, ...questions.map(q => ({ ...q, isDraft: true as const }))])
+  const handleAIAccept = (questions: { questionText: string; options: string[]; correctAnswerIndex: number; explanation: string; points: number; questionType: 'MCQ' | 'STRUCTURAL'; sampleAnswer?: string }[]) => {
+    setDraftQuestions(prev => [...prev, ...questions.map(q => ({
+      ...q,
+      isDraft: true as const,
+    }))])
     setShowAIGenerator(false)
   }
 
@@ -707,7 +710,7 @@ export default function ExamDetail() {
         <AIQuestionGenerator
           mode='exam'
           subjectId={exam.subjectId}
-          initialChapterIds={exam.questions?.length ? [...new Set(exam.questions.map((q: any) => q.chapterId).filter(Boolean))] : undefined}
+          initialChapterIds={exam.questions?.length ? [...new Set(exam.questions.map((q: any) => q.chapterId).filter(Boolean) as string[])] : undefined}
           onAccept={handleAIAccept}
           onClose={() => setShowAIGenerator(false)}
         />

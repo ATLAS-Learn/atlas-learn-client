@@ -24,18 +24,15 @@ interface Overview {
 export default function SuperadminDashboard() {
   const [overview, setOverview] = useState<Overview>({});
   const [signupTrend, setSignupTrend] = useState<any[]>([]);
-  const [weeklyActive, setWeeklyActive] = useState<any>(null);
   const [topSubjects, setTopSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [ov, trend, wau, quiz] = await Promise.allSettled([
+        const [ov, trend] = await Promise.allSettled([
           api.getSuperadminOverview(),
           api.getSuperadminSignupTrend(),
-          api.getSuperadminWAU(),
-          api.getSuperadminQuizStats(),
         ]);
 
         if (ov.status === 'fulfilled') {
@@ -47,7 +44,6 @@ export default function SuperadminDashboard() {
           const t = trend.value as any;
           setSignupTrend(t.trend || t.data || []);
         }
-        if (wau.status === 'fulfilled') setWeeklyActive(wau.value);
       } catch (e) {
         console.error('Failed to load superadmin dashboard:', e);
       } finally {

@@ -11,14 +11,12 @@ export default function AdminUsers() {
   const limit = 20;
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('teacher');
+  const [inviteRole] = useState('teacher');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
   const [pendingInvites, setPendingInvites] = useState<any[]>([]);
   const [showInvites, setShowInvites] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const isSuperadmin = currentUser?.role === 'superadmin';
 
   const loadUsers = useCallback(async () => {
     try {
@@ -99,13 +97,6 @@ export default function AdminUsers() {
 
   useEffect(() => {
     loadPendingInvites();
-  }, []);
-
-  useEffect(() => {
-    api
-      .getCurrentUser()
-      .then((res) => setCurrentUser(res?.data ?? res))
-      .catch(() => {});
   }, []);
 
   const roleBadge = (role: string) => {
