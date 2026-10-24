@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  Keyboard,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -621,7 +620,7 @@ export default function LessonDetailScreen() {
                 }}
               />
             ) : (
-              <EnrichedMarkdownText
+              <SafeMarkdown
                 flavor='github'
                 markdown={lesson.content}
                 markdownStyle={{
