@@ -24,7 +24,7 @@ import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import SafeMarkdown from '@/components/SafeMarkdown';
-import RenderHtml from 'react-native-render-html';
+import RenderHtml from '@native-html/render';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiClient } from '@/lib/api';
 import { Lesson, LessonWithProgress } from '@/lib/types';
