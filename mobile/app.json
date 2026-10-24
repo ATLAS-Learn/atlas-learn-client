@@ -36,6 +36,12 @@
       "bundler": "metro"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "newArchEnabled": true
+        }
+      ],
       "expo-router",
       "expo-image-picker",
       [
