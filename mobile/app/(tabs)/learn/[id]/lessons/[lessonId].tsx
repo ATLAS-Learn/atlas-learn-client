@@ -18,13 +18,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import SafeMarkdown from '@/components/SafeMarkdown';
 import RenderHtml from 'react-native-render-html';
-import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiClient } from '@/lib/api';
 import { Lesson, LessonWithProgress } from '@/lib/types';
@@ -173,7 +173,7 @@ export default function LessonDetailScreen() {
 
   // Scroll-based header/tabbar hide
   const insets = useSafeAreaInsets();
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrollY] = useState(() => new Animated.Value(0));
   const lastScrollY = useRef(0);
   const headerHidden = useRef(false);
   const [headerVisible, setHeaderVisible] = useState(true);
