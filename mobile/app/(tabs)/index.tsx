@@ -112,6 +112,35 @@ export default function HomeTab() {
     const quizzesTotal = overallProgress?.overall?.quizzes?.total ?? 0;
     const totalTimeSpent = overallProgress?.overall?.totalTimeSpent ?? 0;
     const streak = streakData?.streak ?? 0;
+    const streakPulse = useRef(new RNAnimated.Value(0)).current;
+
+    useEffect(() => {
+        streakPulse.stopAnimation();
+        streakPulse.setValue(0);
+
+        if (streak <= 0) return;
+
+        const pulse = RNAnimated.loop(
+            RNAnimated.sequence([
+                RNAnimated.timing(streakPulse, {
+                    toValue: 1,
+                    duration: 650,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+                RNAnimated.timing(streakPulse, {
+                    toValue: 0,
+                    duration: 650,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+                RNAnimated.delay(350),
+            ]),
+        );
+
+        pulse.start();
+        return () => pulse.stop();
+    }, [streak, streakPulse]);
 
     const averageScore = useMemo(() => {
         if (!Array.isArray(quizAttempts) || quizAttempts.length === 0) return 0;
@@ -162,14 +191,33 @@ export default function HomeTab() {
                             <Ionicons name="person" size={22} color="#FFF" />
                         </View>
                     )}
-                    <View>
+                    <View style={styles.headerIdentity}>
                         <Text style={styles.greeting}>Welcome back</Text>
-                        <Text style={styles.name}>{displayName}</Text>
+                        <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+                            {displayName}
+                        </Text>
                     </View>
                 </View>
                 {streak > 0 && (
                     <View style={styles.streakBadge}>
-                        <Text style={styles.streakIcon}>{"\uD83D\uDD25"}</Text>
+                        <RNAnimated.View
+                            style={{
+                                transform: [
+                                    {
+                                        scale: streakPulse.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [1, 1.3],
+                                        }),
+                                    },
+                                ],
+                                opacity: streakPulse.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.85, 1],
+                                }),
+                            }}
+                        >
+                            <Text style={styles.streakIcon}>{"\uD83D\uDD25"}</Text>
+                        </RNAnimated.View>
                         <Text style={styles.streakText}>{streak}</Text>
                     </View>
                 )}
@@ -354,7 +402,8 @@ const styles = StyleSheet.create({
         marginBottom: 24,
         marginTop: 8,
     },
-    headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+    headerLeft: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 12 },
+    headerIdentity: { flex: 1, minWidth: 0 },
     avatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: GOLD },
     avatarPlaceholder: {
         width: 48,
@@ -365,7 +414,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     greeting: { fontSize: 13, color: "#888", fontWeight: "500" },
-    name: { fontSize: 24, fontWeight: "800", color: BLACK, marginTop: 1 },
+    name: {
+        flexShrink: 1,
+        fontSize: 20,
+        fontWeight: "800",
+        color: BLACK,
+        marginTop: 1,
+    },
     streakBadge: {
         flexDirection: "row",
         alignItems: "center",
@@ -375,7 +430,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         gap: 4,
     },
-    streakIcon: { fontSize: 16 },
+    streakIcon: { fontSize: 22 },
     streakText: { fontSize: 14, fontWeight: "700", color: GOLD },
 
     // Streak Banner

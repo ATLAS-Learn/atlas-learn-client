@@ -1,5 +1,4 @@
 allowBuilds:
-  react-native-enriched-markdown: true
   unrs-resolver: false
 onlyBuiltDependencies:
   - unrs-resolver

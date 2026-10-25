@@ -21,6 +21,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import SafeMarkdown from '@/components/SafeMarkdown';
@@ -179,6 +180,12 @@ export default function LessonDetailScreen() {
   const [headerVisible, setHeaderVisible] = useState(true);
 
   const HEADER_HEIGHT = insets.top + 50; // safe area + header content
+
+  useEffect(() => {
+    return () => {
+      navigation.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation]);
 
   useEffect(() => {
     const listenerId = scrollY.addListener(({ value }) => {
@@ -505,6 +512,7 @@ export default function LessonDetailScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
+      <StatusBar hidden />
       {/* Animated Header */}
       <Animated.View
         style={[
