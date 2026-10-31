@@ -50,7 +50,7 @@
           "image": "./assets/images/splash-badge.png",
           "imageWidth": 240,
           "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF"
+          "backgroundColor": "#084858"
         }
       ],
       "expo-font",

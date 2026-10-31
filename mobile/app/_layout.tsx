@@ -1,11 +1,11 @@
 import "../styles/global.css";
 
 import { Stack, useRouter } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef } from "react";
 import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { FontLoader } from "@/components/ui/font-loader";
-import { SplashScreen } from "@/components/ui/splash-screen";
 import OfflineBanner from "@/components/ui/offline-banner";
 import { useAppFlow } from "../hooks/useAppFlow";
 import { AuthProvider } from "@/providers/AuthProvider";
@@ -15,6 +15,10 @@ import { storage } from "@/lib/utils/storage";
 import useBackgroundSync from "@/hooks/useBackgroundSync";
 import useChapterPrefetch from "@/hooks/useChapterPrefetch";
 import useOfflinePreload from "@/hooks/useOfflinePreload";
+
+// Hold the native splash until the app flow resolves (must run at module
+// scope, before expo-router's delayed internal preventAutoHide kicks in).
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function SyncProvider({ children }: { children: React.ReactNode }) {
   useBackgroundSync();
@@ -50,14 +54,22 @@ export default function RootLayout() {
     }
   }, [isLoading, isAuthenticated, assessmentComplete, router]);
 
+  // Reveal the app once the flow has resolved and the redirect target has
+  // mounted — the native splash covers the screen until hideAsync().
+  useEffect(() => {
+    if (isLoading) return;
+    const timer = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
   if (isLoading) {
     return (
       <SafeAreaProvider className="bg-[#FAFAFA]">
         <QueryProvider>
           <AuthProvider>
-            <FontLoader>
-              <SplashScreen />
-            </FontLoader>
+            <FontLoader>{null}</FontLoader>
           </AuthProvider>
         </QueryProvider>
       </SafeAreaProvider>

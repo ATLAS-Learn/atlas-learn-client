@@ -331,9 +331,9 @@ export default function HomeTab() {
                                     >
                                         <View style={styles.pathLeft}>
                                             <View style={styles.pathDot} />
-                                            <View>
-                                                <Text style={styles.pathSubject}>{subject.subjectName}</Text>
-                                                <Text style={styles.pathChapter}>{next.title}</Text>
+                                            <View style={styles.pathInfo}>
+                                                <Text style={styles.pathSubject} numberOfLines={1}>{subject.subjectName}</Text>
+                                                <Text style={styles.pathChapter} numberOfLines={2}>{next.title}</Text>
                                             </View>
                                         </View>
                                         <View style={styles.pathRight}>
@@ -531,11 +531,12 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#F0F0F0",
     },
-    pathLeft: { flexDirection: "row", alignItems: "center", flex: 1, gap: 10 },
+    pathLeft: { flexDirection: "row", alignItems: "center", flex: 1, gap: 10, minWidth: 0 },
     pathDot: { width: 4, height: 32, borderRadius: 2, backgroundColor: GOLD },
+    pathInfo: { flex: 1, minWidth: 0 },
     pathSubject: { fontSize: 11, color: "#999", fontWeight: "600" },
     pathChapter: { fontSize: 14, fontWeight: "600", color: BLACK, marginTop: 2 },
-    pathRight: { flexDirection: "row", alignItems: "center", gap: 4 },
+    pathRight: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 0, marginLeft: 8 },
     pathPercent: { fontSize: 12, fontWeight: "700", color: DARK_TEAL },
     studyPlan: { fontSize: 12, color: "#999", fontStyle: "italic", marginTop: 4 },
 
