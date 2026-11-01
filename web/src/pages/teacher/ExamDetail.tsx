@@ -14,6 +14,61 @@ interface DraftQuestion {
   isDraft: true
 }
 
+const getStudentAnswer = (answer: any): string => {
+  if (typeof answer === 'string' || typeof answer === 'number') return String(answer)
+  if (answer && typeof answer === 'object') {
+    const nested = answer.textAnswers || answer.answers || answer.responses
+    if (nested && nested !== answer) return getStudentAnswer(nested)
+  }
+  const value = answer?.textAnswer
+    ?? answer?.answer
+    ?? answer?.response
+    ?? answer?.userAnswer
+    ?? answer?.text
+    ?? answer?.value
+  return value === null || value === undefined ? '' : String(value)
+}
+
+const getStructuralAnswers = (attempt: any, questions: any[] = []) => {
+  const structuralQuestions = questions.filter(q => q.questionType === 'STRUCTURAL')
+  const textAnswers = attempt?.textAnswers
+    || attempt?.studentAnswers
+    || attempt?.responses
+    || attempt?.submission?.textAnswers
+  const answerValues = attempt?.answers
+    || attempt?.questionAnswers
+    || attempt?.submission?.answers
+  const source = Array.isArray(attempt?.structuralAnswers)
+    ? attempt.structuralAnswers
+    : Array.isArray(textAnswers)
+      ? textAnswers
+      : textAnswers && typeof textAnswers === 'object'
+        ? Object.entries(textAnswers).map(([questionId, answer]) => ({ questionId, textAnswer: answer }))
+        : []
+
+  const sourceByQuestionId = new Map(source.map((answer: any) => [answer.questionId, answer]))
+  const sourceByIndex = source
+  const answerByQuestionId = Array.isArray(answerValues)
+    ? new Map(answerValues.map((answer: any) => [answer?.questionId, answer]))
+    : new Map()
+  return structuralQuestions.map((question: any, index: number) => {
+    const answer = sourceByQuestionId.get(question.id)
+      || sourceByIndex[index]
+      || answerByQuestionId.get(question.id)
+      || (Array.isArray(answerValues) ? { textAnswer: answerValues[question.orderIndex ?? index] } : null)
+      || (answerValues && typeof answerValues === 'object' ? { textAnswer: answerValues[question.id] } : null)
+      || {}
+    return {
+      ...answer,
+      questionId: question.id || answer.questionId || `structural-${index}`,
+      questionText: question.questionText || question.question || answer.questionText || '',
+      orderIndex: question.orderIndex ?? answer.orderIndex ?? index,
+      points: question.points ?? answer.points ?? 0,
+      textAnswer: getStudentAnswer(answer),
+    }
+  })
+}
+
 export default function ExamDetail() {
   const { examId } = useParams<{ examId: string }>()
   const navigate = useNavigate()
@@ -42,6 +97,7 @@ export default function ExamDetail() {
   const [correctionSaving, setCorrectionSaving] = useState(false)
   const [editingDraftIdx, setEditingDraftIdx] = useState<number | null>(null)
   const [editDraftForm, setEditDraftForm] = useState<DraftQuestion | null>(null)
+  const correctingStructuralAnswers = getStructuralAnswers(correctingAttempt, exam?.questions)
 
   const loadExam = async () => {
     if (!examId) return
@@ -581,7 +637,7 @@ export default function ExamDetail() {
                           onClick={() => {
                             setCorrectingAttempt(attempt)
                             const grades: Record<string, { points: number; comment: string }> = {}
-                            attempt.structuralAnswers?.forEach((a: any) => {
+                            getStructuralAnswers(attempt, exam?.questions).forEach((a: any) => {
                               grades[a.questionId] = { points: 0, comment: '' }
                             })
                             setCorrectionGrades(grades)
@@ -736,7 +792,7 @@ export default function ExamDetail() {
 
             {/* Modal Body */}
             <div className='px-6 py-4 space-y-4 overflow-y-auto flex-1'>
-              {correctingAttempt.structuralAnswers?.length > 0 ? correctingAttempt.structuralAnswers.map((a: any) => (
+              {correctingStructuralAnswers.length > 0 ? correctingStructuralAnswers.map((a: any) => (
                 <div key={a.questionId} className='border border-gray-200 rounded-xl p-4 space-y-3'>
                   <div className='flex items-start justify-between'>
                     <p className='text-sm font-semibold text-[#084A59] flex-1'>Q{a.orderIndex + 1}. {a.questionText}</p>

@@ -133,6 +133,12 @@ export default function QuizScreen() {
         return (typeof answer === 'number' ? answer : -1) as number;
       }),
     };
+    const mcqQuestions = quiz.questions.filter((q) => q.questionType !== 'STRUCTURAL');
+    const mcqCorrect = mcqQuestions.filter((q) => {
+      const answer = answers[q.id];
+      const correctAnswer = (q as any).correctAnswerIndex ?? (q as any).correctAnswer;
+      return typeof answer === 'number' && typeof correctAnswer === 'number' && answer === correctAnswer;
+    }).length;
 
     try {
       // Wait for server to score the quiz
@@ -179,6 +185,8 @@ export default function QuizScreen() {
           attemptId: result.attemptId,
           hasStructural: result.hasStructural ? 'true' : 'false',
           isCorrected: result.isCorrected ? 'true' : 'false',
+          mcqCorrect: mcqCorrect.toString(),
+          mcqTotal: mcqQuestions.length.toString(),
         },
       } as any);
     } catch (err) {
@@ -223,6 +231,10 @@ export default function QuizScreen() {
           unlockedNextChapter: 'false',
           nextChapterTitle: '',
           nextChapterId: '',
+          hasStructural: quiz.questions.some(q => q.questionType === 'STRUCTURAL') ? 'true' : 'false',
+          isCorrected: 'false',
+          mcqCorrect: mcqCorrect.toString(),
+          mcqTotal: mcqQuestions.length.toString(),
         },
       } as any);
     } finally {

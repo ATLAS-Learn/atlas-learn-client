@@ -30,6 +30,7 @@ import TeacherQuizList from './pages/teacher/QuizList'
 import TeacherQuizDetail from './pages/teacher/QuizDetail'
 import TeacherExamList from './pages/teacher/ExamList'
 import TeacherExamDetail from './pages/teacher/ExamDetail'
+import ExamAnalytics from './pages/teacher/ExamAnalytics'
 
 type Role = 'student' | 'teacher' | 'admin' | 'superadmin';
 
@@ -120,6 +121,7 @@ export default function App() {
         <Route path="subjects/:subjectId/chapters/:chapterId" element={<AdminChapterDetail />} />
         <Route path="quizzes" element={<TeacherQuizList />} />
         <Route path="quizzes/:quizId" element={<TeacherQuizDetail />} />
+        <Route path="exam-analytics" element={<ExamAnalytics />} />
         <Route path="role-upgrades" element={<AdminRoleUpgrades />} />
       </Route>
 
@@ -142,6 +144,7 @@ export default function App() {
         <Route path="quizzes/:quizId" element={<TeacherQuizDetail />} />
         <Route path="exams" element={<TeacherExamList />} />
         <Route path="exams/:examId" element={<TeacherExamDetail />} />
+        <Route path="exam-analytics" element={<ExamAnalytics />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

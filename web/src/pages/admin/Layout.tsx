@@ -70,6 +70,15 @@ const nav = [
     ),
   },
   {
+    to: '/admin/exam-analytics',
+    label: 'Exam Statistics',
+    icon: (
+      <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={1.5}>
+        <path strokeLinecap='round' strokeLinejoin='round' d='M4.5 19.5V9.75m7.5 9.75V4.5m7.5 15V13.5' />
+      </svg>
+    ),
+  },
+  {
     to: '/admin/role-upgrades',
     label: 'Role Upgrades',
     icon: (

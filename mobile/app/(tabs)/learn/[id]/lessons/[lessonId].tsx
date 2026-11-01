@@ -164,6 +164,10 @@ const isHtmlContent = (content: string): boolean => {
 export default function LessonDetailScreen() {
   const router = useRouter();
   const navigation = useNavigation();
+  const tabNavigation =
+    navigation.getParent()?.getParent() ??
+    navigation.getParent() ??
+    navigation;
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
   const { id, lessonId, subjectId } = useLocalSearchParams<{
@@ -183,9 +187,9 @@ export default function LessonDetailScreen() {
 
   useEffect(() => {
     return () => {
-      navigation.setOptions({ tabBarStyle: undefined });
+      tabNavigation.setOptions({ tabBarStyle: undefined });
     };
-  }, [navigation]);
+  }, [tabNavigation]);
 
   useEffect(() => {
     const listenerId = scrollY.addListener(({ value }) => {
@@ -204,7 +208,7 @@ export default function LessonDetailScreen() {
 
   // Hide/show tab bar based on scroll direction
   useEffect(() => {
-    navigation.setOptions({
+    tabNavigation.setOptions({
       tabBarStyle: headerVisible
         ? {
             backgroundColor: '#fff',
@@ -214,9 +218,14 @@ export default function LessonDetailScreen() {
             paddingBottom: 8,
             paddingTop: 6,
           }
-        : { height: 0, overflow: 'hidden', borderTopWidth: 0 },
+        : {
+            display: 'none',
+            height: 0,
+            overflow: 'hidden',
+            borderTopWidth: 0,
+          },
     });
-  }, [headerVisible, navigation]);
+  }, [headerVisible, tabNavigation]);
   const chapterId = Array.isArray(id) ? id[0] : id;
   const lessonKey = Array.isArray(lessonId) ? lessonId[0] : lessonId;
   const subjectKey = Array.isArray(subjectId) ? subjectId[0] : subjectId;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client'
 
 interface GeneratedQuestion {
@@ -49,25 +49,24 @@ export default function AIQuestionGenerator({
   const [selectedChapterIds, setSelectedChapterIds] = useState<Set<string>>(new Set(initialChapterIds || []))
   const [chaptersLoading, setChaptersLoading] = useState(true)
   const allChaptersSelected = chapters.length > 0 && selectedChapterIds.size === chapters.length
+  const initialChapterKey = initialChapterIds?.join(',') || ''
 
-  const loadChapters = async () => {
+  const loadChapters = useCallback(async () => {
     if (!subjectId) return
     try {
       const data = await api.getChaptersBySubject(subjectId)
       const list = Array.isArray(data) ? data : data?.data || []
       setChapters(list.sort((a: Chapter, b: Chapter) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)))
-      if (!initialChapterIds?.length) {
+      if (!initialChapterKey) {
         setSelectedChapterIds(new Set(list.map((c: Chapter) => c.id)))
       }
     } catch {} finally { setChaptersLoading(false) }
-  }
+  }, [subjectId, initialChapterKey])
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (subjectId && mode === 'exam') {
       loadChapters()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subjectId, mode, loadChapters])
 
   const toggleChapter = (id: string) => {
@@ -166,7 +165,7 @@ export default function AIQuestionGenerator({
   }
 
   return (
-    <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={onClose}>
+    <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4' onClick={onClose}>
       <div className='bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col' onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0'>
@@ -212,7 +211,7 @@ export default function AIQuestionGenerator({
                         </div>
                       </div>
                       <div className='max-h-48 overflow-y-auto divide-y divide-gray-50'>
-                        {chapters.map(ch => (
+                        {chapters.map((ch, index) => (
                           <label key={ch.id} className='flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50/50 cursor-pointer transition-colors'>
                             <input
                               type='checkbox'
@@ -220,7 +219,7 @@ export default function AIQuestionGenerator({
                               onChange={() => toggleChapter(ch.id)}
                               className='w-4 h-4 accent-[#084A59] rounded cursor-pointer'
                             />
-                            <span className='text-sm text-gray-700'>{ch.title}</span>
+                            <span className='text-sm text-gray-700'>Chapter {ch.orderIndex ?? index + 1}: {ch.title}</span>
                           </label>
                         ))}
                       </div>

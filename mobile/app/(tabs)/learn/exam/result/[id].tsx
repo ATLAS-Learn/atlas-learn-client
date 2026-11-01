@@ -16,6 +16,37 @@ import ScreenHeader from "@/components/ui/screen-header";
 
 const RESULT_CACHE_TTL = 30 * 1000;
 
+const getOrderedCorrections = (result: any) => {
+    const corrections = Array.isArray(result?.corrections) ? result.corrections : [];
+    const questions = Array.isArray(result?.exam?.questions) ? result.exam.questions : [];
+    if (!questions.length) return corrections;
+
+    const byQuestionId = new Map(corrections.map((correction: any) => [correction.questionId, correction]));
+    return questions
+        .map((question: any, index: number) => {
+            const correction = byQuestionId.get(question.id) || corrections[index];
+            return correction ? {
+                ...correction,
+                questionId: correction.questionId || question.id,
+                questionText: correction.questionText || question.questionText,
+                questionType: correction.questionType || question.questionType,
+            } : null;
+        })
+        .filter(Boolean);
+};
+
+const isCorrectionGraded = (correction: any) =>
+    correction?.isCorrect === true ||
+    correction?.isCorrect === false ||
+    correction?.isGraded === true ||
+    correction?.graded === true ||
+    correction?.isCorrected === true ||
+    correction?.corrected === true ||
+    correction?.pointsAwarded !== undefined ||
+    correction?.awardedPoints !== undefined ||
+    correction?.scoreAwarded !== undefined ||
+    correction?.gradedAt != null;
+
 export default function ExamResultScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -92,13 +123,18 @@ export default function ExamResultScreen() {
         );
     }
 
-    const resultIsCorrected = result.isCorrected !== false;
+    const corrections = getOrderedCorrections(result);
+    const structuralCorrections = corrections.filter((correction: any) => correction.questionType === "STRUCTURAL");
+    const hasPendingStructural = structuralCorrections.some((correction: any) => !isCorrectionGraded(correction));
+    const resultIsCorrected = structuralCorrections.length > 0
+        ? !hasPendingStructural
+        : result.isCorrected !== false;
     const passed = resultIsCorrected && result.score >= 70;
-    const correctCount = result.corrections?.filter((c: any) => c.isCorrect === true).length ?? 0;
-    const totalQuestions = result.corrections?.length ?? 0;
-    const structuralCount = result.corrections?.filter((c: any) => c.questionType === "STRUCTURAL").length ?? 0;
-    const mcqCorrect = result.corrections?.filter((c: any) => c.questionType === "MCQ" && c.isCorrect === true).length ?? 0;
-    const mcqTotal = result.corrections?.filter((c: any) => c.questionType === "MCQ").length ?? 0;
+    const correctCount = corrections.filter((c: any) => c.isCorrect === true).length;
+    const totalQuestions = corrections.length;
+    const structuralCount = corrections.filter((c: any) => c.questionType === "STRUCTURAL").length;
+    const mcqCorrect = corrections.filter((c: any) => c.questionType === "MCQ" && c.isCorrect === true).length;
+    const mcqTotal = corrections.filter((c: any) => c.questionType === "MCQ").length;
 
     return (
         <View style={styles.container}>
@@ -163,8 +199,8 @@ export default function ExamResultScreen() {
                     <Text style={styles.infoMeta}>{result.exam?.subject?.name}</Text>
                 </View>
 
-                <Text style={styles.sectionTitle}>Review Answers</Text>
-                {result.corrections?.map((c: any, idx: number) => (
+                {resultIsCorrected && <Text style={styles.sectionTitle}>Review Answers</Text>}
+                {resultIsCorrected && corrections.map((c: any, idx: number) => (
                     <View key={idx} style={styles.correctionCard}>
                         <View style={styles.correctionHeader}>
                             <Text style={styles.correctionLabel}>Q{idx + 1} · {c.points}pts</Text>
