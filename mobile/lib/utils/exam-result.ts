@@ -24,12 +24,14 @@ export const getOrderedCorrections = (result: any) => {
         .filter(Boolean);
 };
 
+const normalizeBoolean = (value: any): boolean | null => {
+    if (value === true || value === "true" || value === 1 || value === "1") return true;
+    if (value === false || value === "false" || value === 0 || value === "0") return false;
+    return null;
+};
+
 const normalizeCorrection = (correction: any) => {
-    const isCorrect = correction?.isCorrect === true || correction?.isCorrect === "true"
-        ? true
-        : correction?.isCorrect === false || correction?.isCorrect === "false"
-            ? false
-            : correction?.isCorrect ?? null;
+    const isCorrect = normalizeBoolean(correction?.isCorrect) ?? correction?.isCorrect ?? null;
 
     return {
         ...correction,
@@ -75,3 +77,29 @@ export const isMcqCorrect = (correction: any) =>
         Number(correction.earnedPoints) >= Number(correction.points) &&
         Number(correction.points) > 0
     );
+
+export type CorrectionStatus = "correct" | "partial" | "incorrect" | "pending";
+
+export const getCorrectionStatus = (correction: any): CorrectionStatus => {
+    const isCorrect = normalizeBoolean(correction?.isCorrect);
+    const earned =
+        correction?.earnedPoints == null ? null : Number(correction.earnedPoints);
+    const points =
+        correction?.points == null ? null : Number(correction.points);
+
+    if (isCorrect === true) return "correct";
+
+    if (earned != null && points != null && points > 0) {
+        if (earned >= points) return "correct";
+        if (earned > 0) return "partial";
+        return "incorrect";
+    }
+
+    if (isCorrect === false) return "incorrect";
+    if (isCorrectionGraded(correction) && earned != null) {
+        if (earned > 0) return "partial";
+        return "incorrect";
+    }
+
+    return "pending";
+};

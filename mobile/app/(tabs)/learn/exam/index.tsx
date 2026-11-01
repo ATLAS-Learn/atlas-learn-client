@@ -73,14 +73,25 @@ export default function ExamListScreen() {
             )}
             {item.userAttempt && (
                 <View style={styles.attemptBadge}>
-                    <Ionicons
-                        name={item.userAttempt.score >= 70 ? "checkmark-circle" : "close-circle"}
-                        size={14}
-                        color={item.userAttempt.score >= 70 ? "#16A34A" : "#DC2626"}
-                    />
-                    <Text style={[styles.attemptBadgeText, { color: item.userAttempt.score >= 70 ? "#16A34A" : "#DC2626" }]}>
-                        Score: {item.userAttempt.score}%
-                    </Text>
+                    {item.userAttempt.isCorrected !== false ? (
+                        <>
+                            <Ionicons
+                                name={item.userAttempt.score >= 70 ? "checkmark-circle" : "close-circle"}
+                                size={14}
+                                color={item.userAttempt.score >= 70 ? "#16A34A" : "#DC2626"}
+                            />
+                            <Text style={[styles.attemptBadgeText, { color: item.userAttempt.score >= 70 ? "#16A34A" : "#DC2626" }]}>
+                                Score: {item.userAttempt.score}%
+                            </Text>
+                        </>
+                    ) : (
+                        <>
+                            <Ionicons name="time-outline" size={14} color="#D97706" />
+                            <Text style={[styles.attemptBadgeText, { color: "#D97706" }]}>
+                                Pending Review
+                            </Text>
+                        </>
+                    )}
                 </View>
             )}
             <View style={styles.examFooter}>

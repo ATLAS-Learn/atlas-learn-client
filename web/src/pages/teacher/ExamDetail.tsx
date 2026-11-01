@@ -69,6 +69,24 @@ const getStructuralAnswers = (attempt: any, questions: any[] = []) => {
   })
 }
 
+const canGradeAttempt = (attempt: any) =>
+  !attempt?.isCorrected || !attempt?.hasTeacherCorrections
+
+const getStoredCorrections = (attempt: any): Record<string, { points: number; comment: string }> => {
+  try {
+    const raw = typeof attempt?.textAnswers === 'string' ? JSON.parse(attempt.textAnswers) : attempt?.textAnswers
+    const corrections = raw && typeof raw === 'object' ? raw.__teacherCorrections : null
+    if (!corrections || typeof corrections !== 'object') return {}
+    const stored: Record<string, { points: number; comment: string }> = {}
+    for (const [questionId, value] of Object.entries<any>(corrections)) {
+      stored[questionId] = { points: Number(value?.points) || 0, comment: String(value?.comment ?? '') }
+    }
+    return stored
+  } catch {
+    return {}
+  }
+}
+
 export default function ExamDetail() {
   const { examId } = useParams<{ examId: string }>()
   const navigate = useNavigate()
@@ -637,14 +655,15 @@ export default function ExamDetail() {
                           onClick={() => {
                             setCorrectingAttempt(attempt)
                             const grades: Record<string, { points: number; comment: string }> = {}
+                            const stored = getStoredCorrections(attempt)
                             getStructuralAnswers(attempt, exam?.questions).forEach((a: any) => {
-                              grades[a.questionId] = { points: 0, comment: '' }
+                              grades[a.questionId] = stored[a.questionId] || { points: 0, comment: '' }
                             })
                             setCorrectionGrades(grades)
                           }}
                           className='px-4 py-1.5 bg-[#084A59] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'
                         >
-                          {attempt.isCorrected ? 'View' : 'Grade'}
+                          {attempt.isCorrected ? (attempt.hasTeacherCorrections ? 'View' : 'Re-grade') : 'Grade'}
                         </button>
                       </td>
                     </tr>
@@ -803,7 +822,7 @@ export default function ExamDetail() {
                     {a.textAnswer || '(No answer provided)'}
                   </div>
 
-                  {!correctingAttempt.isCorrected && (
+                  {canGradeAttempt(correctingAttempt) && (
                     <div className='grid grid-cols-2 gap-3'>
                       <div>
                         <label className='text-xs font-semibold text-gray-500'>Points Awarded</label>
@@ -827,6 +846,17 @@ export default function ExamDetail() {
                       </div>
                     </div>
                   )}
+
+                  {!canGradeAttempt(correctingAttempt) && (() => {
+                    const stored = getStoredCorrections(correctingAttempt)[a.questionId]
+                    if (!stored) return null
+                    return (
+                      <p className='text-xs text-gray-500'>
+                        <span className='font-bold text-[#084A59]'>Graded:</span> {stored.points} / {a.points} pts
+                        {stored.comment ? ` — ${stored.comment}` : ''}
+                      </p>
+                    )
+                  })()}
                 </div>
               )) : (
                 <p className='text-sm text-gray-400 text-center py-8'>No essay questions in this exam</p>
@@ -834,7 +864,7 @@ export default function ExamDetail() {
             </div>
 
             {/* Modal Footer */}
-            {!correctingAttempt.isCorrected && (
+            {canGradeAttempt(correctingAttempt) && (
               <div className='px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0'>
                 <button
                   onClick={() => setCorrectingAttempt(null)}
