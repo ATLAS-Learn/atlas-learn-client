@@ -39,6 +39,17 @@ export default function ExamTakeScreen() {
     const headerHidden = useRef(false);
     const [headerVisible, setHeaderVisible] = useState(true);
 
+    // Latest values readable from timer/background/back-button submit closures
+    // (those callbacks capture the first render's closure, so state reads would be stale).
+    const answersRef = useRef(answers);
+    const textAnswersRef = useRef(textAnswers);
+    const timeLeftRef = useRef(timeLeft);
+    const examRef = useRef(exam);
+    answersRef.current = answers;
+    textAnswersRef.current = textAnswers;
+    timeLeftRef.current = timeLeft;
+    examRef.current = exam;
+
     useEffect(() => {
         const listenerId = scrollY.addListener(({ value }) => {
             const diff = value - lastScrollY.current;
@@ -183,7 +194,12 @@ export default function ExamTakeScreen() {
         if (submitting || submittedRef.current) return;
         if (timerRef.current) clearInterval(timerRef.current);
 
-        const unanswered = answers.filter((a) => a === -1).length;
+        const unanswered = (exam?.questions ?? []).filter(
+            (q: any, i: number) =>
+                q.questionType === "STRUCTURAL"
+                    ? !(textAnswers[q.id] || "").trim()
+                    : answers[i] === -1
+        ).length;
         if (unanswered > 0) {
             Alert.alert(
                 "Incomplete Exam",
@@ -204,12 +220,13 @@ export default function ExamTakeScreen() {
         setSubmitting(true);
         if (timerRef.current) clearInterval(timerRef.current);
         try {
-            const timeSpent = exam?.timeLimit
-                ? exam.timeLimit - (timeLeft ?? 0)
+            const timeLimit = examRef.current?.timeLimit;
+            const timeSpent = timeLimit
+                ? Math.max(0, timeLimit - (timeLeftRef.current ?? 0))
                 : 0;
-            const result = await apiClient.submitExam(examId, {
-                answers,
-                textAnswers,
+            await apiClient.submitExam(examId, {
+                answers: answersRef.current,
+                textAnswers: textAnswersRef.current,
                 timeSpent,
             });
             router.replace({

@@ -117,6 +117,25 @@ export default function ExamDetail() {
   const [editDraftForm, setEditDraftForm] = useState<DraftQuestion | null>(null)
   const correctingStructuralAnswers = getStructuralAnswers(correctingAttempt, exam?.questions)
 
+  // Per-question MCQ pass/fail derived from the real stored answers vs correctAnswerIndex.
+  // The answers array is positional over the orderIndex-ordered question list (same as the server).
+  const mcqResults = correctingAttempt && Array.isArray(exam?.questions)
+    ? exam.questions.flatMap((q: any, idx: number) => {
+        if (q.questionType !== 'MCQ') return []
+        const list = Array.isArray(correctingAttempt.answers) ? correctingAttempt.answers : []
+        const raw = list[idx]
+        const studentIndex = raw == null || raw === '' ? -1 : Number(raw)
+        const correct = Number(q.correctAnswerIndex)
+        return [{
+          question: q,
+          idx,
+          studentIndex,
+          correct,
+          passed: studentIndex >= 0 && studentIndex === correct,
+        }]
+      })
+    : []
+
   const loadExam = async () => {
     if (!examId) return
     try {
@@ -580,7 +599,7 @@ export default function ExamDetail() {
                         <p className='text-xs text-gray-400'>{a.user?.email}</p>
                       </td>
                       <td className='px-5 py-3'>
-                        <span className={`text-sm font-bold ${a.score >= 70 ? 'text-green-600' : 'text-red-500'}`}>
+                        <span className={`text-sm font-bold ${a.isCorrected ? (a.score >= 70 ? 'text-green-600' : 'text-red-500') : 'text-amber-600'}`}>
                           {a.isCorrected ? `${a.score}%` : `~${a.score}%`}
                         </span>
                       </td>
@@ -638,7 +657,9 @@ export default function ExamDetail() {
                         <p className='text-xs text-gray-400'>{attempt.user?.email}</p>
                       </td>
                       <td className='px-5 py-3'>
-                        <span className='text-sm font-bold text-gray-500'>~{attempt.score}%</span>
+                        <span className={`text-sm font-bold ${attempt.isCorrected ? (attempt.score >= 70 ? 'text-green-600' : 'text-red-500') : 'text-amber-600'}`}>
+                          {attempt.isCorrected ? `${attempt.score}%` : `~${attempt.score}%`}
+                        </span>
                       </td>
                       <td className='px-5 py-3'>
                         {attempt.isCorrected ? (
@@ -811,6 +832,29 @@ export default function ExamDetail() {
 
             {/* Modal Body */}
             <div className='px-6 py-4 space-y-4 overflow-y-auto flex-1'>
+              {mcqResults.length > 0 && (
+                <div className='border border-gray-200 rounded-xl p-4 space-y-3'>
+                  <p className='text-xs font-bold text-gray-400 uppercase'>Multiple Choice</p>
+                  {mcqResults.map(({ question, idx, studentIndex, correct, passed }: any) => (
+                    <div key={question.id} className='flex items-start justify-between gap-3 text-sm'>
+                      <div className='flex-1'>
+                        <p className='text-sm text-[#084A59] font-medium'>Q{idx + 1}. {question.questionText}</p>
+                        <p className='text-xs text-gray-500 mt-1'>
+                          Student:{' '}
+                          {studentIndex >= 0
+                            ? `${String.fromCharCode(65 + studentIndex)}. ${(question.options || [])[studentIndex] ?? ''}`
+                            : 'No answer'}
+                          {'  ·  '}Correct: {String.fromCharCode(65 + correct)}. {(question.options || [])[correct] ?? ''}
+                        </p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold shrink-0 ${passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                        {passed ? 'Passed' : 'Failed'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {correctingStructuralAnswers.length > 0 ? correctingStructuralAnswers.map((a: any) => (
                 <div key={a.questionId} className='border border-gray-200 rounded-xl p-4 space-y-3'>
                   <div className='flex items-start justify-between'>
