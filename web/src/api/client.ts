@@ -2,9 +2,22 @@ import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
+type RequestOptions = {
+  method?: string;
+  data?: any;
+  params?: any;
+  cache?: boolean;
+  cacheTtlMs?: number;
+};
+
+type CacheEntry = {
+  value: unknown;
+  expiresAt: number;
+};
+
 class WebAPIClient {
   private axiosInstance;
-  private schoolsCache: any = null;
+  private readonly getCache = new Map<string, CacheEntry>();
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -40,19 +53,68 @@ class WebAPIClient {
 
   clearUser() {
     localStorage.removeItem('admin_user');
+    this.clearCache();
+  }
+
+  clearCache() {
+    this.getCache.clear();
+  }
+
+  private cacheKey(endpoint: string, params?: any) {
+    if (!params) return endpoint;
+    const normalized = Object.keys(params)
+      .sort()
+      .reduce<Record<string, unknown>>((result, key) => {
+        result[key] = params[key];
+        return result;
+      }, {});
+    return `${endpoint}?${JSON.stringify(normalized)}`;
+  }
+
+  private defaultCacheTtl(endpoint: string) {
+    if (
+      endpoint.includes('/analytics/') ||
+      endpoint.includes('/stats') ||
+      endpoint.includes('/wau') ||
+      endpoint.includes('/activity') ||
+      endpoint.includes('/signups') ||
+      endpoint.includes('/attempts')
+    ) {
+      return 30_000;
+    }
+    return 10 * 60_000;
   }
 
   private async request<T>(
     endpoint: string,
-    options: { method?: string; data?: any; params?: any } = {},
+    options: RequestOptions = {},
   ): Promise<T> {
     const { method = 'GET', data, params } = options;
+    const useCache = method.toUpperCase() === 'GET' && options.cache !== false;
+    const key = this.cacheKey(endpoint, params);
+
+    if (useCache) {
+      const cached = this.getCache.get(key);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.value as T;
+      }
+      if (cached) this.getCache.delete(key);
+    }
+
     const response = await this.axiosInstance.request<T>({
       url: endpoint,
       method,
       data,
       params,
     });
+    if (useCache) {
+      this.getCache.set(key, {
+        value: response.data,
+        expiresAt: Date.now() + (options.cacheTtlMs ?? this.defaultCacheTtl(endpoint)),
+      });
+    } else if (method.toUpperCase() !== 'GET') {
+      this.clearCache();
+    }
     return response.data;
   }
 
@@ -62,6 +124,7 @@ class WebAPIClient {
 
   // Auth
   async login(email: string, password: string) {
+    this.clearCache();
     const res = await this.request<any>('/auth/sign-in/email', {
       method: 'POST',
       data: { email, password },
@@ -82,7 +145,7 @@ class WebAPIClient {
   }
 
   async getCurrentUser() {
-    const res = await this.request<any>('/auth/me');
+    const res = await this.request<any>('/auth/me', { cache: false });
     const full = this.unwrap(res);
     // /auth/me returns { user, session } - extract just user
     return full?.user ?? full;
@@ -269,6 +332,13 @@ class WebAPIClient {
     return this.unwrap(res);
   }
 
+  async getQuiz(quizId: string) {
+    const res = await this.request<any>(`/quizzes/${quizId}`, {
+      params: { includeQuestions: true },
+    });
+    return this.unwrap(res);
+  }
+
   async createQuiz(chapterId: string, data: any) {
     return this.request<any>(`/chapters/${chapterId}/quizzes`, {
       method: 'POST',
@@ -446,9 +516,7 @@ class WebAPIClient {
   }
 
   async getSchools() {
-    if (this.schoolsCache) return this.schoolsCache;
     const res = await this.request<any>('/schools');
-    this.schoolsCache = res;
     return res;
   }
 
@@ -544,12 +612,17 @@ class WebAPIClient {
 
   // Notifications
   async getNotifications(params?: { limit?: number; offset?: number; unreadOnly?: boolean }) {
-    const res = await this.request<any>('/notifications', { params });
+    const res = await this.request<any>('/notifications', {
+      params,
+      cacheTtlMs: 30_000,
+    });
     return this.unwrap(res);
   }
 
   async getUnreadNotificationCount() {
-    const res = await this.request<any>('/notifications/unread-count');
+    const res = await this.request<any>('/notifications/unread-count', {
+      cacheTtlMs: 30_000,
+    });
     return this.unwrap(res);
   }
 
@@ -639,7 +712,10 @@ class WebAPIClient {
 
   // Superadmin Schools
   async getSuperadminSchools(params?: { search?: string }) {
-    const res = await this.request<any>('/superadmin/schools', { params });
+    const res = await this.request<any>('/superadmin/schools', {
+      params,
+      cacheTtlMs: 30_000,
+    });
     return res;
   }
 

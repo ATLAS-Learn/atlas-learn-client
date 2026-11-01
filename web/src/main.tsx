@@ -7,7 +7,13 @@ import App from './App'
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, refetchOnWindowFocus: false },
+    queries: {
+      retry: 1,
+      staleTime: 10 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+    },
   },
 })
 

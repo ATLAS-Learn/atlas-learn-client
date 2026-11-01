@@ -600,9 +600,9 @@ export default function LessonDetailScreen() {
                   i: { fontStyle: 'italic' },
                   u: { textDecorationLine: 'underline' },
                   a: { color: '#084A59', textDecorationLine: 'underline' },
-                  li: { marginVertical: 2 },
-                  ol: { marginVertical: 6, paddingLeft: 20 },
-                  ul: { marginVertical: 6, paddingLeft: 20 },
+                  li: { marginVertical: 4 },
+                  ol: { marginVertical: 8, paddingLeft: 20 },
+                  ul: { marginVertical: 8, paddingLeft: 20 },
                   blockquote: {
                     borderLeftWidth: 3,
                     borderLeftColor: '#084A59',
@@ -697,6 +697,9 @@ export default function LessonDetailScreen() {
                   math: { fontSize: 16, color: '#374151', padding: 8 },
                   inlineMath: { color: '#374151' },
                   list: { marginBottom: 12 },
+                  bullet_list: { marginBottom: 12 },
+                  ordered_list: { marginBottom: 12 },
+                  list_item: { marginBottom: 8 },
                   thematicBreak: {
                     color: '#E0E0E0',
                     height: 1,

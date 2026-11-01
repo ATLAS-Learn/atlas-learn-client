@@ -3,6 +3,21 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../../api/client'
 import RichTextEditor from '../../components/RichTextEditor'
 
+const getQuestionText = (question: any) => question.question || question.questionText || ''
+const getCorrectAnswerIndex = (question: any) => question.correctAnswer ?? question.correctAnswerIndex ?? 0
+const getQuestionOptions = (question: any): string[] => {
+  if (Array.isArray(question.options)) return question.options
+  if (typeof question.options === 'string') {
+    try {
+      const parsed = JSON.parse(question.options)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
 export default function AdminChapterDetail() {
   const { subjectId, chapterId } = useParams<{ subjectId: string; chapterId: string }>()
   const navigate = useNavigate()
@@ -10,6 +25,7 @@ export default function AdminChapterDetail() {
   const [chapter, setChapter] = useState<any>(null)
   const [lessons, setLessons] = useState<any[]>([])
   const [quizzes, setQuizzes] = useState<any[]>([])
+  const [expandedQuizzes, setExpandedQuizzes] = useState<Set<string>>(new Set())
   const [pendingCorrections, setPendingCorrections] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
 
@@ -173,8 +189,8 @@ export default function AdminChapterDetail() {
     if (question) {
       setEditingQuestion(question)
       setQuestionForm({
-        question: question.question || '', options: question.options || ['', '', '', ''],
-        correctAnswer: question.correctAnswer ?? 0, explanation: question.explanation || '',
+        question: getQuestionText(question), options: getQuestionOptions(question).length ? getQuestionOptions(question) : ['', '', '', ''],
+        correctAnswer: getCorrectAnswerIndex(question), explanation: question.explanation || question.hint || '',
         points: question.points || 1,
       })
     } else {
@@ -203,6 +219,15 @@ export default function AdminChapterDetail() {
   const handleDeleteQuestion = async (quizId: string, questionId: string) => {
     if (!confirm('Delete this question?')) return
     try { await api.deleteQuestion(quizId, questionId); reloadQuizzes() } catch (err: any) { alert(err.message) }
+  }
+
+  const toggleQuiz = (quizId: string) => {
+    setExpandedQuizzes(previous => {
+      const next = new Set(previous)
+      if (next.has(quizId)) next.delete(quizId)
+      else next.add(quizId)
+      return next
+    })
   }
 
   const openReviewModal = async (quizId: string) => {
@@ -310,6 +335,20 @@ export default function AdminChapterDetail() {
         )}
       </div>
 
+      <div className='flex items-center justify-between bg-white rounded-2xl border border-gray-200 px-5 py-4'>
+        <div>
+          <h3 className='font-bold text-[#084A59] text-sm'>Quizzes</h3>
+          <p className='text-xs text-gray-400 mt-0.5'>{quizzes.length} quiz{quizzes.length !== 1 ? 'zes' : ''} for this chapter</p>
+        </div>
+        <button
+          onClick={() => navigate('/admin/quizzes')}
+          className='px-4 py-2 bg-[#084A59] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'
+        >
+          Manage Quizzes
+        </button>
+      </div>
+
+      {false && (<>
       {/* Quizzes Section */}
       <div>
         <div className='flex items-center justify-between mb-3'>
@@ -324,11 +363,21 @@ export default function AdminChapterDetail() {
           <div className='space-y-3'>
             {quizzes.map((quiz: any) => (
               <div key={quiz.id} className='bg-white rounded-2xl border border-gray-200 overflow-hidden'>
-                <div className='flex items-center justify-between px-5 py-4'>
-                  <div>
-                    <h4 className='font-bold text-[#084A59] text-sm'>{quiz.title}</h4>
-                    <p className='text-xs text-gray-400 mt-0.5'>{quiz.timeLimit ? `${quiz.timeLimit} min` : ''} &middot; {quiz.questions?.length ?? quiz._count?.questions ?? 0} questions</p>
-                  </div>
+                <div className='flex items-center gap-3 px-5 py-3'>
+                  <button
+                    type='button'
+                    onClick={() => toggleQuiz(quiz.id)}
+                    aria-expanded={expandedQuizzes.has(quiz.id)}
+                    className='flex items-center gap-3 min-w-0 flex-1 text-left'
+                  >
+                    <svg className={`w-4 h-4 flex-shrink-0 text-gray-400 transition-transform ${expandedQuizzes.has(quiz.id) ? 'rotate-90' : ''}`} fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
+                      <path strokeLinecap='round' strokeLinejoin='round' d='M9 5l7 7-7 7' />
+                    </svg>
+                    <span className='font-bold text-[#084A59] text-sm truncate'>{quiz.title}</span>
+                    <span className='text-xs text-gray-400 whitespace-nowrap'>
+                      {quiz.timeLimit ? `${quiz.timeLimit} min` : ''} &middot; {quiz.questions?.length ?? quiz._count?.questions ?? 0} questions
+                    </span>
+                  </button>
                   <div className='flex items-center gap-2'>
                     {pendingCorrections[quiz.id] > 0 && (
                       <button
@@ -342,21 +391,21 @@ export default function AdminChapterDetail() {
                     <button onClick={() => handleDeleteQuiz(quiz.id)} className='p-1.5 rounded-lg text-gray-400 hover:text-slate-400 hover:bg-slate-50 transition-colors'><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0' /></svg></button>
                   </div>
                 </div>
-                {quiz.questions && quiz.questions.length > 0 && (
+                {expandedQuizzes.has(quiz.id) && quiz.questions && quiz.questions.length > 0 && (
                   <div className='border-t border-gray-100 divide-y divide-gray-50'>
                     {quiz.questions.map((q: any, qi: number) => (
                       <div key={q.id || qi} className='px-5 py-3 hover:bg-gray-50/50 transition-colors'>
                         <div className='flex items-start justify-between gap-2'>
                           <div className='flex-1 min-w-0'>
-                            <p className='text-xs font-medium text-[#084A59]'><span className='text-gray-400 mr-1'>Q{qi + 1}.</span>{q.question}</p>
-                            {q.options && (
+                            <p className='text-xs font-medium text-[#084A59]'><span className='text-gray-400 mr-1'>Q{qi + 1}.</span>{getQuestionText(q) || 'Question text unavailable'}</p>
+                            {getQuestionOptions(q).length > 0 && (
                               <div className='flex flex-wrap gap-x-3 gap-y-0.5 mt-1 ml-4'>
-                                {q.options.map((opt: string, oi: number) => (
-                                  <span key={oi} className={`text-xs ${oi === q.correctAnswer ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>{String.fromCharCode(65 + oi)}. {opt}</span>
+                                {getQuestionOptions(q).map((opt: string, oi: number) => (
+                                  <span key={oi} className={`text-xs ${oi === getCorrectAnswerIndex(q) ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>{String.fromCharCode(65 + oi)}. {opt}{oi === getCorrectAnswerIndex(q) ? ' (correct)' : ''}</span>
                                 ))}
                               </div>
                             )}
-                            {q.explanation && <p className='text-xs text-gray-400 mt-1 ml-4 italic'>Explanation: {q.explanation}</p>}
+                            {(q.explanation || q.hint) && <p className='text-xs text-gray-400 mt-1 ml-4 italic'>Hint: {q.explanation || q.hint}</p>}
                             {q.points && <span className='text-xs font-semibold text-[#084A59] ml-4'>{q.points} pt{q.points !== 1 ? 's' : ''}</span>}
                           </div>
                           <div className='flex gap-0.5 flex-shrink-0'>
@@ -376,11 +425,12 @@ export default function AdminChapterDetail() {
           </div>
         )}
       </div>
+      </>)}
 
       {/* Lesson Modal */}
       {showLessonForm && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => { setShowLessonForm(false); setEditingLesson(null) }}>
-          <div className='bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl' onClick={e => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10'>
               <h3 className='text-lg font-bold text-[#084A59]'>{editingLesson ? 'Edit Lesson' : 'New Lesson'}</h3>
               <button onClick={() => { setShowLessonForm(false); setEditingLesson(null) }} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400'><svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg></button>
@@ -427,7 +477,7 @@ export default function AdminChapterDetail() {
       {/* Quiz Modal */}
       {showQuizForm && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => { setShowQuizForm(false); setEditingQuiz(null) }}>
-          <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={e => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-xl shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <h3 className='text-lg font-bold text-[#084A59]'>{editingQuiz ? 'Edit Quiz' : 'New Quiz'}</h3>
               <button onClick={() => { setShowQuizForm(false); setEditingQuiz(null) }} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400'><svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg></button>
@@ -448,7 +498,7 @@ export default function AdminChapterDetail() {
       {/* Question Modal */}
       {showQuestionForm && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => { setShowQuestionForm(null); setEditingQuestion(null) }}>
-          <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={e => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-xl shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <h3 className='text-lg font-bold text-[#084A59]'>{editingQuestion ? 'Edit Question' : 'Add Question'}</h3>
               <button onClick={() => { setShowQuestionForm(null); setEditingQuestion(null) }} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400'><svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg></button>
@@ -482,7 +532,7 @@ export default function AdminChapterDetail() {
       {/* Essay Review Modal */}
       {showReviewModal && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => { setShowReviewModal(null); setReviewingAttempt(null) }}>
-          <div className='bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl' onClick={e => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10'>
               <h3 className='text-lg font-bold text-[#084A59]'>Review Essay Questions</h3>
               <button onClick={() => { setShowReviewModal(null); setReviewingAttempt(null) }} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400'><svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg></button>

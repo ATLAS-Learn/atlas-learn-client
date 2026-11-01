@@ -421,7 +421,7 @@ export default function AdminUsers() {
           onClick={() => setShowInviteModal(false)}
         >
           <div
-            className='bg-white rounded-2xl w-full max-w-lg shadow-2xl'
+            className='bg-white rounded-2xl w-full max-w-xl shadow-2xl'
             onClick={(e) => e.stopPropagation()}
           >
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>

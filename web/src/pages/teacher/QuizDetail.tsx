@@ -61,6 +61,7 @@ export default function QuizDetail() {
   const { quizId } = useParams<{ quizId: string }>()
   const navigate = useNavigate()
   const location = useLocation()
+  const quizBasePath = location.pathname.startsWith('/admin') ? '/admin/quizzes' : '/teacher/quizzes'
 
   const stateQuiz = (location.state as any)?.quiz as Quiz | undefined
   const stateChapterId = (location.state as any)?.chapterId as string | undefined
@@ -99,7 +100,8 @@ export default function QuizDetail() {
         if (found) setQuiz(found)
         else setQuiz(null)
       } else {
-        setQuiz(null)
+        const data = await api.getQuiz(quizId)
+        setQuiz(data)
       }
     } catch {
       setQuiz(null)
@@ -116,6 +118,8 @@ export default function QuizDetail() {
         const list = Array.isArray(data) ? data : data?.data || []
         const found = list.find((q: any) => q.id === quizId)
         if (found) setQuiz(found)
+      } else {
+        setQuiz(await api.getQuiz(quizId))
       }
     } catch {}
   }
@@ -154,9 +158,9 @@ export default function QuizDetail() {
   const openEditQuestionForm = (q: Question) => {
     setEditingQuestion(q)
     setQuestionForm({
-      question: q.question || '',
+      question: q.question || (q as any).questionText || '',
       options: q.options?.length >= 4 ? [...q.options] : ['', '', '', ''],
-      correctAnswer: q.correctAnswer ?? 0,
+      correctAnswer: q.correctAnswer ?? (q as any).correctAnswerIndex ?? 0,
       explanation: q.explanation || '',
       points: q.points ?? 1,
     })
@@ -203,7 +207,7 @@ export default function QuizDetail() {
     if (!quizId || !confirm('Delete this quiz and all its questions?')) return
     try {
       await api.deleteQuiz(quizId)
-      navigate('/teacher/quizzes')
+      navigate(quizBasePath)
     } catch (err: any) {
       alert(err.message)
     }
@@ -295,13 +299,13 @@ export default function QuizDetail() {
     return (
       <div className='space-y-6'>
         <div className='flex items-center gap-3 text-sm text-gray-400'>
-          <button onClick={() => navigate('/teacher/quizzes')} className='hover:text-[#084A59] transition-colors font-medium'>&larr; Back to Quizzes</button>
+          <button onClick={() => navigate(quizBasePath)} className='hover:text-[#084A59] transition-colors font-medium'>&larr; Back to Quizzes</button>
         </div>
         <div className='bg-white rounded-2xl border border-gray-200 p-16 text-center'>
           <p className='text-gray-500 font-semibold text-lg'>Quiz not found</p>
           <p className='text-sm text-gray-400 mt-2'>The quiz could not be loaded. Please go back to the quizzes list.</p>
           <button
-            onClick={() => navigate('/teacher/quizzes')}
+            onClick={() => navigate(quizBasePath)}
             className='mt-4 px-5 py-2.5 bg-[#084A59] text-white text-sm font-bold rounded-xl hover:bg-[#011C26] transition-colors'
           >
             Go to Quizzes
@@ -316,7 +320,7 @@ export default function QuizDetail() {
   return (
     <div className='space-y-6'>
       <div className='flex items-center gap-3 text-sm text-gray-400 mb-2'>
-        <button onClick={() => navigate('/teacher/quizzes')} className='hover:text-[#084A59] transition-colors font-medium'>&larr; Back to Quizzes</button>
+        <button onClick={() => navigate(quizBasePath)} className='hover:text-[#084A59] transition-colors font-medium'>&larr; Back to Quizzes</button>
       </div>
 
       {/* Quiz Header */}
@@ -416,18 +420,18 @@ export default function QuizDetail() {
                           </span>
                         )}
                       </div>
-                      <p className='text-sm font-semibold text-[#084A59] mb-2'>{q.question}</p>
+                      <p className='text-sm font-semibold text-[#084A59] mb-2'>{q.question || (q as any).questionText}</p>
                       {q.options && q.options.length > 0 && (
                         <div className='space-y-1 ml-1'>
                           {q.options.map((opt: string, oi: number) => (
                             <div key={oi} className='flex items-center gap-2'>
-                              <span className={`text-xs font-semibold ${oi === q.correctAnswer ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>
+                              <span className={`text-xs font-semibold ${oi === (q.correctAnswer ?? (q as any).correctAnswerIndex) ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>
                                 {String.fromCharCode(65 + oi)}.
                               </span>
-                              <span className={`text-xs ${oi === q.correctAnswer ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>
+                              <span className={`text-xs ${oi === (q.correctAnswer ?? (q as any).correctAnswerIndex) ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>
                                 {opt}
                               </span>
-                              {oi === q.correctAnswer && (
+                              {oi === (q.correctAnswer ?? (q as any).correctAnswerIndex) && (
                                 <svg className='w-3.5 h-3.5 text-slate-500 flex-shrink-0' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2.5}>
                                   <path strokeLinecap='round' strokeLinejoin='round' d='M4.5 12.75l6 6 9-13.5' />
                                 </svg>
@@ -600,7 +604,7 @@ export default function QuizDetail() {
       {/* Quiz Edit Modal */}
       {showQuizForm && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => setShowQuizForm(false)}>
-          <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={e => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-xl shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <h3 className='text-lg font-bold text-[#084A59]'>Edit Quiz</h3>
               <button onClick={() => setShowQuizForm(false)} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors'>
@@ -650,7 +654,7 @@ export default function QuizDetail() {
       {/* Question Form Modal */}
       {showQuestionForm && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => { setShowQuestionForm(false); setEditingQuestion(null) }}>
-          <div className='bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl' onClick={e => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10'>
               <h3 className='text-lg font-bold text-[#084A59]'>{editingQuestion ? 'Edit Question' : 'Add Question'}</h3>
               <button onClick={() => { setShowQuestionForm(false); setEditingQuestion(null) }} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors'>

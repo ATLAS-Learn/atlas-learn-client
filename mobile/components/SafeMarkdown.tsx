@@ -54,9 +54,9 @@ const defaultMarkdownStyle = {
         color: "#084A59",
         textDecorationLine: "underline" as const,
     },
-    bullet_list: { marginBottom: 8 },
-    ordered_list: { marginBottom: 8 },
-    list_item: { marginBottom: 4 },
+    bullet_list: { marginBottom: 12 },
+    ordered_list: { marginBottom: 12 },
+    list_item: { marginBottom: 8 },
     blockquote: {
         backgroundColor: "#F3F4F6",
         borderColor: "#084A59",

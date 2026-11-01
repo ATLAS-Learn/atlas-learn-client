@@ -603,7 +603,7 @@ export default function ExamDetail() {
       {/* Add Question Modal */}
       {showAddQuestion && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => setShowAddQuestion(false)}>
-          <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto' onClick={e => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <h3 className='text-lg font-bold text-[#084A59]'>Add Question</h3>
               <button onClick={() => setShowAddQuestion(false)} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400'>
@@ -719,7 +719,7 @@ export default function ExamDetail() {
       {/* Grading Modal */}
       {correctingAttempt && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4'>
-          <div className='bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col'>
+          <div className='bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col'>
             {/* Modal Header */}
             <div className='px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0'>
               <div>

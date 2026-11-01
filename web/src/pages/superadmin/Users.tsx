@@ -277,7 +277,7 @@ export default function SuperadminUsers() {
       {/* Invite Modal */}
       {inviteOpen && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4'>
-          <div className='bg-white rounded-2xl w-full max-w-md shadow-xl' onClick={(e) => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-lg shadow-xl' onClick={(e) => e.stopPropagation()}>
             <div className='p-6'>
               <h3 className='text-lg font-bold text-[#011C26] mb-4'>Invite User</h3>
               <input
@@ -320,7 +320,7 @@ export default function SuperadminUsers() {
       {/* Role Change Modal */}
       {roleModal.open && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => setRoleModal({ open: false, userId: '', currentRole: '' })}>
-          <div className='bg-white rounded-2xl w-full max-w-sm shadow-xl' onClick={(e) => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-md shadow-xl' onClick={(e) => e.stopPropagation()}>
             <div className='p-6'>
               <h3 className='text-lg font-bold text-[#011C26] mb-1'>Change Role</h3>
               <p className='text-sm text-gray-500 mb-4'>Current: <span className='font-medium capitalize'>{roleModal.currentRole}</span></p>

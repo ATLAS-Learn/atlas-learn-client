@@ -9,7 +9,6 @@ export default function TeacherChapterDetail() {
 
   const [chapter, setChapter] = useState<any>(null)
   const [lessons, setLessons] = useState<any[]>([])
-  const [quizzes, setQuizzes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   const [showLessonForm, setShowLessonForm] = useState(false)
@@ -22,14 +21,12 @@ export default function TeacherChapterDetail() {
   const loadAll = useCallback(async () => {
     if (!subjectId || !chapterId) return
     try {
-      const [chData, lData, qData] = await Promise.all([
+      const [chData, lData] = await Promise.all([
         api.getChapter(chapterId),
         api.getSubjectChapterLessons(subjectId, chapterId),
-        api.getChapterQuizzes(chapterId),
       ])
       setChapter(chData)
       setLessons(Array.isArray(lData) ? lData : lData?.data || [])
-      setQuizzes(Array.isArray(qData) ? qData : qData?.data || [])
     } catch {} finally { setLoading(false) }
   }, [subjectId, chapterId])
 
@@ -125,7 +122,7 @@ export default function TeacherChapterDetail() {
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
         <div>
           <h2 className='text-2xl font-bold text-[#084A59]'>{chapter?.title || 'Chapter'}</h2>
-          <p className='text-sm text-gray-400 mt-0.5'>Order #{chapter?.orderIndex} &middot; {lessons.length} lesson{lessons.length !== 1 ? 's' : ''} &middot; {quizzes.length} quiz{quizzes.length !== 1 ? 'zes' : ''}</p>
+          <p className='text-sm text-gray-400 mt-0.5'>Order #{chapter?.orderIndex} &middot; {lessons.length} lesson{lessons.length !== 1 ? 's' : ''}</p>
         </div>
       </div>
 
@@ -177,55 +174,10 @@ export default function TeacherChapterDetail() {
         )}
       </div>
 
-      {/* Quizzes Section */}
-      <div>
-        <div className='flex items-center justify-between mb-3'>
-          <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>Quizzes</span>
-        </div>
-        {quizzes.length === 0 ? (
-          <div className='bg-white rounded-2xl border border-gray-200 p-12 text-center'>
-            <p className='text-gray-400 font-medium'>No quizzes yet</p>
-          </div>
-        ) : (
-          <div className='space-y-3'>
-            {quizzes.map((quiz: any) => (
-              <div key={quiz.id} className='bg-white rounded-2xl border border-gray-200 overflow-hidden'>
-                <div className='flex items-center justify-between px-5 py-4'>
-                  <div>
-                    <h4 className='font-bold text-[#084A59] text-sm'>{quiz.title}</h4>
-                    <p className='text-xs text-gray-400 mt-0.5'>{quiz.timeLimit ? `${quiz.timeLimit} min` : ''} &middot; {quiz.questions?.length ?? quiz._count?.questions ?? 0} questions</p>
-                  </div>
-                </div>
-                {quiz.questions && quiz.questions.length > 0 && (
-                  <div className='border-t border-gray-100 divide-y divide-gray-50'>
-                    {quiz.questions.map((q: any, qi: number) => (
-                      <div key={q.id || qi} className='px-5 py-3 hover:bg-gray-50/50 transition-colors'>
-                        <div className='flex-1 min-w-0'>
-                          <p className='text-xs font-medium text-[#084A59]'><span className='text-gray-400 mr-1'>Q{qi + 1}.</span>{q.question}</p>
-                          {q.options && (
-                            <div className='flex flex-wrap gap-x-3 gap-y-0.5 mt-1 ml-4'>
-                              {q.options.map((opt: string, oi: number) => (
-                                <span key={oi} className={`text-xs ${oi === q.correctAnswer ? 'text-slate-600 font-bold' : 'text-gray-400'}`}>{String.fromCharCode(65 + oi)}. {opt}</span>
-                              ))}
-                            </div>
-                          )}
-                          {q.explanation && <p className='text-xs text-gray-400 mt-1 ml-4 italic'>Explanation: {q.explanation}</p>}
-                          {q.points && <span className='text-xs font-semibold text-[#084A59] ml-4'>{q.points} pt{q.points !== 1 ? 's' : ''}</span>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Lesson Modal */}
       {showLessonForm && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => { setShowLessonForm(false); setEditingLesson(null) }}>
-          <div className='bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl' onClick={e => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10'>
               <h3 className='text-lg font-bold text-[#084A59]'>{editingLesson ? 'Edit Lesson' : 'New Lesson'}</h3>
               <button onClick={() => { setShowLessonForm(false); setEditingLesson(null) }} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400'><svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg></button>

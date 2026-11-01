@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 
 export default function SuperadminSchools() {
+  const navigate = useNavigate();
   const [schools, setSchools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -18,7 +20,11 @@ export default function SuperadminSchools() {
       const params: any = {};
       if (search) params.search = search;
       const res = await api.getSuperadminSchools(params);
-      setSchools(res.data || res.schools || []);
+      const schoolList = res.data || res.schools || [];
+      setSchools(schoolList.map((school: any) => ({
+        ...school,
+        userCount: school.userCount ?? school._count?.users ?? 0,
+      })));
     } catch (e) {
       console.error('Failed to load schools:', e);
     } finally {
@@ -102,7 +108,16 @@ export default function SuperadminSchools() {
       ) : (
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
           {schools.map((s) => (
-            <div key={s.id} className='bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow'>
+            <div
+              key={s.id}
+              className='bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer'
+              role='button'
+              tabIndex={0}
+              onClick={() => navigate(`/superadmin/schools/${s.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') navigate(`/superadmin/schools/${s.id}`);
+              }}
+            >
               {editingId === s.id ? (
                 <div className='space-y-3'>
                   <input
@@ -135,7 +150,7 @@ export default function SuperadminSchools() {
                     <h3 className='font-bold text-[#011C26] text-base'>{s.name}</h3>
                     <div className='flex gap-1'>
                       <button
-                        onClick={() => { setEditingId(s.id); setEditName(s.name); }}
+                        onClick={(e) => { e.stopPropagation(); setEditingId(s.id); setEditName(s.name); }}
                         className='p-1.5 text-gray-400 hover:text-[#084A59] hover:bg-[#084A59]/10 rounded-lg transition-colors'
                         title='Edit'
                       >
@@ -144,7 +159,7 @@ export default function SuperadminSchools() {
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleDelete(s.id)}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}
                         className='p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors'
                         title='Delete'
                       >
@@ -158,7 +173,7 @@ export default function SuperadminSchools() {
                     <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={1.5}>
                       <path strokeLinecap='round' strokeLinejoin='round' d='M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z' />
                     </svg>
-                    <span>{s.userCount ?? 0} users</span>
+                    <span>{s.userCount ?? 0} users · View students</span>
                   </div>
                 </>
               )}
@@ -170,7 +185,7 @@ export default function SuperadminSchools() {
       {/* Create Modal */}
       {createOpen && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => setCreateOpen(false)}>
-          <div className='bg-white rounded-2xl w-full max-w-md shadow-xl' onClick={(e) => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-lg shadow-xl' onClick={(e) => e.stopPropagation()}>
             <div className='p-6'>
               <h3 className='text-lg font-bold text-[#011C26] mb-4'>Add School</h3>
               <input
