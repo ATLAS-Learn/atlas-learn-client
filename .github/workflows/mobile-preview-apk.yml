@@ -46,7 +46,7 @@ jobs:
             echo "::error::ANDROID_HOME is not configured on the GitHub runner."
             exit 1
           fi
-          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -path '*/bin/sdkmanager' -print -quit 2>/dev/null || true)"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --version -type f -path '*/bin/sdkmanager' -print -quit 2>/dev/null || true)"
           if [ -z "$SDKMANAGER" ] || [ ! -x "$SDKMANAGER" ]; then
             echo "::error::The GitHub runner does not have the Android command-line tools installed."
             exit 1
