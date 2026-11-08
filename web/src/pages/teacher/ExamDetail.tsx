@@ -113,7 +113,6 @@ export default function ExamDetail() {
   const [correctingAttempt, setCorrectingAttempt] = useState<any>(null)
   const [correctionGrades, setCorrectionGrades] = useState<Record<string, { points: number; comment: string }>>({})
   const [correctionSaving, setCorrectionSaving] = useState(false)
-  const [aiGrading, setAiGrading] = useState(false)
   const [aiProposal, setAiProposal] = useState<{ corrections: any[]; overallComment?: string } | null>(null)
   const [editingDraftIdx, setEditingDraftIdx] = useState<number | null>(null)
   const [editDraftForm, setEditDraftForm] = useState<DraftQuestion | null>(null)
@@ -320,19 +319,6 @@ export default function ExamDetail() {
       loadCorrections()
     } catch (err: any) { alert(err.message) }
     finally { setCorrectionSaving(false) }
-  }
-
-  const handleAIGrade = async () => {
-    if (!examId || !correctingAttempt) return
-    setAiGrading(true)
-    try {
-      const proposal = await api.requestExamAIGrade(examId, correctingAttempt.attemptId || correctingAttempt.id)
-      setAiProposal(proposal)
-    } catch (err: any) {
-      alert(err.message || 'AI grading is unavailable')
-    } finally {
-      setAiGrading(false)
-    }
   }
 
   const acceptAIProposal = () => {
@@ -703,6 +689,7 @@ export default function ExamDetail() {
                         <button
                           onClick={() => {
                             setCorrectingAttempt(attempt)
+                            setAiProposal(attempt.aiCorrection || null)
                             const grades: Record<string, { points: number; comment: string }> = {}
                             const stored = getStoredCorrections(attempt)
                             getStructuralAnswers(attempt, exam?.questions).forEach((a: any) => {
@@ -851,11 +838,6 @@ export default function ExamDetail() {
                 <p className='text-xs text-gray-400'>{correctingAttempt.user?.email} · Submitted {new Date(correctingAttempt.completedAt).toLocaleString()}</p>
               </div>
               <div className='flex items-center gap-2'>
-                {!aiProposal && (
-                  <button onClick={handleAIGrade} disabled={aiGrading} className='px-3 py-2 text-xs font-bold rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200 disabled:opacity-50'>
-                    {aiGrading ? 'AI reviewing...' : 'AI correction'}
-                  </button>
-                )}
               <button
                 onClick={() => setCorrectingAttempt(null)}
                 className='p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors'
@@ -876,7 +858,11 @@ export default function ExamDetail() {
                     </div>
                     <div className='flex gap-2 shrink-0'>
                       <button onClick={acceptAIProposal} className='px-3 py-1.5 bg-violet-700 text-white rounded-lg text-xs font-bold'>Accept</button>
-                      <button onClick={() => setAiProposal(null)} className='px-3 py-1.5 border border-violet-200 text-violet-700 rounded-lg text-xs font-bold'>Reject</button>
+                      <button onClick={async () => {
+                        await api.rejectExamAIGrade(examId!, correctingAttempt.attemptId || correctingAttempt.id)
+                        setAiProposal(null)
+                        setCorrectingAttempt({ ...correctingAttempt, aiCorrection: null })
+                      }} className='px-3 py-1.5 border border-violet-200 text-violet-700 rounded-lg text-xs font-bold'>Reject</button>
                     </div>
                   </div>
                 </div>

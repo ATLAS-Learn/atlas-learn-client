@@ -456,6 +456,13 @@ class WebAPIClient {
     return this.unwrap<{ corrections: AIGradeProposal[]; overallComment?: string }>(res);
   }
 
+  async rejectQuizAIGrade(quizId: string, attemptId: string) {
+    return this.request<any>(`/quizzes/${quizId}/ai-correct/reject`, {
+      method: 'POST',
+      data: { attemptId },
+    });
+  }
+
   async getSingleQuizStats(quizId: string) {
     const res = await this.request<any>(`/quizzes/${quizId}/stats`);
     return this.unwrap(res);
@@ -666,6 +673,13 @@ class WebAPIClient {
       data: { attemptId },
     });
     return this.unwrap<{ corrections: AIGradeProposal[]; overallComment?: string }>(res);
+  }
+
+  async rejectExamAIGrade(examId: string, attemptId: string) {
+    return this.request<any>(`/exams/${examId}/ai-correct/reject`, {
+      method: 'POST',
+      data: { attemptId },
+    });
   }
 
   async getSubjectReports() {

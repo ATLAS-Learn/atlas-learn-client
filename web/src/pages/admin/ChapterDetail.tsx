@@ -50,7 +50,6 @@ export default function AdminChapterDetail() {
   const [corrections, setCorrections] = useState<Record<string, { points: number; comment: string }>>({})
   const [overallComment, setOverallComment] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
-  const [aiGrading, setAiGrading] = useState(false)
   const [aiProposal, setAiProposal] = useState<{ corrections: any[]; overallComment?: string } | null>(null)
 
   const loadAll = useCallback(async () => {
@@ -269,19 +268,6 @@ export default function AdminChapterDetail() {
       alert(err.message || 'Failed to submit correction')
     } finally {
       setSubmittingReview(false)
-    }
-
-    const _handleAIGrade = async () => {
-      if (!showReviewModal || !reviewingAttempt) return
-      setAiGrading(true)
-      try {
-        const proposal = await api.requestQuizAIGrade(showReviewModal, reviewingAttempt.attemptId)
-        setAiProposal(proposal)
-      } catch (err: any) {
-        alert(err.message || 'AI grading is unavailable')
-      } finally {
-        setAiGrading(false)
-      }
     }
 
     const _acceptAIProposal = () => {
@@ -580,6 +566,7 @@ export default function AdminChapterDetail() {
                           key={attempt.attemptId}
                           onClick={() => {
                             setReviewingAttempt(attempt)
+                            setAiProposal(attempt.aiCorrection || null)
                             const initial: Record<string, { points: number; comment: string }> = {}
                             attempt.textAnswers?.forEach((ta: any) => {
                               initial[ta.questionId] = { points: 0, comment: '' }
@@ -608,14 +595,11 @@ export default function AdminChapterDetail() {
                   <p className='text-sm font-semibold text-gray-700 mb-4'>
                     Reviewing: <span className='text-[#084A59]'>{reviewingAttempt.student?.name || reviewingAttempt.student?.email}</span>
                   </p>
-                  <div className='flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 mb-5'>
-                    <p className='text-xs text-violet-700'>Use AI to propose points and feedback for teacher review.</p>
-                    <div className='flex gap-2 shrink-0'>
-                      <button onClick={() => { void _handleAIGrade() }} disabled={aiGrading} className='px-3 py-1.5 bg-violet-700 text-white rounded-lg text-xs font-bold disabled:opacity-50'>
-                        {aiGrading ? 'AI reviewing...' : 'AI correction'}
-                      </button>
-                    </div>
-                  </div>
+                  {reviewingAttempt.aiCorrection && (
+                    <p className='text-xs text-violet-700 bg-violet-50 border border-violet-200 rounded-xl px-4 py-3 mb-5'>
+                      AI correction is ready for teacher review.
+                    </p>
+                  )}
                   {aiProposal && (
                     <div className='border border-violet-200 bg-violet-50 rounded-xl p-4 mb-5'>
                       <div className='flex items-start justify-between gap-3'>
@@ -625,7 +609,11 @@ export default function AdminChapterDetail() {
                         </div>
                         <div className='flex gap-2 shrink-0'>
                           <button onClick={() => _acceptAIProposal()} className='px-3 py-1.5 bg-violet-700 text-white rounded-lg text-xs font-bold'>Accept</button>
-                          <button onClick={() => setAiProposal(null)} className='px-3 py-1.5 border border-violet-200 text-violet-700 rounded-lg text-xs font-bold'>Reject</button>
+                          <button onClick={async () => {
+                            await api.rejectQuizAIGrade(showReviewModal!, reviewingAttempt.attemptId)
+                            setAiProposal(null)
+                            setReviewingAttempt({ ...reviewingAttempt, aiCorrection: null })
+                          }} className='px-3 py-1.5 border border-violet-200 text-violet-700 rounded-lg text-xs font-bold'>Reject</button>
                         </div>
                       </div>
                     </div>
