@@ -1,4 +1,4 @@
-# Mobile preview builds
+i# Mobile preview builds
 
 ## GitHub Actions preview APK
 
@@ -70,8 +70,10 @@ EXPO_TOKEN=your-token pnpm exec eas build \
   --output ./artifacts/apex-learn-preview.apk
 ```
 
-Local EAS builds require a compatible Java/Android SDK environment. GitHub-hosted
-Ubuntu runners provide the standard Android tooling used by this workflow.
+Local EAS builds require a compatible Java/Android SDK environment. The workflow
+uses the Android SDK preinstalled on GitHub-hosted Ubuntu runners and validates
+the command-line tools before starting the build. It intentionally does not run
+the deprecated `tools` SDK package through `sdkmanager`.
 
 This workflow creates a preview APK only. Production AAB builds and OTA update
 publishing require separate release workflows and signing/release policies.
