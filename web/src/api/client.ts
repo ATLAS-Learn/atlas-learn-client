@@ -15,6 +15,27 @@ type CacheEntry = {
   expiresAt: number;
 };
 
+export type AIGradeProposal = {
+  questionId: string;
+  points: number;
+  comment?: string;
+  confidence?: number;
+  rationale?: string;
+};
+
+export type SubjectReport = {
+  subjectId: string;
+  subjectName: string;
+  quizCount?: number;
+  examCount?: number;
+  attemptCount?: number;
+  averageScore?: number;
+  passRate?: number;
+  pendingEssayReviews?: number;
+  quizzes?: Array<{ id: string; title: string; averageScore?: number; passRate?: number; pendingEssayReviews?: number }>;
+  exams?: Array<{ id: string; title: string; averageScore?: number; passRate?: number; pendingEssayReviews?: number }>;
+};
+
 class WebAPIClient {
   private axiosInstance;
   private readonly getCache = new Map<string, CacheEntry>();
@@ -161,6 +182,27 @@ class WebAPIClient {
   }) {
     const res = await this.request<any>('/admin/users', { params });
     return res;
+  }
+
+  async getAdminStudentStats() {
+    const [all, active, inactive] = await Promise.all([
+      this.getUsers({ role: 'student', limit: 1, offset: 0 }),
+      this.getUsers({ role: 'student', isActive: 'true', limit: 1, offset: 0 }),
+      this.getUsers({ role: 'student', isActive: 'false', limit: 1, offset: 0 }),
+    ]);
+    const totalOf = (result: any) =>
+      Number(
+        result?.total ??
+        result?.meta?.total ??
+        result?.pagination?.total ??
+        result?.data?.total ??
+        0,
+      );
+    return {
+      total: totalOf(all),
+      active: totalOf(active),
+      inactive: totalOf(inactive),
+    };
   }
 
   async getUser(userId: string) {
@@ -406,6 +448,14 @@ class WebAPIClient {
     return this.unwrap(res);
   }
 
+  async requestQuizAIGrade(quizId: string, attemptId: string) {
+    const res = await this.request<any>(`/quizzes/${quizId}/ai-correct`, {
+      method: 'POST',
+      data: { attemptId },
+    });
+    return this.unwrap<{ corrections: AIGradeProposal[]; overallComment?: string }>(res);
+  }
+
   async getSingleQuizStats(quizId: string) {
     const res = await this.request<any>(`/quizzes/${quizId}/stats`);
     return this.unwrap(res);
@@ -608,6 +658,19 @@ class WebAPIClient {
       data,
     });
     return this.unwrap(res);
+  }
+
+  async requestExamAIGrade(examId: string, attemptId: string) {
+    const res = await this.request<any>(`/exams/${examId}/ai-correct`, {
+      method: 'POST',
+      data: { attemptId },
+    });
+    return this.unwrap<{ corrections: AIGradeProposal[]; overallComment?: string }>(res);
+  }
+
+  async getSubjectReports() {
+    const res = await this.request<any>('/admin/analytics/subject-reports');
+    return this.unwrap<SubjectReport[]>(res);
   }
 
   // Notifications

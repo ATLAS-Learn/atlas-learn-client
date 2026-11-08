@@ -113,6 +113,8 @@ export default function ExamDetail() {
   const [correctingAttempt, setCorrectingAttempt] = useState<any>(null)
   const [correctionGrades, setCorrectionGrades] = useState<Record<string, { points: number; comment: string }>>({})
   const [correctionSaving, setCorrectionSaving] = useState(false)
+  const [aiGrading, setAiGrading] = useState(false)
+  const [aiProposal, setAiProposal] = useState<{ corrections: any[]; overallComment?: string } | null>(null)
   const [editingDraftIdx, setEditingDraftIdx] = useState<number | null>(null)
   const [editDraftForm, setEditDraftForm] = useState<DraftQuestion | null>(null)
   const correctingStructuralAnswers = getStructuralAnswers(correctingAttempt, exam?.questions)
@@ -318,6 +320,32 @@ export default function ExamDetail() {
       loadCorrections()
     } catch (err: any) { alert(err.message) }
     finally { setCorrectionSaving(false) }
+  }
+
+  const handleAIGrade = async () => {
+    if (!examId || !correctingAttempt) return
+    setAiGrading(true)
+    try {
+      const proposal = await api.requestExamAIGrade(examId, correctingAttempt.attemptId || correctingAttempt.id)
+      setAiProposal(proposal)
+    } catch (err: any) {
+      alert(err.message || 'AI grading is unavailable')
+    } finally {
+      setAiGrading(false)
+    }
+  }
+
+  const acceptAIProposal = () => {
+    if (!aiProposal) return
+    const next = { ...correctionGrades }
+    aiProposal.corrections.forEach((correction: any) => {
+      next[correction.questionId] = {
+        points: Number(correction.points) || 0,
+        comment: correction.comment || '',
+      }
+    })
+    setCorrectionGrades(next)
+    setAiProposal(null)
   }
 
   if (loading) {
@@ -822,16 +850,37 @@ export default function ExamDetail() {
                 <h3 className='text-lg font-bold text-[#084A59]'>Grade: {correctingAttempt.user?.name}</h3>
                 <p className='text-xs text-gray-400'>{correctingAttempt.user?.email} · Submitted {new Date(correctingAttempt.completedAt).toLocaleString()}</p>
               </div>
+              <div className='flex items-center gap-2'>
+                {!aiProposal && (
+                  <button onClick={handleAIGrade} disabled={aiGrading} className='px-3 py-2 text-xs font-bold rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200 disabled:opacity-50'>
+                    {aiGrading ? 'AI reviewing...' : 'AI correction'}
+                  </button>
+                )}
               <button
                 onClick={() => setCorrectingAttempt(null)}
                 className='p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors'
               >
                 <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg>
               </button>
+              </div>
             </div>
 
             {/* Modal Body */}
             <div className='px-6 py-4 space-y-4 overflow-y-auto flex-1'>
+              {aiProposal && (
+                <div className='border border-violet-200 bg-violet-50 rounded-xl p-4'>
+                  <div className='flex items-start justify-between gap-3'>
+                    <div>
+                      <p className='text-xs font-bold uppercase text-violet-700'>AI correction ready for review</p>
+                      <p className='text-xs text-violet-600 mt-1'>Review the proposed points and feedback below, then accept or reject the suggestion.</p>
+                    </div>
+                    <div className='flex gap-2 shrink-0'>
+                      <button onClick={acceptAIProposal} className='px-3 py-1.5 bg-violet-700 text-white rounded-lg text-xs font-bold'>Accept</button>
+                      <button onClick={() => setAiProposal(null)} className='px-3 py-1.5 border border-violet-200 text-violet-700 rounded-lg text-xs font-bold'>Reject</button>
+                    </div>
+                  </div>
+                </div>
+              )}
               {mcqResults.length > 0 && (
                 <div className='border border-gray-200 rounded-xl p-4 space-y-3'>
                   <p className='text-xs font-bold text-gray-400 uppercase'>Multiple Choice</p>

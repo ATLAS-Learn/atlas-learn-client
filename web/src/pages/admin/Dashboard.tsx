@@ -79,17 +79,21 @@ export default function AdminDashboard() {
   const [quizStats, setQuizStats] = useState<any>(null)
   const [wau, setWau] = useState<any>(null)
   const [signupTrend, setSignupTrend] = useState<any>(null)
+  const [subjectReports, setSubjectReports] = useState<any[]>([])
+  const [studentStats, setStudentStats] = useState<{ total: number; active: number; inactive: number } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [ov, cc, qs, w, st] = await Promise.allSettled([
+        const [ov, cc, qs, w, st, sr, ss] = await Promise.allSettled([
           api.getAnalyticsOverview(),
           api.getChapterCompletion(),
           api.getQuizAnalytics(),
           api.getWAU(),
           api.getSignupTrend(),
+          api.getSubjectReports(),
+          api.getAdminStudentStats(),
         ])
         if (ov.status === 'fulfilled') setOverview(ov.value)
         else console.error('Overview failed:', ov.reason)
@@ -101,6 +105,12 @@ export default function AdminDashboard() {
         else console.error('WAU failed:', w.reason)
         if (st.status === 'fulfilled') setSignupTrend(st.value)
         else console.error('Signup trend failed:', st.reason)
+        if (sr.status === 'fulfilled') {
+          const value: any = sr.value
+          setSubjectReports(Array.isArray(value) ? value : value?.subjects || value?.data || [])
+        } else console.error('Subject reports failed:', sr.reason)
+        if (ss.status === 'fulfilled') setStudentStats(ss.value)
+        else console.error('Student stats failed:', ss.reason)
       } finally {
         setLoading(false)
       }
@@ -122,6 +132,9 @@ export default function AdminDashboard() {
   const users = overview?.users || {}
   const active = overview?.activeUsers || {}
   const content = overview?.content || {}
+  const totalStudents = studentStats?.total ?? users.students ?? 0
+  const activeStudents = studentStats?.active ?? 0
+  const inactiveStudents = studentStats?.inactive ?? 0
 
   const ch1 = chapterCompletion?.primaryMetric || {}
   const summary = quizStats?.summary || {}
@@ -142,7 +155,8 @@ export default function AdminDashboard() {
     <div className='space-y-8'>
       {/* Hero Stats */}
       <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6'>
-        <StatCard label='Total Users' value={users.total ?? '—'} sub={`${users.students ?? 0} students`} />
+        <StatCard label='Total Users' value={users.total ?? '—'} sub={`${totalStudents} students`} />
+        <StatCard label='Students' value={totalStudents} sub={`${activeStudents} active`} />
         <StatCard label='Active (Weekly)' value={active.weekly ?? '—'} sub={`${active.monthly ?? 0} monthly`} />
         <StatCard label='Subjects' value={content.subjects ?? '—'} sub={`${content.chapters ?? 0} chapters`} />
         <StatCard label='Quizzes' value={summary.totalQuizzes ?? '—'} sub={`${summary.totalAttempts ?? 0} attempts`} />
@@ -159,6 +173,52 @@ export default function AdminDashboard() {
           color='bg-slate-50'
         />
       </div>
+
+      {/* Charts Row */}
+      {subjectReports.length > 0 && (
+        <section>
+          <div className='flex items-end justify-between mb-4'>
+            <div>
+              <h3 className='text-lg font-bold text-[#084A59]'>Reports by Subject</h3>
+              <p className='text-sm text-gray-400 mt-0.5'>Quiz and exam performance for this school</p>
+            </div>
+          </div>
+          <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5'>
+            {subjectReports.map((subject: any) => {
+              const average = subject.averageScore ?? subject.average ?? 0
+              const passRate = subject.passRate ?? subject.overallPassRate ?? 0
+              const pending = subject.pendingEssayReviews ?? subject.pendingReviews ?? 0
+              const quizzes = subject.quizCount ?? subject.quizzes?.length ?? 0
+              const exams = subject.examCount ?? subject.exams?.length ?? 0
+              return (
+                <details key={subject.subjectId || subject.id || subject.subjectName} className='group bg-white rounded-2xl border border-gray-200 overflow-hidden'>
+                  <summary className='list-none cursor-pointer p-5 hover:bg-slate-50/60'>
+                    <div className='flex items-start justify-between gap-3'>
+                      <h4 className='font-bold text-[#084A59]'>{subject.subjectName || subject.name || 'Subject'}</h4>
+                      <span className='text-xs font-bold text-gray-400 group-open:rotate-180 transition-transform'>⌄</span>
+                    </div>
+                    <div className='grid grid-cols-3 gap-3 mt-4'>
+                      <div><p className='text-xl font-bold text-[#084A59]'>{Number(average).toFixed(1)}%</p><p className='text-[11px] text-gray-400'>Average</p></div>
+                      <div><p className='text-xl font-bold text-[#084A59]'>{Number(passRate).toFixed(1)}%</p><p className='text-[11px] text-gray-400'>Pass rate</p></div>
+                      <div><p className={`text-xl font-bold ${pending > 0 ? 'text-amber-600' : 'text-green-600'}`}>{pending}</p><p className='text-[11px] text-gray-400'>Essay review</p></div>
+                    </div>
+                  </summary>
+                  <div className='border-t border-gray-100 px-5 py-4 text-xs text-gray-500 space-y-2'>
+                    <div className='flex justify-between'><span>Quizzes</span><strong className='text-[#084A59]'>{quizzes}</strong></div>
+                    <div className='flex justify-between'><span>Exams</span><strong className='text-[#084A59]'>{exams}</strong></div>
+                    {[...(subject.quizzes || []), ...(subject.exams || [])].map((item: any) => (
+                      <div key={item.id} className='flex justify-between gap-3 pt-2 border-t border-gray-50'>
+                        <span className='truncate'>{item.title || item.name}</span>
+                        <span className='shrink-0'>{item.averageScore == null ? '—' : `${item.averageScore}%`}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Charts Row */}
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
@@ -275,10 +335,10 @@ export default function AdminDashboard() {
           <p className='text-xs text-gray-400 mb-5'>Platform user composition</p>
           <div className='space-y-3'>
             {[
-              { label: 'Students', value: users.students ?? 0, total: users.total ?? 1, color: 'bg-slate-500' },
+              { label: 'Students', value: totalStudents, total: users.total ?? 1, color: 'bg-slate-500' },
               { label: 'Teachers', value: users.teachers ?? 0, total: users.total ?? 1, color: 'bg-slate-400' },
               { label: 'Admins', value: users.admins ?? 0, total: users.total ?? 1, color: 'bg-[#F2B138]' },
-              { label: 'Deactivated', value: users.deactivated ?? 0, total: users.total ?? 1, color: 'bg-slate-300' },
+              { label: 'Inactive students', value: inactiveStudents, total: Math.max(totalStudents, 1), color: 'bg-slate-300' },
             ].map((item, i) => (
               <div key={i}>
                 <div className='flex items-center justify-between mb-1.5'>

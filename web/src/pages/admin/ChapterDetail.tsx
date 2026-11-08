@@ -50,6 +50,8 @@ export default function AdminChapterDetail() {
   const [corrections, setCorrections] = useState<Record<string, { points: number; comment: string }>>({})
   const [overallComment, setOverallComment] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
+  const [aiGrading, setAiGrading] = useState(false)
+  const [aiProposal, setAiProposal] = useState<{ corrections: any[]; overallComment?: string } | null>(null)
 
   const loadAll = useCallback(async () => {
     if (!subjectId || !chapterId) return
@@ -235,6 +237,7 @@ export default function AdminChapterDetail() {
     setReviewingAttempt(null)
     setCorrections({})
     setOverallComment('')
+    setAiProposal(null)
     try {
       const result = await api.getPendingQuizCorrections(quizId)
       setPendingAttempts(result?.data || [])
@@ -266,6 +269,33 @@ export default function AdminChapterDetail() {
       alert(err.message || 'Failed to submit correction')
     } finally {
       setSubmittingReview(false)
+    }
+
+    const _handleAIGrade = async () => {
+      if (!showReviewModal || !reviewingAttempt) return
+      setAiGrading(true)
+      try {
+        const proposal = await api.requestQuizAIGrade(showReviewModal, reviewingAttempt.attemptId)
+        setAiProposal(proposal)
+      } catch (err: any) {
+        alert(err.message || 'AI grading is unavailable')
+      } finally {
+        setAiGrading(false)
+      }
+    }
+
+    const _acceptAIProposal = () => {
+      if (!aiProposal) return
+      const next = { ...corrections }
+      aiProposal.corrections.forEach((correction: any) => {
+        next[correction.questionId] = {
+          points: Number(correction.points) || 0,
+          comment: correction.comment || '',
+        }
+      })
+      setCorrections(next)
+      setOverallComment(aiProposal.overallComment || '')
+      setAiProposal(null)
     }
   }
 
@@ -348,7 +378,7 @@ export default function AdminChapterDetail() {
         </button>
       </div>
 
-      {false && (<>
+      {(<>
       {/* Quizzes Section */}
       <div>
         <div className='flex items-center justify-between mb-3'>
@@ -578,6 +608,28 @@ export default function AdminChapterDetail() {
                   <p className='text-sm font-semibold text-gray-700 mb-4'>
                     Reviewing: <span className='text-[#084A59]'>{reviewingAttempt.student?.name || reviewingAttempt.student?.email}</span>
                   </p>
+                  <div className='flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 mb-5'>
+                    <p className='text-xs text-violet-700'>Use AI to propose points and feedback for teacher review.</p>
+                    <div className='flex gap-2 shrink-0'>
+                      <button onClick={() => { void _handleAIGrade() }} disabled={aiGrading} className='px-3 py-1.5 bg-violet-700 text-white rounded-lg text-xs font-bold disabled:opacity-50'>
+                        {aiGrading ? 'AI reviewing...' : 'AI correction'}
+                      </button>
+                    </div>
+                  </div>
+                  {aiProposal && (
+                    <div className='border border-violet-200 bg-violet-50 rounded-xl p-4 mb-5'>
+                      <div className='flex items-start justify-between gap-3'>
+                        <div>
+                          <p className='text-xs font-bold uppercase text-violet-700'>AI correction ready for review</p>
+                          <p className='text-xs text-violet-600 mt-1'>Accept applies the proposal to the editable fields. Reject discards it.</p>
+                        </div>
+                        <div className='flex gap-2 shrink-0'>
+                          <button onClick={() => _acceptAIProposal()} className='px-3 py-1.5 bg-violet-700 text-white rounded-lg text-xs font-bold'>Accept</button>
+                          <button onClick={() => setAiProposal(null)} className='px-3 py-1.5 border border-violet-200 text-violet-700 rounded-lg text-xs font-bold'>Reject</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className='space-y-6'>
                     {reviewingAttempt.textAnswers?.map((ta: any) => {
                       const maxPoints = ta.points || 3
