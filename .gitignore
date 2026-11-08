@@ -42,6 +42,12 @@ app-example
 /ios
 /android
 
+# mobile build credentials and artifacts
+/mobile/google-services.json
+/mobile/artifacts/
+*.apk
+*.aab
+
 # local editor files
 *.vscode
 *.expo

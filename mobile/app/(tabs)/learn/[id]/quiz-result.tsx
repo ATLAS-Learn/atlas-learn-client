@@ -12,7 +12,7 @@ import ScreenHeader from "@/components/ui/screen-header";
 
 export default function QuizResultScreen() {
     const router = useRouter();
-    const params = useLocalSearchParams<{ id: string; score: string; correctAnswers: string; totalQuestions: string; passed: string; unlockedNextChapter: string; nextChapterTitle?: string; nextChapterId?: string; quizId?: string; subjectId?: string; attemptId?: string; hasStructural?: string; isCorrected?: string }>();
+    const params = useLocalSearchParams<{ id: string; score: string; correctAnswers: string; totalQuestions: string; passed: string; unlockedNextChapter: string; nextChapterTitle?: string; nextChapterId?: string; quizId?: string; subjectId?: string; attemptId?: string; hasStructural?: string; isCorrected?: string; mcqCorrect?: string; mcqTotal?: string }>();
 
     const score = parseInt(params.score as string) || 0;
     const correctAnswers = parseInt(params.correctAnswers as string) || 0;
@@ -28,6 +28,12 @@ export default function QuizResultScreen() {
     const hasStructural = params.hasStructural === "true";
     const isCorrected = params.isCorrected === "true";
     const isPending = hasStructural && !isCorrected;
+    const mcqCorrect = params.mcqCorrect !== undefined
+        ? parseInt(params.mcqCorrect as string, 10) || 0
+        : correctAnswers;
+    const mcqTotal = params.mcqTotal !== undefined
+        ? parseInt(params.mcqTotal as string, 10) || 0
+        : Math.max(totalQuestions - (hasStructural ? 1 : 0), 0);
 
     const handleContinue = () => {
         if (unlockedNextChapter && nextChapterId) {
@@ -117,7 +123,7 @@ export default function QuizResultScreen() {
 
                         <View style={styles.pendingScoreContainer}>
                             <Text style={styles.pendingScoreLabel}>MCQ Score (so far)</Text>
-                            <Text style={styles.pendingScoreValue}>{score}%</Text>
+                            <Text style={styles.pendingScoreValue}>{mcqCorrect}/{mcqTotal}</Text>
                             <Text style={styles.pendingScoreNote}>
                                 Final score will be updated after teacher review
                             </Text>

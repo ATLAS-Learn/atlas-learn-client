@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../../api/client';
+import StudentAvatar from '../../components/StudentAvatar';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
@@ -329,9 +330,7 @@ export default function AdminUsers() {
                   >
                     <td className='px-6 py-3.5'>
                       <div className='flex items-center gap-3'>
-                        <div className='w-9 h-9 rounded-full bg-[#084A59] flex items-center justify-center text-xs font-bold text-white shrink-0'>
-                          {(u.name || u.email || '?')[0].toUpperCase()}
-                        </div>
+                        <StudentAvatar student={u} size='sm' />
                         <div>
                           <p className='text-sm font-semibold text-[#084A59]'>
                             {u.name || 'Unnamed'}
@@ -421,7 +420,7 @@ export default function AdminUsers() {
           onClick={() => setShowInviteModal(false)}
         >
           <div
-            className='bg-white rounded-2xl w-full max-w-lg shadow-2xl'
+            className='bg-white rounded-2xl w-full max-w-xl shadow-2xl'
             onClick={(e) => e.stopPropagation()}
           >
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>

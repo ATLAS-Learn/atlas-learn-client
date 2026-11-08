@@ -184,7 +184,7 @@ export default function SuperadminFeedback() {
       {/* Reply Modal */}
       {replyModal.open && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => setReplyModal({ open: false, fb: null })}>
-          <div className='bg-white rounded-2xl w-full max-w-lg shadow-xl' onClick={(e) => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-xl shadow-xl' onClick={(e) => e.stopPropagation()}>
             <div className='p-6 space-y-4'>
               <h3 className='text-lg font-bold text-[#011C26]'>Reply to Feedback</h3>
               <div className='bg-gray-50 rounded-lg p-3'>

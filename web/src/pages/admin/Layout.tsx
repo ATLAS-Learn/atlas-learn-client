@@ -61,6 +61,24 @@ const nav = [
     ),
   },
   {
+    to: '/admin/quizzes',
+    label: 'Quizzes',
+    icon: (
+      <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={1.5}>
+        <path strokeLinecap='round' strokeLinejoin='round' d='M9 5.25h6m-9 3h12m-12 3h12m-12 3h7.5M5.25 3.75h13.5A1.5 1.5 0 0120.25 5.25v13.5a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V5.25a1.5 1.5 0 011.5-1.5z' />
+      </svg>
+    ),
+  },
+  {
+    to: '/admin/exam-analytics',
+    label: 'Exam Statistics',
+    icon: (
+      <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={1.5}>
+        <path strokeLinecap='round' strokeLinejoin='round' d='M4.5 19.5V9.75m7.5 9.75V4.5m7.5 15V13.5' />
+      </svg>
+    ),
+  },
+  {
     to: '/admin/role-upgrades',
     label: 'Role Upgrades',
     icon: (

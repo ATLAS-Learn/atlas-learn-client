@@ -10,6 +10,7 @@ import SuperadminLayout from './pages/superadmin/Layout'
 import SuperadminDashboard from './pages/superadmin/Dashboard'
 import SuperadminUsers from './pages/superadmin/Users'
 import SuperadminSchools from './pages/superadmin/Schools'
+import SuperadminSchoolStudents from './pages/superadmin/SchoolStudents'
 import SuperadminFeedback from './pages/superadmin/Feedback'
 import AdminLayout from './pages/admin/Layout'
 import AdminDashboard from './pages/admin/Dashboard'
@@ -29,21 +30,44 @@ import TeacherQuizList from './pages/teacher/QuizList'
 import TeacherQuizDetail from './pages/teacher/QuizDetail'
 import TeacherExamList from './pages/teacher/ExamList'
 import TeacherExamDetail from './pages/teacher/ExamDetail'
+import ExamAnalytics from './pages/teacher/ExamAnalytics'
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+type Role = 'student' | 'teacher' | 'admin' | 'superadmin';
+
+function roleHome(role: Role) {
+  if (role === 'superadmin') return '/superadmin';
+  if (role === 'admin') return '/admin';
+  if (role === 'teacher') return '/teacher';
+  return '/dashboard';
+}
+
+function ProtectedRoute({
+  children,
+  allowedRoles,
+}: {
+  children: React.ReactNode;
+  allowedRoles: Role[];
+}) {
   const [checking, setChecking] = useState(true)
   const [valid, setValid] = useState(false)
   const navigate = useNavigate()
+  const allowedRoleKey = allowedRoles.join(',')
 
   useEffect(() => {
     api.getCurrentUser()
-      .then(() => setValid(true))
+      .then((user) => {
+        if (!allowedRoleKey.split(',').includes(user?.role)) {
+          navigate(roleHome(user?.role as Role), { replace: true });
+          return;
+        }
+        setValid(true);
+      })
       .catch(() => {
         api.clearUser()
         navigate('/dashboard', { replace: true })
       })
       .finally(() => setChecking(false))
-  }, [navigate])
+  }, [allowedRoleKey, navigate])
 
   if (checking) {
     return (
@@ -69,7 +93,7 @@ export default function App() {
       <Route
         path="/superadmin"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['superadmin']}>
             <SuperadminLayout />
           </ProtectedRoute>
         }
@@ -77,6 +101,7 @@ export default function App() {
         <Route index element={<SuperadminDashboard />} />
         <Route path="users" element={<SuperadminUsers />} />
         <Route path="schools" element={<SuperadminSchools />} />
+        <Route path="schools/:schoolId" element={<SuperadminSchoolStudents />} />
         <Route path="feedback" element={<SuperadminFeedback />} />
       </Route>
 
@@ -84,7 +109,7 @@ export default function App() {
       <Route
         path="/admin"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
             <AdminLayout />
           </ProtectedRoute>
         }
@@ -94,6 +119,9 @@ export default function App() {
         <Route path="subjects" element={<AdminSubjectList />} />
         <Route path="subjects/:subjectId" element={<AdminSubjectDetail />} />
         <Route path="subjects/:subjectId/chapters/:chapterId" element={<AdminChapterDetail />} />
+        <Route path="quizzes" element={<TeacherQuizList />} />
+        <Route path="quizzes/:quizId" element={<TeacherQuizDetail />} />
+        <Route path="exam-analytics" element={<ExamAnalytics />} />
         <Route path="role-upgrades" element={<AdminRoleUpgrades />} />
       </Route>
 
@@ -101,7 +129,7 @@ export default function App() {
       <Route
         path="/teacher"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher', 'admin', 'superadmin']}>
             <TeacherLayout />
           </ProtectedRoute>
         }
@@ -116,6 +144,7 @@ export default function App() {
         <Route path="quizzes/:quizId" element={<TeacherQuizDetail />} />
         <Route path="exams" element={<TeacherExamList />} />
         <Route path="exams/:examId" element={<TeacherExamDetail />} />
+        <Route path="exam-analytics" element={<ExamAnalytics />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

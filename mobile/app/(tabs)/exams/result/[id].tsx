@@ -12,6 +12,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { apiClient } from "@/lib/api";
 import { getCacheSync, setCache } from "@/lib/utils/cache";
+import { getOrderedCorrections, isExamResultCorrected, isMcqCorrect, getCorrectionStatus } from "@/lib/utils/exam-result";
 import ScreenHeader from "@/components/ui/screen-header";
 
 const RESULT_CACHE_TTL = 30 * 1000;
@@ -92,13 +93,14 @@ export default function ExamResultScreen() {
         );
     }
 
-    const resultIsCorrected = result.isCorrected !== false;
-    const passed = resultIsCorrected && result.score >= 70;
-    const correctCount = result.corrections?.filter((c: any) => c.isCorrect === true).length ?? 0;
-    const totalQuestions = result.corrections?.length ?? 0;
-    const structuralCount = result.corrections?.filter((c: any) => c.questionType === "STRUCTURAL").length ?? 0;
-    const mcqCorrect = result.corrections?.filter((c: any) => c.questionType === "MCQ" && c.isCorrect === true).length ?? 0;
-    const mcqTotal = result.corrections?.filter((c: any) => c.questionType === "MCQ").length ?? 0;
+    const corrections = getOrderedCorrections(result);
+    const resultIsCorrected = isExamResultCorrected(result, corrections);
+    const passed = resultIsCorrected && Number(result.score) >= 70;
+    const correctCount = corrections.filter((c: any) => c.isCorrect === true).length;
+    const totalQuestions = corrections.length;
+    const structuralCount = corrections.filter((c: any) => c.questionType === "STRUCTURAL").length;
+    const mcqCorrect = corrections.filter((c: any) => c.questionType === "MCQ" && isMcqCorrect(c)).length;
+    const mcqTotal = corrections.filter((c: any) => c.questionType === "MCQ").length;
 
     return (
         <View style={styles.container}>
@@ -163,14 +165,30 @@ export default function ExamResultScreen() {
                     <Text style={styles.infoMeta}>{result.exam?.subject?.name}</Text>
                 </View>
 
-                <Text style={styles.sectionTitle}>Review Answers</Text>
-                {result.corrections?.map((c: any, idx: number) => (
+                {corrections.length > 0 && <Text style={styles.sectionTitle}>Review Answers</Text>}
+                {corrections.map((c: any, idx: number) => {
+                    const status = getCorrectionStatus(c);
+                    const statusLabel =
+                        status === "correct" ? "Correct"
+                        : status === "incorrect" ? "Incorrect"
+                        : status === "partial"
+                            ? `Partial ${c.earnedPoints ?? 0}/${c.points ?? 0}`
+                            : "Pending";
+                    const statusStyle =
+                        status === "correct" ? styles.correctBadgePass
+                        : status === "incorrect" ? styles.correctBadgeFail
+                        : styles.correctBadgePending;
+                    const statusTextStyle =
+                        status === "correct" ? styles.correctBadgeTextPass
+                        : status === "incorrect" ? styles.correctBadgeTextFail
+                        : styles.correctBadgeTextPending;
+                    return (
                     <View key={idx} style={styles.correctionCard}>
                         <View style={styles.correctionHeader}>
                             <Text style={styles.correctionLabel}>Q{idx + 1} · {c.points}pts</Text>
-                            <View style={[styles.correctBadge, c.isCorrect === true ? styles.correctBadgePass : c.isCorrect === false ? styles.correctBadgeFail : styles.correctBadgePending]}>
-                                <Text style={[styles.correctBadgeText, c.isCorrect === true ? styles.correctBadgeTextPass : c.isCorrect === false ? styles.correctBadgeTextFail : styles.correctBadgeTextPending]}>
-                                    {c.isCorrect === true ? "Correct" : c.isCorrect === false ? "Incorrect" : "Pending"}
+                            <View style={[styles.correctBadge, statusStyle]}>
+                                <Text style={[styles.correctBadgeText, statusTextStyle]}>
+                                    {statusLabel}
                                 </Text>
                             </View>
                         </View>
@@ -179,7 +197,7 @@ export default function ExamResultScreen() {
                             <View style={styles.structuralAnswer}>
                                 <Text style={styles.structuralLabel}>Your answer:</Text>
                                 <Text style={styles.structuralText}>{c.textAnswer || '(No answer provided)'}</Text>
-                                {c.isCorrect === null && (
+                                {status === "pending" && (
                                     <Text style={styles.pendingText}>Pending teacher review</Text>
                                 )}
                                 {c.teacherComment && (
@@ -193,19 +211,19 @@ export default function ExamResultScreen() {
                                 style={[
                                     styles.correctionOption,
                                     oi === c.correctAnswerIndex && styles.correctOption,
-                                    oi === c.studentAnswer && !c.isCorrect && styles.wrongOption,
+                                    oi === c.studentAnswer && c.isCorrect === false && styles.wrongOption,
                                 ]}
                             >
                                 <Text
                                     style={[
                                         styles.correctionOptionText,
                                         oi === c.correctAnswerIndex && styles.correctOptionText,
-                                        oi === c.studentAnswer && !c.isCorrect && styles.wrongOptionText,
+                                        oi === c.studentAnswer && c.isCorrect === false && styles.wrongOptionText,
                                     ]}
                                 >
                                     {String.fromCharCode(65 + oi)}. {opt}
                                     {oi === c.correctAnswerIndex ? " ✓" : ""}
-                                    {oi === c.studentAnswer && !c.isCorrect ? " ✗" : ""}
+                                    {oi === c.studentAnswer && c.isCorrect === false ? " ✗" : ""}
                                 </Text>
                             </View>
                         ))
@@ -214,7 +232,8 @@ export default function ExamResultScreen() {
                             <Text style={styles.explanation}>{c.explanation}</Text>
                         )}
                     </View>
-                ))}
+                    );
+                })}
             </ScrollView>
         </View>
     );

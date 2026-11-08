@@ -1,22 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 
-const CACHE_TTL = 30 * 60 * 1000 // 30 minutes
-
-function getCached<T>(key: string): T | null {
-  try {
-    const raw = localStorage.getItem(`admin_cache:${key}`)
-    if (!raw) return null
-    const { data, expiresAt } = JSON.parse(raw)
-    if (Date.now() > expiresAt) { localStorage.removeItem(`admin_cache:${key}`); return null }
-    return data as T
-  } catch { return null }
-}
-
-function setCache(key: string, data: any) {
-  try { localStorage.setItem(`admin_cache:${key}`, JSON.stringify({ data, expiresAt: Date.now() + CACHE_TTL })) } catch {}
-}
-
 function StatCard({ label, value, sub, icon, color = 'bg-white' }: { label: string; value: any; sub?: string; icon?: React.ReactNode; color?: string }) {
   return (
     <div className={`${color} rounded-3xl p-7 flex flex-col gap-2 hover:shadow-lg transition-all duration-200`}>
@@ -51,30 +35,41 @@ function MiniBarChart({ data, maxVal, color = '#084A59', hoverColor = '#F2B138',
   )
 }
 
-function StackedBarChart({ data, maxVal, colors, height = 100 }: { data: Array<{ students: number; teachers: number }>; maxVal: number; colors: { students: string; teachers: string }; height?: number }) {
-  const max = Math.max(maxVal, 1)
+function StackedBarChart({ data, maxVal, colors, height = 100 }: { data: Array<{ students: number; teachers: number; admins: number; total: number }>; maxVal: number; colors: { students: string; teachers: string; admins: string }; height?: number }) {
+  const max = Math.max(Number(maxVal) || 0, 1)
+  const chartWidth = 900
+  const chartHeight = height
+  const chartBottom = chartHeight - 18
+  const chartTop = 8
+  const chartPlotHeight = chartBottom - chartTop
+  const barWidth = Math.max(8, Math.min(24, (chartWidth - 24) / Math.max(data.length, 1) - 4))
+
   return (
-    <div className='flex items-end gap-1' style={{ height }}>
+    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className='w-full h-full' role='img' aria-label='New signups chart'>
+      <line x1='0' x2={chartWidth} y1={chartBottom} y2={chartBottom} stroke='#E5E7EB' />
       {data.map((val, i) => {
-        const studentH = ((val.students || 0) / max) * 100
-        const teacherH = ((val.teachers || 0) / max) * 100
+        const total = Number(val.total) || 0
+        const students = Number(val.students) || 0
+        const teachers = Number(val.teachers) || 0
+        const admins = Math.max(Number(val.admins) || total - students - teachers, 0)
+        const x = 12 + (i / Math.max(data.length - 1, 1)) * (chartWidth - 24)
+        const scale = chartPlotHeight / max
+        const studentHeight = students * scale
+        const teacherHeight = teachers * scale
+        const adminHeight = admins * scale
+        const studentY = chartBottom - studentHeight
+        const teacherY = studentY - teacherHeight
+        const adminY = teacherY - adminHeight
         return (
-          <div
-            key={i}
-            className='flex-1 flex flex-col justify-end rounded-t cursor-default'
-            title={`Students: ${val.students || 0}, Teachers: ${val.teachers || 0}`}
-          >
-            <div
-              style={{ height: `${Math.max(teacherH, 0)}%`, backgroundColor: colors.teachers }}
-              className='rounded-t'
-            />
-            <div
-              style={{ height: `${Math.max(studentH, 2)}%`, backgroundColor: colors.students }}
-            />
-          </div>
+          <g key={i}>
+            <title>{`${val.date || ''}: ${total} signup${total === 1 ? '' : 's'}`}</title>
+            {students > 0 && <rect x={x - barWidth / 2} y={studentY} width={barWidth} height={studentHeight} fill={colors.students} />}
+            {teachers > 0 && <rect x={x - barWidth / 2} y={teacherY} width={barWidth} height={teacherHeight} fill={colors.teachers} />}
+            {admins > 0 && <rect x={x - barWidth / 2} y={adminY} width={barWidth} height={adminHeight} fill={colors.admins} />}
+          </g>
         )
       })}
-    </div>
+    </svg>
   )
 }
 
@@ -84,44 +79,38 @@ export default function AdminDashboard() {
   const [quizStats, setQuizStats] = useState<any>(null)
   const [wau, setWau] = useState<any>(null)
   const [signupTrend, setSignupTrend] = useState<any>(null)
+  const [subjectReports, setSubjectReports] = useState<any[]>([])
+  const [studentStats, setStudentStats] = useState<{ total: number; active: number; inactive: number } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
       try {
-        // Check cache first
-        const cachedOv = getCached('overview')
-        const cachedCc = getCached('chapterCompletion')
-        const cachedQs = getCached('quizStats')
-        const cachedW = getCached('wau')
-        const cachedSt = getCached('signupTrend')
-
-        if (cachedOv && cachedCc && cachedQs && cachedW && cachedSt) {
-          setOverview(cachedOv)
-          setChapterCompletion(cachedCc)
-          setQuizStats(cachedQs)
-          setWau(cachedW)
-          setSignupTrend(cachedSt)
-          return
-        }
-
-        const [ov, cc, qs, w, st] = await Promise.allSettled([
+        const [ov, cc, qs, w, st, sr, ss] = await Promise.allSettled([
           api.getAnalyticsOverview(),
           api.getChapterCompletion(),
           api.getQuizAnalytics(),
           api.getWAU(),
           api.getSignupTrend(),
+          api.getSubjectReports(),
+          api.getAdminStudentStats(),
         ])
-        if (ov.status === 'fulfilled') { setOverview(ov.value); setCache('overview', ov.value) }
+        if (ov.status === 'fulfilled') setOverview(ov.value)
         else console.error('Overview failed:', ov.reason)
-        if (cc.status === 'fulfilled') { setChapterCompletion(cc.value); setCache('chapterCompletion', cc.value) }
+        if (cc.status === 'fulfilled') setChapterCompletion(cc.value)
         else console.error('Chapter completion failed:', cc.reason)
-        if (qs.status === 'fulfilled') { setQuizStats(qs.value); setCache('quizStats', qs.value) }
+        if (qs.status === 'fulfilled') setQuizStats(qs.value)
         else console.error('Quiz stats failed:', qs.reason)
-        if (w.status === 'fulfilled') { setWau(w.value); setCache('wau', w.value) }
+        if (w.status === 'fulfilled') setWau(w.value)
         else console.error('WAU failed:', w.reason)
-        if (st.status === 'fulfilled') { setSignupTrend(st.value); setCache('signupTrend', st.value) }
+        if (st.status === 'fulfilled') setSignupTrend(st.value)
         else console.error('Signup trend failed:', st.reason)
+        if (sr.status === 'fulfilled') {
+          const value: any = sr.value
+          setSubjectReports(Array.isArray(value) ? value : value?.subjects || value?.data || [])
+        } else console.error('Subject reports failed:', sr.reason)
+        if (ss.status === 'fulfilled') setStudentStats(ss.value)
+        else console.error('Student stats failed:', ss.reason)
       } finally {
         setLoading(false)
       }
@@ -143,6 +132,9 @@ export default function AdminDashboard() {
   const users = overview?.users || {}
   const active = overview?.activeUsers || {}
   const content = overview?.content || {}
+  const totalStudents = studentStats?.total ?? users.students ?? 0
+  const activeStudents = studentStats?.active ?? 0
+  const inactiveStudents = studentStats?.inactive ?? 0
 
   const ch1 = chapterCompletion?.primaryMetric || {}
   const summary = quizStats?.summary || {}
@@ -150,13 +142,21 @@ export default function AdminDashboard() {
   const signupData = signupTrend?.trend ?? []
 
   const wauMax = Math.max(...wauTrend.map((w: any) => w.activeUsers || 0), 1)
-  const signupMax = Math.max(...signupData.map((d: any) => (d.students || 0) + (d.teachers || 0)), 1)
+  const normalizedSignupData = signupData.map((d: any) => {
+    const students = Number(d.students) || 0
+    const teachers = Number(d.teachers) || 0
+    const admins = Number(d.admins) || 0
+    const total = Number(d.total ?? d.count) || students + teachers + admins
+    return { ...d, students, teachers, admins, total }
+  })
+  const signupMax = Math.max(...normalizedSignupData.map((d: any) => d.total), 1)
 
   return (
     <div className='space-y-8'>
       {/* Hero Stats */}
       <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6'>
-        <StatCard label='Total Users' value={users.total ?? '—'} sub={`${users.students ?? 0} students`} />
+        <StatCard label='Total Users' value={users.total ?? '—'} sub={`${totalStudents} students`} />
+        <StatCard label='Students' value={totalStudents} sub={`${activeStudents} active`} />
         <StatCard label='Active (Weekly)' value={active.weekly ?? '—'} sub={`${active.monthly ?? 0} monthly`} />
         <StatCard label='Subjects' value={content.subjects ?? '—'} sub={`${content.chapters ?? 0} chapters`} />
         <StatCard label='Quizzes' value={summary.totalQuizzes ?? '—'} sub={`${summary.totalAttempts ?? 0} attempts`} />
@@ -173,6 +173,52 @@ export default function AdminDashboard() {
           color='bg-slate-50'
         />
       </div>
+
+      {/* Charts Row */}
+      {subjectReports.length > 0 && (
+        <section>
+          <div className='flex items-end justify-between mb-4'>
+            <div>
+              <h3 className='text-lg font-bold text-[#084A59]'>Reports by Subject</h3>
+              <p className='text-sm text-gray-400 mt-0.5'>Quiz and exam performance for this school</p>
+            </div>
+          </div>
+          <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5'>
+            {subjectReports.map((subject: any) => {
+              const average = subject.averageScore ?? subject.average ?? 0
+              const passRate = subject.passRate ?? subject.overallPassRate ?? 0
+              const pending = subject.pendingEssayReviews ?? subject.pendingReviews ?? 0
+              const quizzes = subject.quizCount ?? subject.quizzes?.length ?? 0
+              const exams = subject.examCount ?? subject.exams?.length ?? 0
+              return (
+                <details key={subject.subjectId || subject.id || subject.subjectName} className='group bg-white rounded-2xl border border-gray-200 overflow-hidden'>
+                  <summary className='list-none cursor-pointer p-5 hover:bg-slate-50/60'>
+                    <div className='flex items-start justify-between gap-3'>
+                      <h4 className='font-bold text-[#084A59]'>{subject.subjectName || subject.name || 'Subject'}</h4>
+                      <span className='text-xs font-bold text-gray-400 group-open:rotate-180 transition-transform'>⌄</span>
+                    </div>
+                    <div className='grid grid-cols-3 gap-3 mt-4'>
+                      <div><p className='text-xl font-bold text-[#084A59]'>{Number(average).toFixed(1)}%</p><p className='text-[11px] text-gray-400'>Average</p></div>
+                      <div><p className='text-xl font-bold text-[#084A59]'>{Number(passRate).toFixed(1)}%</p><p className='text-[11px] text-gray-400'>Pass rate</p></div>
+                      <div><p className={`text-xl font-bold ${pending > 0 ? 'text-amber-600' : 'text-green-600'}`}>{pending}</p><p className='text-[11px] text-gray-400'>Essay review</p></div>
+                    </div>
+                  </summary>
+                  <div className='border-t border-gray-100 px-5 py-4 text-xs text-gray-500 space-y-2'>
+                    <div className='flex justify-between'><span>Quizzes</span><strong className='text-[#084A59]'>{quizzes}</strong></div>
+                    <div className='flex justify-between'><span>Exams</span><strong className='text-[#084A59]'>{exams}</strong></div>
+                    {[...(subject.quizzes || []), ...(subject.exams || [])].map((item: any) => (
+                      <div key={item.id} className='flex justify-between gap-3 pt-2 border-t border-gray-50'>
+                        <span className='truncate'>{item.title || item.name}</span>
+                        <span className='shrink-0'>{item.averageScore == null ? '—' : `${item.averageScore}%`}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Charts Row */}
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
@@ -217,12 +263,13 @@ export default function AdminDashboard() {
               <div className='flex items-center gap-3 text-xs'>
                 <span className='flex items-center gap-1.5'><span className='w-2 h-2 rounded-full bg-[#084A59]' /> Teachers</span>
                 <span className='flex items-center gap-1.5'><span className='w-2 h-2 rounded-full bg-slate-300' /> Students</span>
+                <span className='flex items-center gap-1.5'><span className='w-2 h-2 rounded-full bg-[#F2B138]' /> Admins</span>
               </div>
             </div>
             <StackedBarChart
-              data={signupData.slice(-30).map((d: any) => ({ students: d.students || 0, teachers: d.teachers || 0 }))}
+              data={normalizedSignupData.slice(-30)}
               maxVal={signupMax}
-              colors={{ students: '#CBD5E1', teachers: '#084A59' }}
+              colors={{ students: '#CBD5E1', teachers: '#084A59', admins: '#F2B138' }}
               height={120}
             />
           </div>
@@ -288,10 +335,10 @@ export default function AdminDashboard() {
           <p className='text-xs text-gray-400 mb-5'>Platform user composition</p>
           <div className='space-y-3'>
             {[
-              { label: 'Students', value: users.students ?? 0, total: users.total ?? 1, color: 'bg-slate-500' },
+              { label: 'Students', value: totalStudents, total: users.total ?? 1, color: 'bg-slate-500' },
               { label: 'Teachers', value: users.teachers ?? 0, total: users.total ?? 1, color: 'bg-slate-400' },
               { label: 'Admins', value: users.admins ?? 0, total: users.total ?? 1, color: 'bg-[#F2B138]' },
-              { label: 'Deactivated', value: users.deactivated ?? 0, total: users.total ?? 1, color: 'bg-slate-300' },
+              { label: 'Inactive students', value: inactiveStudents, total: Math.max(totalStudents, 1), color: 'bg-slate-300' },
             ].map((item, i) => (
               <div key={i}>
                 <div className='flex items-center justify-between mb-1.5'>

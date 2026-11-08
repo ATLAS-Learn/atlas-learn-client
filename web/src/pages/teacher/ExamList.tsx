@@ -7,7 +7,6 @@ export default function ExamList() {
   const [exams, setExams] = useState<any[]>([])
   const [subjects, setSubjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [filterSubject, setFilterSubject] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [createForm, setCreateForm] = useState({
     title: '',
@@ -27,7 +26,7 @@ export default function ExamList() {
 
   const loadExams = async () => {
     try {
-      const examsRes = await api.getExams({ subjectId: filterSubject || undefined })
+      const examsRes = await api.getExams()
       setExams(examsRes?.data || [])
     } catch (err) { console.error('Failed to load exams:', err) }
     finally { setLoading(false) }
@@ -36,7 +35,7 @@ export default function ExamList() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadSubjects() }, [])
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadExams() }, [filterSubject, loadExams])
+  useEffect(() => { loadExams() }, [])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -99,21 +98,6 @@ export default function ExamList() {
         >
           + New Exam
         </button>
-      </div>
-
-      {/* Filter */}
-      <div className='bg-white rounded-2xl border border-gray-200 px-5 py-4 flex items-center gap-4'>
-        <label className='text-sm font-semibold text-gray-600'>Subject:</label>
-        <select
-          value={filterSubject}
-          onChange={e => setFilterSubject(e.target.value)}
-          className='px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F2B138]/20 focus:border-[#F2B138]'
-        >
-          <option value=''>All Subjects</option>
-          {subjects.map(s => (
-            <option key={s.id} value={s.id}>{s.name} ({s._count?.exams ?? 0})</option>
-          ))}
-        </select>
       </div>
 
       {/* Exam list */}
@@ -181,7 +165,7 @@ export default function ExamList() {
       {/* Create Modal */}
       {showCreateModal && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => setShowCreateModal(false)}>
-          <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={e => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-xl shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <h3 className='text-lg font-bold text-[#084A59]'>New Exam</h3>
               <button onClick={() => setShowCreateModal(false)} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors'>

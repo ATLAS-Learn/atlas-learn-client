@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../../api/client'
 
 export default function QuizList() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const quizBasePath = location.pathname.startsWith('/admin') ? '/admin/quizzes' : '/teacher/quizzes'
   const [subjects, setSubjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null)
@@ -33,7 +35,7 @@ export default function QuizList() {
     setExpandedChapter(null)
     if (!chapters[subjectId]) {
       try {
-        const data = await api.getChapters({ subjectId })
+        const data = await api.getChapters({ subjectId, includeQuizzes: true })
         setChapters(prev => ({ ...prev, [subjectId]: Array.isArray(data) ? data : [] }))
       } catch {}
     }
@@ -75,7 +77,7 @@ export default function QuizList() {
       if (showQuizForm) reloadQuizzes(showQuizForm)
       const createdQuiz = newQuiz as any
       if (createdQuiz?.id) {
-        navigate(`/teacher/quizzes/${createdQuiz.id}`, { state: { quiz: createdQuiz, chapterId: showQuizForm } })
+        navigate(`${quizBasePath}/${createdQuiz.id}`, { state: { quiz: createdQuiz, chapterId: showQuizForm } })
       }
     } catch (err: any) { alert(err.message) }
   }
@@ -155,7 +157,7 @@ export default function QuizList() {
                                 <div>
                                   <p className='text-sm font-bold text-[#084A59]'>{ch.title}</p>
                                   <p className='text-xs text-gray-400'>
-                                    {quizzes[ch.id]?.length ?? ch._count?.quizzes ?? 0} quizzes
+                                    {quizzes[ch.id]?.length ?? ch.quizzes?.length ?? ch._count?.quizzes ?? 0} quizzes
                                   </p>
                                 </div>
                               </div>
@@ -189,7 +191,7 @@ export default function QuizList() {
                                         </div>
                                         <div className='flex gap-1.5'>
                                           <button
-                                            onClick={() => navigate(`/teacher/quizzes/${quiz.id}`, { state: { quiz, chapterId: ch.id } })}
+                                            onClick={() => navigate(`${quizBasePath}/${quiz.id}`, { state: { quiz, chapterId: ch.id } })}
                                             className='px-2.5 py-1.5 text-xs font-semibold text-[#084A59] border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-600 transition-colors'
                                           >
                                             View Details
@@ -221,7 +223,7 @@ export default function QuizList() {
 
       {showQuizForm && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => setShowQuizForm(null)}>
-          <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl' onClick={e => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-xl shadow-2xl' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <h3 className='text-lg font-bold text-[#084A59]'>New Quiz</h3>
               <button onClick={() => setShowQuizForm(null)} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors'>

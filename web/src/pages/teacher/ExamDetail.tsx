@@ -14,6 +14,79 @@ interface DraftQuestion {
   isDraft: true
 }
 
+const getStudentAnswer = (answer: any): string => {
+  if (typeof answer === 'string' || typeof answer === 'number') return String(answer)
+  if (answer && typeof answer === 'object') {
+    const nested = answer.textAnswers || answer.answers || answer.responses
+    if (nested && nested !== answer) return getStudentAnswer(nested)
+  }
+  const value = answer?.textAnswer
+    ?? answer?.answer
+    ?? answer?.response
+    ?? answer?.userAnswer
+    ?? answer?.text
+    ?? answer?.value
+  return value === null || value === undefined ? '' : String(value)
+}
+
+const getStructuralAnswers = (attempt: any, questions: any[] = []) => {
+  const structuralQuestions = questions.filter(q => q.questionType === 'STRUCTURAL')
+  const textAnswers = attempt?.textAnswers
+    || attempt?.studentAnswers
+    || attempt?.responses
+    || attempt?.submission?.textAnswers
+  const answerValues = attempt?.answers
+    || attempt?.questionAnswers
+    || attempt?.submission?.answers
+  const source = Array.isArray(attempt?.structuralAnswers)
+    ? attempt.structuralAnswers
+    : Array.isArray(textAnswers)
+      ? textAnswers
+      : textAnswers && typeof textAnswers === 'object'
+        ? Object.entries(textAnswers).map(([questionId, answer]) => ({ questionId, textAnswer: answer }))
+        : []
+
+  const sourceByQuestionId = new Map(source.map((answer: any) => [answer.questionId, answer]))
+  const sourceByIndex = source
+  const answerByQuestionId = Array.isArray(answerValues)
+    ? new Map(answerValues.map((answer: any) => [answer?.questionId, answer]))
+    : new Map()
+  return structuralQuestions.map((question: any, index: number) => {
+    const answer = sourceByQuestionId.get(question.id)
+      || sourceByIndex[index]
+      || answerByQuestionId.get(question.id)
+      || (Array.isArray(answerValues) ? { textAnswer: answerValues[question.orderIndex ?? index] } : null)
+      || (answerValues && typeof answerValues === 'object' ? { textAnswer: answerValues[question.id] } : null)
+      || {}
+    return {
+      ...answer,
+      questionId: question.id || answer.questionId || `structural-${index}`,
+      questionText: question.questionText || question.question || answer.questionText || '',
+      orderIndex: question.orderIndex ?? answer.orderIndex ?? index,
+      points: question.points ?? answer.points ?? 0,
+      textAnswer: getStudentAnswer(answer),
+    }
+  })
+}
+
+const canGradeAttempt = (attempt: any) =>
+  !attempt?.isCorrected || !attempt?.hasTeacherCorrections
+
+const getStoredCorrections = (attempt: any): Record<string, { points: number; comment: string }> => {
+  try {
+    const raw = typeof attempt?.textAnswers === 'string' ? JSON.parse(attempt.textAnswers) : attempt?.textAnswers
+    const corrections = raw && typeof raw === 'object' ? raw.__teacherCorrections : null
+    if (!corrections || typeof corrections !== 'object') return {}
+    const stored: Record<string, { points: number; comment: string }> = {}
+    for (const [questionId, value] of Object.entries<any>(corrections)) {
+      stored[questionId] = { points: Number(value?.points) || 0, comment: String(value?.comment ?? '') }
+    }
+    return stored
+  } catch {
+    return {}
+  }
+}
+
 export default function ExamDetail() {
   const { examId } = useParams<{ examId: string }>()
   const navigate = useNavigate()
@@ -40,8 +113,29 @@ export default function ExamDetail() {
   const [correctingAttempt, setCorrectingAttempt] = useState<any>(null)
   const [correctionGrades, setCorrectionGrades] = useState<Record<string, { points: number; comment: string }>>({})
   const [correctionSaving, setCorrectionSaving] = useState(false)
+  const [aiProposal, setAiProposal] = useState<{ corrections: any[]; overallComment?: string } | null>(null)
   const [editingDraftIdx, setEditingDraftIdx] = useState<number | null>(null)
   const [editDraftForm, setEditDraftForm] = useState<DraftQuestion | null>(null)
+  const correctingStructuralAnswers = getStructuralAnswers(correctingAttempt, exam?.questions)
+
+  // Per-question MCQ pass/fail derived from the real stored answers vs correctAnswerIndex.
+  // The answers array is positional over the orderIndex-ordered question list (same as the server).
+  const mcqResults = correctingAttempt && Array.isArray(exam?.questions)
+    ? exam.questions.flatMap((q: any, idx: number) => {
+        if (q.questionType !== 'MCQ') return []
+        const list = Array.isArray(correctingAttempt.answers) ? correctingAttempt.answers : []
+        const raw = list[idx]
+        const studentIndex = raw == null || raw === '' ? -1 : Number(raw)
+        const correct = Number(q.correctAnswerIndex)
+        return [{
+          question: q,
+          idx,
+          studentIndex,
+          correct,
+          passed: studentIndex >= 0 && studentIndex === correct,
+        }]
+      })
+    : []
 
   const loadExam = async () => {
     if (!examId) return
@@ -225,6 +319,19 @@ export default function ExamDetail() {
       loadCorrections()
     } catch (err: any) { alert(err.message) }
     finally { setCorrectionSaving(false) }
+  }
+
+  const acceptAIProposal = () => {
+    if (!aiProposal) return
+    const next = { ...correctionGrades }
+    aiProposal.corrections.forEach((correction: any) => {
+      next[correction.questionId] = {
+        points: Number(correction.points) || 0,
+        comment: correction.comment || '',
+      }
+    })
+    setCorrectionGrades(next)
+    setAiProposal(null)
   }
 
   if (loading) {
@@ -506,7 +613,7 @@ export default function ExamDetail() {
                         <p className='text-xs text-gray-400'>{a.user?.email}</p>
                       </td>
                       <td className='px-5 py-3'>
-                        <span className={`text-sm font-bold ${a.score >= 70 ? 'text-green-600' : 'text-red-500'}`}>
+                        <span className={`text-sm font-bold ${a.isCorrected ? (a.score >= 70 ? 'text-green-600' : 'text-red-500') : 'text-amber-600'}`}>
                           {a.isCorrected ? `${a.score}%` : `~${a.score}%`}
                         </span>
                       </td>
@@ -564,7 +671,9 @@ export default function ExamDetail() {
                         <p className='text-xs text-gray-400'>{attempt.user?.email}</p>
                       </td>
                       <td className='px-5 py-3'>
-                        <span className='text-sm font-bold text-gray-500'>~{attempt.score}%</span>
+                        <span className={`text-sm font-bold ${attempt.isCorrected ? (attempt.score >= 70 ? 'text-green-600' : 'text-red-500') : 'text-amber-600'}`}>
+                          {attempt.isCorrected ? `${attempt.score}%` : `~${attempt.score}%`}
+                        </span>
                       </td>
                       <td className='px-5 py-3'>
                         {attempt.isCorrected ? (
@@ -580,15 +689,17 @@ export default function ExamDetail() {
                         <button
                           onClick={() => {
                             setCorrectingAttempt(attempt)
+                            setAiProposal(attempt.aiCorrection || null)
                             const grades: Record<string, { points: number; comment: string }> = {}
-                            attempt.structuralAnswers?.forEach((a: any) => {
-                              grades[a.questionId] = { points: 0, comment: '' }
+                            const stored = getStoredCorrections(attempt)
+                            getStructuralAnswers(attempt, exam?.questions).forEach((a: any) => {
+                              grades[a.questionId] = stored[a.questionId] || { points: 0, comment: '' }
                             })
                             setCorrectionGrades(grades)
                           }}
                           className='px-4 py-1.5 bg-[#084A59] text-white text-xs font-bold rounded-xl hover:bg-[#011C26] transition-colors'
                         >
-                          {attempt.isCorrected ? 'View' : 'Grade'}
+                          {attempt.isCorrected ? (attempt.hasTeacherCorrections ? 'View' : 'Re-grade') : 'Grade'}
                         </button>
                       </td>
                     </tr>
@@ -603,7 +714,7 @@ export default function ExamDetail() {
       {/* Add Question Modal */}
       {showAddQuestion && (
         <div className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={() => setShowAddQuestion(false)}>
-          <div className='bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto' onClick={e => e.stopPropagation()}>
+          <div className='bg-white rounded-2xl w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto' onClick={e => e.stopPropagation()}>
             <div className='px-6 py-5 border-b border-gray-100 flex items-center justify-between'>
               <h3 className='text-lg font-bold text-[#084A59]'>Add Question</h3>
               <button onClick={() => setShowAddQuestion(false)} className='p-2 rounded-lg hover:bg-gray-100 text-gray-400'>
@@ -719,35 +830,98 @@ export default function ExamDetail() {
       {/* Grading Modal */}
       {correctingAttempt && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4'>
-          <div className='bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col'>
+          <div className='bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col'>
             {/* Modal Header */}
             <div className='px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0'>
               <div>
                 <h3 className='text-lg font-bold text-[#084A59]'>Grade: {correctingAttempt.user?.name}</h3>
                 <p className='text-xs text-gray-400'>{correctingAttempt.user?.email} · Submitted {new Date(correctingAttempt.completedAt).toLocaleString()}</p>
               </div>
+              <div className='flex items-center gap-2'>
               <button
                 onClick={() => setCorrectingAttempt(null)}
                 className='p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors'
               >
                 <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg>
               </button>
+              </div>
             </div>
 
             {/* Modal Body */}
             <div className='px-6 py-4 space-y-4 overflow-y-auto flex-1'>
-              {correctingAttempt.structuralAnswers?.length > 0 ? correctingAttempt.structuralAnswers.map((a: any) => (
+              {aiProposal && (
+                <div className='border border-violet-200 bg-violet-50 rounded-xl p-4'>
+                  <div className='flex items-start justify-between gap-3'>
+                    <div>
+                      <p className='text-xs font-bold uppercase text-violet-700'>AI correction ready for review</p>
+                      <p className='text-xs text-violet-600 mt-1'>Review the proposed points and feedback below, then accept or reject the suggestion.</p>
+                    </div>
+                    <div className='flex gap-2 shrink-0'>
+                      <button onClick={acceptAIProposal} className='px-3 py-1.5 bg-violet-700 text-white rounded-lg text-xs font-bold'>Accept</button>
+                      <button onClick={async () => {
+                        await api.rejectExamAIGrade(examId!, correctingAttempt.attemptId || correctingAttempt.id)
+                        setAiProposal(null)
+                        setCorrectingAttempt({ ...correctingAttempt, aiCorrection: null })
+                      }} className='px-3 py-1.5 border border-violet-200 text-violet-700 rounded-lg text-xs font-bold'>Reject</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {mcqResults.length > 0 && (
+                <div className='border border-gray-200 rounded-xl p-4 space-y-3'>
+                  <p className='text-xs font-bold text-gray-400 uppercase'>Multiple Choice</p>
+                  {mcqResults.map(({ question, idx, studentIndex, correct, passed }: any) => (
+                    <div key={question.id} className='flex items-start justify-between gap-3 text-sm'>
+                      <div className='flex-1'>
+                        <p className='text-sm text-[#084A59] font-medium'>Q{idx + 1}. {question.questionText}</p>
+                        <p className='text-xs text-gray-500 mt-1'>
+                          Student:{' '}
+                          {studentIndex >= 0
+                            ? `${String.fromCharCode(65 + studentIndex)}. ${(question.options || [])[studentIndex] ?? ''}`
+                            : 'No answer'}
+                          {'  ·  '}Correct: {String.fromCharCode(65 + correct)}. {(question.options || [])[correct] ?? ''}
+                        </p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold shrink-0 ${passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                        {passed ? 'Passed' : 'Failed'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {correctingStructuralAnswers.length > 0 ? correctingStructuralAnswers.map((a: any) => (
                 <div key={a.questionId} className='border border-gray-200 rounded-xl p-4 space-y-3'>
                   <div className='flex items-start justify-between'>
                     <p className='text-sm font-semibold text-[#084A59] flex-1'>Q{a.orderIndex + 1}. {a.questionText}</p>
-                    <span className='text-xs font-bold text-gray-400 ml-2 shrink-0'>{a.points} pts</span>
+                    <div className='flex items-center gap-2 ml-2 shrink-0'>
+                      {(() => {
+                        const stored = getStoredCorrections(correctingAttempt)[a.questionId]
+                        const isGrading = canGradeAttempt(correctingAttempt)
+                        const earned = isGrading
+                          ? (correctionGrades[a.questionId]?.points ?? 0)
+                          : stored?.points
+                        if (!isGrading && earned == null) {
+                          return <span className='px-2 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500'>Not graded</span>
+                        }
+                        const points = Number(earned) || 0
+                        const label = a.points > 0 && points >= a.points ? 'Passed' : points > 0 ? 'Partial' : 'Failed'
+                        const cls = a.points > 0 && points >= a.points
+                          ? 'bg-green-100 text-green-700'
+                          : points > 0
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-red-100 text-red-600'
+                        return <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${cls}`}>{label}</span>
+                      })()}
+                      <span className='text-xs font-bold text-gray-400'>{a.points} pts</span>
+                    </div>
                   </div>
                   <div className='bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap'>
                     <p className='text-xs font-bold text-blue-400 mb-1'>Student Answer:</p>
                     {a.textAnswer || '(No answer provided)'}
                   </div>
 
-                  {!correctingAttempt.isCorrected && (
+                  {canGradeAttempt(correctingAttempt) && (
                     <div className='grid grid-cols-2 gap-3'>
                       <div>
                         <label className='text-xs font-semibold text-gray-500'>Points Awarded</label>
@@ -771,6 +945,17 @@ export default function ExamDetail() {
                       </div>
                     </div>
                   )}
+
+                  {!canGradeAttempt(correctingAttempt) && (() => {
+                    const stored = getStoredCorrections(correctingAttempt)[a.questionId]
+                    if (!stored) return null
+                    return (
+                      <p className='text-xs text-gray-500'>
+                        <span className='font-bold text-[#084A59]'>Graded:</span> {stored.points} / {a.points} pts
+                        {stored.comment ? ` — ${stored.comment}` : ''}
+                      </p>
+                    )
+                  })()}
                 </div>
               )) : (
                 <p className='text-sm text-gray-400 text-center py-8'>No essay questions in this exam</p>
@@ -778,7 +963,7 @@ export default function ExamDetail() {
             </div>
 
             {/* Modal Footer */}
-            {!correctingAttempt.isCorrected && (
+            {canGradeAttempt(correctingAttempt) && (
               <div className='px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0'>
                 <button
                   onClick={() => setCorrectingAttempt(null)}

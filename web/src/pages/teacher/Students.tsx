@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api/client'
+import StudentAvatar from '../../components/StudentAvatar'
 
 export default function TeacherStudents() {
   const [students, setStudents] = useState<any[]>([])
@@ -63,9 +64,7 @@ export default function TeacherStudents() {
                 <tr key={s.id} className='hover:bg-gray-50/50 transition-colors'>
                   <td className='px-6 py-3.5'>
                     <div className='flex items-center gap-3'>
-                      <div className='w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 flex-shrink-0'>
-                        {(s.name || s.email || '?')[0].toUpperCase()}
-                      </div>
+                      <StudentAvatar student={s} size='sm' />
                       <div>
                         <p className='text-sm font-semibold text-[#084A59]'>{s.name || s.email?.split('@')[0]}</p>
                         <p className='text-xs text-gray-400'>{s.email}</p>

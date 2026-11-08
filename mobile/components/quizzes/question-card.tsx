@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { QuizQuestion } from "@/lib/types";
+import SafeMarkdown from "@/components/SafeMarkdown";
 
 interface QuestionCardProps {
     question: QuizQuestion;
@@ -45,7 +46,11 @@ export default function QuestionCard({
                 )}
             </View>
 
-            <Text style={styles.questionText}>{question.questionText}</Text>
+            <SafeMarkdown
+                markdown={question.questionText}
+                compact
+                markdownStyle={{ body: styles.questionText }}
+            />
 
             {isStructural ? (
                 <View style={styles.essayContainer}>
@@ -90,16 +95,19 @@ export default function QuestionCard({
                                         {String.fromCharCode(65 + index)}
                                     </Text>
                                 </View>
-                                <Text
-                                    style={[
-                                        styles.optionText,
-                                        selectedAnswer === index && styles.optionTextSelected,
-                                        showResult && index === question.correctAnswerIndex && styles.optionTextCorrect,
-                                        showResult && selectedAnswer === index && index !== question.correctAnswerIndex && styles.optionTextIncorrect,
-                                    ]}
-                                >
-                                    {option}
-                                </Text>
+                                <SafeMarkdown
+                                    markdown={option}
+                                    compact
+                                    containerStyle={styles.optionMarkdown}
+                                    markdownStyle={{
+                                        body: [
+                                            styles.optionText,
+                                            selectedAnswer === index && styles.optionTextSelected,
+                                            showResult && index === question.correctAnswerIndex && styles.optionTextCorrect,
+                                            showResult && selectedAnswer === index && index !== question.correctAnswerIndex && styles.optionTextIncorrect,
+                                        ],
+                                    }}
+                                />
                             </View>
                             {showResult && index === question.correctAnswerIndex && (
                                 <Text style={styles.correctBadge}>✓</Text>
@@ -112,7 +120,12 @@ export default function QuestionCard({
             {showResult && question.explanation && (
                 <View style={styles.explanationContainer}>
                     <Ionicons name="bulb-outline" size={16} color="#F2B138" />
-                    <Text style={styles.explanationText}>{question.explanation}</Text>
+                    <SafeMarkdown
+                        markdown={question.explanation}
+                        compact
+                        containerStyle={styles.explanationMarkdown}
+                        markdownStyle={{ body: styles.explanationText }}
+                    />
                 </View>
             )}
         </KeyboardAvoidingView>
@@ -199,6 +212,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
+    },
+    optionMarkdown: {
+        flex: 1,
+        minWidth: 0,
     },
     optionLetter: {
         width: 30,
@@ -300,6 +317,10 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 1,
         borderColor: "#F2B13830",
+    },
+    explanationMarkdown: {
+        flex: 1,
+        minWidth: 0,
     },
     explanationText: {
         flex: 1,

@@ -36,6 +36,12 @@
       "bundler": "metro"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "newArchEnabled": true
+        }
+      ],
       "expo-router",
       "expo-image-picker",
       [
@@ -44,11 +50,19 @@
           "image": "./assets/images/splash-badge.png",
           "imageWidth": 240,
           "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF"
+          "backgroundColor": "#084858"
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-image",
+      [
+        "expo-notifications",
+        {
+          "color": "#084A59"
+        }
+      ],
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,

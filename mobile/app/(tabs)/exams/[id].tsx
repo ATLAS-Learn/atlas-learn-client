@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+    Animated,
     View,
     Text,
     TouchableOpacity,
@@ -12,7 +13,7 @@ import {
     BackHandler,
     Modal,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiClient } from "@/lib/api";
@@ -22,6 +23,7 @@ import ScreenHeader from "@/components/ui/screen-header";
 export default function ExamTakeScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const navigation = useNavigation();
     const { id } = useLocalSearchParams<{ id: string }>();
     const examId = Array.isArray(id) ? id[0] : id;
 
@@ -35,6 +37,47 @@ export default function ExamTakeScreen() {
     const [examStarted, setExamStarted] = useState(false);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const submittedRef = useRef(false);
+    const [scrollY] = useState(() => new Animated.Value(0));
+    const lastScrollY = useRef(0);
+    const headerHidden = useRef(false);
+    const [headerVisible, setHeaderVisible] = useState(true);
+
+    // Latest values readable from timer/background/back-button submit closures
+    // (those callbacks capture the first render's closure, so state reads would be stale).
+    const answersRef = useRef(answers);
+    const textAnswersRef = useRef(textAnswers);
+    const timeLeftRef = useRef(timeLeft);
+    const examRef = useRef(exam);
+    answersRef.current = answers;
+    textAnswersRef.current = textAnswers;
+    timeLeftRef.current = timeLeft;
+    examRef.current = exam;
+
+    useEffect(() => {
+        const listenerId = scrollY.addListener(({ value }) => {
+            const diff = value - lastScrollY.current;
+            if (diff > 10 && value > 30 && !headerHidden.current) {
+                headerHidden.current = true;
+                setHeaderVisible(false);
+            } else if (diff < -10 && headerHidden.current) {
+                headerHidden.current = false;
+                setHeaderVisible(true);
+            }
+            lastScrollY.current = value;
+        });
+        return () => scrollY.removeListener(listenerId);
+    }, [scrollY]);
+
+    useEffect(() => {
+        navigation.setOptions({
+            tabBarStyle: headerVisible
+                ? undefined
+                : { height: 0, overflow: "hidden", borderTopWidth: 0 },
+        });
+        return () => {
+            navigation.setOptions({ tabBarStyle: undefined });
+        };
+    }, [headerVisible, navigation]);
 
     const loadExam = useCallback(async () => {
         if (!examId) return;
@@ -154,7 +197,12 @@ export default function ExamTakeScreen() {
         if (submitting || submittedRef.current) return;
         if (timerRef.current) clearInterval(timerRef.current);
 
-        const unanswered = answers.filter((a) => a === -1).length;
+        const unanswered = (exam?.questions ?? []).filter(
+            (q: any, i: number) =>
+                q.questionType === "STRUCTURAL"
+                    ? !(textAnswers[q.id] || "").trim()
+                    : answers[i] === -1
+        ).length;
         if (unanswered > 0) {
             Alert.alert(
                 "Incomplete Exam",
@@ -175,12 +223,13 @@ export default function ExamTakeScreen() {
         setSubmitting(true);
         if (timerRef.current) clearInterval(timerRef.current);
         try {
-            const timeSpent = exam?.timeLimit
-                ? exam.timeLimit - (timeLeft ?? 0)
+            const timeLimit = examRef.current?.timeLimit;
+            const timeSpent = timeLimit
+                ? Math.max(0, timeLimit - (timeLeftRef.current ?? 0))
                 : 0;
-            const result = await apiClient.submitExam(examId, {
-                answers,
-                textAnswers,
+            await apiClient.submitExam(examId, {
+                answers: answersRef.current,
+                textAnswers: textAnswersRef.current,
                 timeSpent,
             });
             router.replace({
@@ -244,7 +293,18 @@ export default function ExamTakeScreen() {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+            <Animated.View style={[styles.header, { paddingTop: insets.top + 8 }, {
+                transform: [{ translateY: scrollY.interpolate({
+                    inputRange: [0, 60],
+                    outputRange: [0, -70],
+                    extrapolate: "clamp",
+                }) }],
+                opacity: scrollY.interpolate({
+                    inputRange: [0, 50],
+                    outputRange: [1, 0],
+                    extrapolate: "clamp",
+                }),
+            }]}>
                 <View style={styles.headerLeft}>
                     <Text style={styles.headerTitle} numberOfLines={1}>{exam.title}</Text>
                     <Text style={styles.headerSubtitle}>{answeredCount}/{total} answered</Text>
@@ -255,7 +315,7 @@ export default function ExamTakeScreen() {
                         <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
                     </View>
                 )}
-            </View>
+            </Animated.View>
 
             {/* Progress bar */}
             <View style={styles.progressTrack}>
@@ -292,7 +352,15 @@ export default function ExamTakeScreen() {
             </ScrollView>
 
             {/* Question content */}
-            <ScrollView style={styles.questionScroll} contentContainerStyle={styles.questionContent}>
+            <Animated.ScrollView
+                style={styles.questionScroll}
+                contentContainerStyle={styles.questionContent}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: true },
+                )}
+                scrollEventThrottle={16}
+            >
                 <View style={styles.questionHeader}>
                     <View style={styles.questionBadge}>
                         <Text style={styles.questionBadgeText}>
@@ -353,7 +421,7 @@ export default function ExamTakeScreen() {
                         );
                     })
                 )}
-            </ScrollView>
+            </Animated.ScrollView>
 
             {/* Bottom nav */}
             <View style={styles.bottomBar}>

@@ -2,23 +2,106 @@ import { useEffect, useState } from 'react';
 import { api } from '../../api/client';
 
 interface Overview {
-  totalUsers?: number;
-  totalStudents?: number;
-  totalTeachers?: number;
-  totalAdmins?: number;
-  totalSchools?: number;
-  totalSubjects?: number;
-  totalChapters?: number;
-  totalLessons?: number;
-  totalQuizzes?: number;
-  totalQuizAttempts?: number;
-  totalAssessments?: number;
-  totalAssessmentAttempts?: number;
+  users?: {
+    total?: number;
+    students?: number;
+    teachers?: number;
+    admins?: number;
+  };
+  content?: {
+    subjects?: number;
+    chapters?: number;
+    lessons?: number;
+  };
+  quizzes?: {
+    total?: number;
+    totalAttempts?: number;
+  };
+  exams?: {
+    total?: number;
+    totalAttempts?: number;
+  };
+  assessments?: {
+    totalAttempts?: number;
+  };
+  schools?: number;
   newStudentsThisMonth?: number;
-  totalExams?: number;
-  totalExamAttempts?: number;
-  activeUsers?: number;
-  recentUsers?: any[];
+}
+
+function SignupTrendChart({ data }: { data: any[] }) {
+  const chartWidth = 900;
+  const chartHeight = 280;
+  const padding = { top: 24, right: 24, bottom: 42, left: 42 };
+  const plotWidth = chartWidth - padding.left - padding.right;
+  const plotHeight = chartHeight - padding.top - padding.bottom;
+  const points = data.map((day, index) => ({
+    label: day.date || day.label || `Day ${index + 1}`,
+    total: Number(day.total ?? day.count ?? 0),
+  }));
+  const maxValue = Math.max(...points.map((point) => point.total), 1);
+  const x = (index: number) =>
+    padding.left + (points.length === 1 ? plotWidth / 2 : (index / (points.length - 1)) * plotWidth);
+  const y = (value: number) => padding.top + plotHeight - (value / maxValue) * plotHeight;
+  const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${x(index)} ${y(point.total)}`).join(' ');
+  const areaPath = `${linePath} L ${x(points.length - 1)} ${padding.top + plotHeight} L ${x(0)} ${padding.top + plotHeight} Z`;
+  const gridValues = Array.from({ length: 4 }, (_, index) => Math.round((maxValue * index) / 3));
+  const labelStep = Math.max(1, Math.ceil(points.length / 6));
+
+  return (
+    <div className='w-full overflow-x-auto'>
+      <svg
+        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+        className='w-full min-w-[620px] h-[280px]'
+        role='img'
+        aria-label='Signup trend line chart'
+      >
+        <defs>
+          <linearGradient id='signup-area-gradient' x1='0' x2='0' y1='0' y2='1'>
+            <stop offset='0%' stopColor='#12A67C' stopOpacity='0.28' />
+            <stop offset='100%' stopColor='#12A67C' stopOpacity='0.02' />
+          </linearGradient>
+        </defs>
+
+        {gridValues.map((value) => (
+          <g key={value}>
+            <line
+              x1={padding.left}
+              x2={chartWidth - padding.right}
+              y1={y(value)}
+              y2={y(value)}
+              stroke='#E5E7EB'
+              strokeDasharray='4 4'
+            />
+            <text x={padding.left - 10} y={y(value) + 4} textAnchor='end' className='fill-gray-400 text-[11px]'>
+              {value}
+            </text>
+          </g>
+        ))}
+
+        <line
+          x1={padding.left}
+          x2={chartWidth - padding.right}
+          y1={padding.top + plotHeight}
+          y2={padding.top + plotHeight}
+          stroke='#CBD5E1'
+        />
+        <path d={areaPath} fill='url(#signup-area-gradient)' />
+        <path d={linePath} fill='none' stroke='#12A67C' strokeWidth='3' strokeLinecap='round' strokeLinejoin='round' />
+
+        {points.map((point, index) => (
+          <g key={`${point.label}-${index}`}>
+            <title>{`${point.label}: ${point.total} signup${point.total === 1 ? '' : 's'}`}</title>
+            <circle cx={x(index)} cy={y(point.total)} r='5' fill='white' stroke='#12A67C' strokeWidth='3' />
+            {(index % labelStep === 0 || index === points.length - 1) && (
+              <text x={x(index)} y={chartHeight - 14} textAnchor='middle' className='fill-gray-500 text-[11px]'>
+                {point.label}
+              </text>
+            )}
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
 }
 
 export default function SuperadminDashboard() {
@@ -37,12 +120,12 @@ export default function SuperadminDashboard() {
 
         if (ov.status === 'fulfilled') {
           const d = ov.value as any;
-          setOverview(d.overview || d);
+          setOverview(d.overview || d.data || d);
           setTopSubjects(d.topSubjects || d.topPerformingSubjects || []);
         }
         if (trend.status === 'fulfilled') {
           const t = trend.value as any;
-          setSignupTrend(t.trend || t.data || []);
+          setSignupTrend(t.trend || t.data?.trend || t.data || []);
         }
       } catch (e) {
         console.error('Failed to load superadmin dashboard:', e);
@@ -61,18 +144,24 @@ export default function SuperadminDashboard() {
     );
   }
 
+  const users = overview.users || {};
+  const content = overview.content || {};
+  const quizzes = overview.quizzes || {};
+  const exams = overview.exams || {};
+  const assessments = overview.assessments || {};
   const stats = [
-    { label: 'Total Students', value: overview.totalStudents ?? 0, color: 'text-[#12A67C]' },
-    { label: 'Teachers', value: overview.totalTeachers ?? 0, color: 'text-[#084A59]' },
-    { label: 'Admins', value: overview.totalAdmins ?? 0, color: 'text-[#F2B138]' },
-    { label: 'Schools', value: overview.totalSchools ?? 0, color: 'text-[#BF522A]' },
-    { label: 'Subjects', value: overview.totalSubjects ?? 0, color: 'text-[#084A59]' },
-    { label: 'Chapters', value: overview.totalChapters ?? 0, color: 'text-[#12A67C]' },
-    { label: 'Lessons', value: overview.totalLessons ?? 0, color: 'text-[#BF522A]' },
-    { label: 'Quizzes', value: overview.totalQuizzes ?? 0, color: 'text-[#F2B138]' },
-    { label: 'Quiz Attempts', value: overview.totalQuizAttempts ?? 0, color: 'text-[#084A59]' },
-    { label: 'Exams', value: overview.totalExams ?? 0, color: 'text-[#12A67C]' },
-    { label: 'Exam Attempts', value: overview.totalExamAttempts ?? 0, color: 'text-[#BF522A]' },
+    { label: 'Total Students', value: users.students ?? 0, color: 'text-[#12A67C]' },
+    { label: 'Teachers', value: users.teachers ?? 0, color: 'text-[#084A59]' },
+    { label: 'Admins', value: users.admins ?? 0, color: 'text-[#F2B138]' },
+    { label: 'Schools', value: overview.schools ?? 0, color: 'text-[#BF522A]' },
+    { label: 'Subjects', value: content.subjects ?? 0, color: 'text-[#084A59]' },
+    { label: 'Chapters', value: content.chapters ?? 0, color: 'text-[#12A67C]' },
+    { label: 'Lessons', value: content.lessons ?? 0, color: 'text-[#BF522A]' },
+    { label: 'Quizzes', value: quizzes.total ?? 0, color: 'text-[#F2B138]' },
+    { label: 'Quiz Attempts', value: quizzes.totalAttempts ?? 0, color: 'text-[#084A59]' },
+    { label: 'Exams', value: exams.total ?? 0, color: 'text-[#12A67C]' },
+    { label: 'Exam Attempts', value: exams.totalAttempts ?? 0, color: 'text-[#BF522A]' },
+    { label: 'Assessment Attempts', value: assessments.totalAttempts ?? 0, color: 'text-[#084A59]' },
     { label: 'New This Month', value: overview.newStudentsThisMonth ?? 0, color: 'text-[#F2B138]' },
   ];
 
@@ -99,20 +188,7 @@ export default function SuperadminDashboard() {
       {signupTrend.length > 0 && (
         <div className='bg-white rounded-xl p-6 border border-gray-200 shadow-sm'>
           <h3 className='text-lg font-bold text-[#011C26] mb-4'>Signup Trend (Last 30 Days)</h3>
-          <div className='space-y-2'>
-            {signupTrend.slice(0, 10).map((day: any, i: number) => (
-              <div key={i} className='flex items-center gap-3'>
-                <span className='text-xs text-gray-500 w-24 shrink-0'>{day.date || day.label}</span>
-                <div className='flex-1 bg-gray-100 rounded-full h-4 overflow-hidden'>
-                  <div
-                    className='h-full bg-[#12A67C] rounded-full transition-all'
-                    style={{ width: `${Math.min((day.count / Math.max(...signupTrend.map((d: any) => d.count || 0))) * 100, 100)}%` }}
-                  />
-                </div>
-                <span className='text-xs font-medium text-gray-700 w-8 text-right'>{day.count || 0}</span>
-              </div>
-            ))}
-          </div>
+          <SignupTrendChart data={signupTrend} />
         </div>
       )}
 

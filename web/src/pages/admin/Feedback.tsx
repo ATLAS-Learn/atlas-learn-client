@@ -370,7 +370,7 @@ export default function AdminFeedback() {
           onClick={() => setReplyModal({ open: false, feedback: null })}
         >
           <div
-            className='bg-white rounded-2xl w-full max-w-lg shadow-xl'
+            className='bg-white rounded-2xl w-full max-w-xl shadow-xl'
             onClick={(e) => e.stopPropagation()}
           >
             <div className='px-6 py-4 border-b border-gray-100'>
