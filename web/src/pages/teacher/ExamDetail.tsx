@@ -859,7 +859,27 @@ export default function ExamDetail() {
                 <div key={a.questionId} className='border border-gray-200 rounded-xl p-4 space-y-3'>
                   <div className='flex items-start justify-between'>
                     <p className='text-sm font-semibold text-[#084A59] flex-1'>Q{a.orderIndex + 1}. {a.questionText}</p>
-                    <span className='text-xs font-bold text-gray-400 ml-2 shrink-0'>{a.points} pts</span>
+                    <div className='flex items-center gap-2 ml-2 shrink-0'>
+                      {(() => {
+                        const stored = getStoredCorrections(correctingAttempt)[a.questionId]
+                        const isGrading = canGradeAttempt(correctingAttempt)
+                        const earned = isGrading
+                          ? (correctionGrades[a.questionId]?.points ?? 0)
+                          : stored?.points
+                        if (!isGrading && earned == null) {
+                          return <span className='px-2 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500'>Not graded</span>
+                        }
+                        const points = Number(earned) || 0
+                        const label = a.points > 0 && points >= a.points ? 'Passed' : points > 0 ? 'Partial' : 'Failed'
+                        const cls = a.points > 0 && points >= a.points
+                          ? 'bg-green-100 text-green-700'
+                          : points > 0
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-red-100 text-red-600'
+                        return <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${cls}`}>{label}</span>
+                      })()}
+                      <span className='text-xs font-bold text-gray-400'>{a.points} pts</span>
+                    </div>
                   </div>
                   <div className='bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap'>
                     <p className='text-xs font-bold text-blue-400 mb-1'>Student Answer:</p>

@@ -71,7 +71,9 @@ export default function ExamHistoryScreen() {
 
     const chartData = useMemo(() => {
         if (history.length === 0) return [];
-        const sorted = [...history].sort(
+        // Only graded attempts have a real final score — ungraded auto-scores would be misleading.
+        const graded = history.filter((h) => h.isCorrected !== false);
+        const sorted = [...graded].sort(
             (a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
         );
         return sorted.map((h, i) => ({
