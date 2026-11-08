@@ -64,6 +64,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Set up EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
       - name: Configure Firebase Android credentials
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
@@ -80,12 +86,12 @@ jobs:
             echo "::error::EXPO_TOKEN is not configured in repository secrets."
             exit 1
           fi
-          pnpm exec eas whoami --non-interactive
+          eas whoami --non-interactive
 
       - name: Build preview APK locally
         run: |
           mkdir -p artifacts
-          pnpm exec eas build \
+          eas build \
             --local \
             --non-interactive \
             --freeze-credentials \
