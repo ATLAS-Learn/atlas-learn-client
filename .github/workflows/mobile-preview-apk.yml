@@ -40,8 +40,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Verify Android SDK
+        run: |
+          if [ -z "${ANDROID_HOME:-}" ] || [ ! -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            echo "::error::The GitHub runner does not have the Android command-line tools installed."
+            exit 1
+          fi
+          sdkmanager --version
+          echo "ANDROID_HOME=$ANDROID_HOME"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
