@@ -70,6 +70,7 @@ jobs:
           pnpm exec eas build \
             --local \
             --non-interactive \
+            --freeze-credentials \
             --profile preview \
             --platform android \
             --output ./artifacts/apex-learn-preview.apk

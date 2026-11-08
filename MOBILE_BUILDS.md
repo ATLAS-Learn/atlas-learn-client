@@ -8,22 +8,40 @@ uploads the APK as a GitHub Actions artifact.
 
 ### Required repository secret
 
-Add `EXPO_TOKEN` under **Settings → Secrets and variables → Actions**. Create the
-token with:
+Add `EXPO_TOKEN` under **Settings → Secrets and variables → Actions**. Create an
+Expo access token from the Expo dashboard:
+
+1. Sign in at [expo.dev](https://expo.dev).
+2. Open **Account settings → Access tokens**.
+3. Create a token and copy it immediately.
+4. Add it to the repository as the `EXPO_TOKEN` Actions secret.
+
+The token's Expo account must have permission to access the Apex Learn project.
+`eas token:create` is not available in all EAS CLI versions; the dashboard is
+the supported fallback when that command is missing.
+
+The Android keystore and push-notification credentials shown by
+`eas credentials` remain stored in EAS. The workflow reuses them and passes
+`--freeze-credentials`, so it will fail rather than replace them if they are
+missing or inaccessible.
+
+### Firebase credentials
+
+For the current Expo Push setup, configure the Android Google service account
+through EAS:
 
 ```bash
-eas login
-eas token:create
+eas credentials --platform android
 ```
 
-The token must have permission to access the Apex Learn Expo project.
+Choose **Google Service Account** and configure the FCM v1 credential in EAS.
+The **Push Notifications (Legacy) API Key** option is not needed for the
+current FCM v1 setup.
 
-### Optional Firebase secret
-
-If Android FCM credentials are needed for the preview build, add
-`GOOGLE_SERVICES_JSON` as a repository Actions secret containing the complete
-contents of Firebase's `google-services.json`. The workflow writes it only
-during the build and removes it afterward. Never commit that file or a Firebase
+If the Android build specifically requires Firebase's
+`google-services.json`, add `GOOGLE_SERVICES_JSON` as an Actions secret
+containing the complete file contents. The workflow writes it only during the
+build and removes it afterward. Never commit that file or a Firebase
 service-account private key.
 
 ### Run the build
