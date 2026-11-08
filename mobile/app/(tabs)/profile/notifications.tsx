@@ -80,10 +80,14 @@ export default function NotificationsScreen() {
         }
 
         if (notification.targetId) {
-            if (notification.type === "EXAM_PUBLISHED" || notification.type === "EXAM_CORRECTED") {
+            if (notification.type === "EXAM_CORRECTED") {
+                router.push({ pathname: "/(tabs)/exams/result/[id]" as any, params: { id: notification.targetId } });
+            } else if (notification.type === "EXAM_PUBLISHED") {
                 router.push({ pathname: "/(tabs)/exams/[id]" as any, params: { id: notification.targetId } });
+            } else if (notification.type === "QUIZ_CORRECTED") {
+                router.push("/(tabs)/profile/quiz-scores" as any);
             } else {
-                router.push({ pathname: "/(tabs)/exams/[id]" as any, params: { id: notification.targetId } });
+                router.push("/(tabs)/profile/notifications" as any);
             }
         }
     };
@@ -92,6 +96,8 @@ export default function NotificationsScreen() {
         switch (type) {
             case "EXAM_PUBLISHED": return "document-text-outline";
             case "EXAM_CORRECTED": return "checkmark-circle-outline";
+            case "QUIZ_CORRECTED": return "checkmark-circle-outline";
+            case "STREAK_REMINDER": return "flame-outline";
             case "QUIZ_PUBLISHED": return "help-circle-outline";
             case "SYSTEM": return "information-circle-outline";
             default: return "notifications-outline";
@@ -102,6 +108,8 @@ export default function NotificationsScreen() {
         switch (type) {
             case "EXAM_PUBLISHED": return "#F2B138";
             case "EXAM_CORRECTED": return "#12A67C";
+            case "QUIZ_CORRECTED": return "#12A67C";
+            case "STREAK_REMINDER": return "#F2B138";
             case "QUIZ_PUBLISHED": return "#084A59";
             default: return "#666";
         }

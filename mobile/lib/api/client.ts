@@ -1350,6 +1350,18 @@ class APIClient {
     await this.axiosInstance.patch('/notifications/read-all');
   }
 
+  async registerPushToken(data: {
+    token: string;
+    platform?: string;
+    deviceName?: string;
+  }): Promise<void> {
+    await this.axiosInstance.post('/notifications/push-token', data);
+  }
+
+  async unregisterPushToken(token: string): Promise<void> {
+    await this.axiosInstance.delete('/notifications/push-token', { data: { token } });
+  }
+
   // Chat
   async chatWithAI(params: {
     message: string;

@@ -56,6 +56,12 @@
       "expo-font",
       "expo-web-browser",
       "expo-image",
+      [
+        "expo-notifications",
+        {
+          "color": "#084A59"
+        }
+      ],
       "expo-status-bar"
     ],
     "experiments": {
